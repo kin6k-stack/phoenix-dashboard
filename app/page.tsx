@@ -111,7 +111,7 @@ export default function TradingDashboard() {
   const renderContent = () => {
     switch (activeNavItem) {
       case "dashboard": 
-        return <div className="flex-1 overflow-auto"><DashboardView /></div>
+  return <div className="flex-1 overflow-auto"><DashboardView trades={trades} /></div>
       
       case "pnl-calendar":
         return (
