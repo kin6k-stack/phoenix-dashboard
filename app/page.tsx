@@ -5,6 +5,9 @@ import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, d
 import { db } from "../lib/firebase" 
 import { Sidebar } from "@/components/sidebar"
 import { TradingCalendar } from "@/components/trading-calendar"
+import { SlimMonthlyPerformance } from "@/components/slim-monthly-performance"
+import { SlimPnLChart } from "@/components/slim-pnl-chart"
+import { SlimJournal } from "@/components/slim-journal"
 import { ManualTradesCard } from "@/components/manual-trades-card"
 import { AddTradeDialog } from "@/components/add-trade-dialog"
 import { SessionIntelligence } from "@/components/session-intelligence"
@@ -28,7 +31,9 @@ export default function TradingDashboard() {
   const [isAddTradeOpen, setIsAddTradeOpen] = useState(false)
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
   const [trades, setTrades] = useState<Trade[]>([])
+  
   const [activeNavItem, setActiveNavItem] = useState("dashboard")
+  
   const [currentMonthYear, setCurrentMonthYear] = useState<{ month: number; year: number }>({
     month: new Date().getMonth(),
     year: new Date().getFullYear()
@@ -45,6 +50,7 @@ export default function TradingDashboard() {
         } else if (data.date) {
             tradeDate = new Date(data.date).toISOString(); 
         }
+
         return {
           id: doc.id,
           date: tradeDate,
@@ -62,9 +68,15 @@ export default function TradingDashboard() {
 
   useEffect(() => {
     if (selectedDate) {
+      setEditingTrade(null);
       setIsAddTradeOpen(true);
     }
   }, [selectedDate]);
+
+  const openEditDialog = (trade: Trade) => {
+    setEditingTrade(trade);
+    setIsAddTradeOpen(true);
+  }
 
   const handleSaveTrade = async (trade: any) => {
     try {
@@ -97,7 +109,11 @@ export default function TradingDashboard() {
   }
 
   const handleDeleteTrade = async (id: string) => {
-    try { await deleteDoc(doc(db, "trades", id)); } catch (error) { console.error(error); }
+    try {
+      await deleteDoc(doc(db, "trades", id));
+    } catch (error) {
+      console.error("Firebase deletion error:", error);
+    }
   }
 
   const filteredTrades = trades.filter(t => {
@@ -105,62 +121,113 @@ export default function TradingDashboard() {
     return tradeDateObj.getMonth() === currentMonthYear.month && tradeDateObj.getFullYear() === currentMonthYear.year;
   });
 
+  const totalTrades = filteredTrades.length
+  const wins = filteredTrades.filter(t => t.rMultiple > 0).length
+  const losses = filteredTrades.filter(t => t.rMultiple < 0).length
+  const winRate = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0
+  const netPnL = filteredTrades.reduce((sum, t) => sum + t.rMultiple, 0)
+  const tradeDates = trades.map(t => new Date(t.date))
+
   const renderContent = () => {
     switch (activeNavItem) {
-      case "dashboard": return <DashboardView trades={trades} />
-      case "pnl-calendar": return (
-        <div className="flex flex-col lg:flex-row h-full gap-4 md:gap-6 p-4 md:p-6 lg:p-8 overflow-y-auto lg:overflow-hidden">
-            <div className="flex-1 min-h-[400px] lg:min-h-0">
-              <div className="glass-card p-4 md:p-6 h-full shadow-lg overflow-y-auto">
+      case "dashboard": 
+        return <div className="flex-1 overflow-auto"><DashboardView trades={trades} /></div>
+      
+      case "pnl-calendar":
+        return (
+          <div className="flex flex-1 overflow-hidden h-full w-full">
+            <div className="flex-1 p-8 overflow-auto">
+              <div className="bg-card/40 backdrop-blur-md rounded-xl border border-border/40 p-6 h-full shadow-[0_0_20px_rgba(0,0,0,0.15)]">
                 <TradingCalendar 
-                  selectedDate={selectedDate} 
-                  onDateSelect={setSelectedDate} 
-                  tradeDates={trades.map(t=>new Date(t.date))} 
-                  totalTrades={filteredTrades.length} 
-                  wins={filteredTrades.filter(t=>t.rMultiple>0).length} 
-                  netPnL={filteredTrades.reduce((sum, t)=>sum+t.rMultiple, 0)} 
-                  winRate={filteredTrades.length > 0 ? Math.round((filteredTrades.filter(t=>t.rMultiple>0).length/filteredTrades.length)*100) : 0} 
-                  onMonthYearChange={setCurrentMonthYear} 
+                  selectedDate={selectedDate}
+                  onDateSelect={setSelectedDate}
+                  tradeDates={tradeDates}
+                  totalTrades={totalTrades}
+                  wins={wins}
+                  netPnL={netPnL}
+                  winRate={winRate}
+                  onMonthYearChange={setCurrentMonthYear}
                 />
               </div>
             </div>
-            <div className="w-full lg:w-80 h-[400px] lg:h-auto shrink-0">
+            <div className="w-80 border-l border-border/40 p-4 overflow-auto space-y-4 bg-card/20 backdrop-blur-md">
+              <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />
+              <SlimPnLChart trades={filteredTrades} /> 
+              <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
+              
               <ManualTradesCard 
                 trades={filteredTrades} 
                 onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true); }} 
-                onEditTrade={(t) => { setEditingTrade(t); setIsAddTradeOpen(true); }} 
+                onEditTrade={openEditDialog}
                 onDeleteTrade={handleDeleteTrade} 
               />
             </div>
-        </div>
-      )
-      case "session-intelligence": return <div className="p-4 md:p-6 lg:p-8"><SessionIntelligence trades={trades} /></div>
-      case "performance-metrics": return <div className="p-4 md:p-6 lg:p-8"><PerformanceView trades={trades} /></div>
-      case "signal-history": return <div className="p-4 md:p-6 lg:p-8"><SignalHistoryView trades={trades} /></div>
-      case "settings": return <div className="p-4 md:p-6 lg:p-8"><BotConfiguration /></div>
-      default: return <div className="p-4 md:p-6 lg:p-8 text-muted-foreground">Initializing...</div>
+          </div>
+        )
+      
+      case "session-intelligence":
+        return (
+          <div className="flex-1 p-8 overflow-auto">
+            <div className="max-w-6xl mx-auto space-y-4">
+              <div className="flex flex-col gap-1 mb-6">
+                <h1 className="text-2xl font-black text-foreground uppercase tracking-widest drop-shadow-sm">Session Intelligence HUD</h1>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Real-time institutional liquidity alignment matrix data feeds.</p>
+              </div>
+              <SessionIntelligence trades={trades} />
+            </div>
+          </div>
+        )
+
+      case "performance-metrics":
+        return (
+          <div className="flex-1 p-8 overflow-auto">
+            <div className="max-w-6xl mx-auto space-y-4">
+              <div className="flex flex-col gap-1 mb-6">
+                <h1 className="text-2xl font-black text-foreground uppercase tracking-widest drop-shadow-sm">Engine Telemetry</h1>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Segmented algorithmic strategy and execution history breakdowns.</p>
+              </div>
+              <PerformanceView trades={trades} />
+            </div>
+          </div>
+        )
+
+      case "signal-history":
+        return (
+          <div className="flex-1 p-8 overflow-auto">
+            <div className="max-w-6xl mx-auto space-y-4">
+              <div className="flex flex-col gap-1 mb-6">
+                <h1 className="text-2xl font-black text-foreground uppercase tracking-widest drop-shadow-sm">Global Execution Ledger</h1>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Immutable history of all fired engine signals and resulting outcomes.</p>
+              </div>
+              <SignalHistoryView trades={trades} />
+            </div>
+          </div>
+        )
+
+      case "economic-calendar":
+        return <div className="flex-1 p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Economic Calendar stream initializing...</div>
+      case "settings": 
+        return <div className="flex-1 p-8 overflow-auto"><BotConfiguration /></div>
+      default: 
+        return <div className="flex-1 p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Section coming soon.</div>
     }
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-[100dvh] bg-background overflow-hidden font-sans">
+    // Global Radial Gradient applied here so the whole UI feels tied together
+    <div className="flex h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-background to-background overflow-hidden font-sans">
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} />
+      {renderContent()}
       
-      <main className="flex-1 h-full overflow-y-auto custom-scrollbar w-full">
-        <div className="max-w-[1600px] mx-auto w-full h-full">
-            {renderContent()}
-        </div>
-      </main>
-
       <AddTradeDialog 
-        open={isAddTradeOpen} 
+        open={isAddTradeOpen}
         onOpenChange={(open) => { 
           setIsAddTradeOpen(open); 
           if (!open) { setSelectedDate(null); setEditingTrade(null); } 
-        }} 
-        onSubmit={handleSaveTrade} 
-        initialDate={selectedDate} 
-        existingTrade={editingTrade} 
+        }}
+        onSubmit={handleSaveTrade}
+        initialDate={selectedDate}
+        existingTrade={editingTrade}
       />
     </div>
   )
