@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { X } from "lucide-react"
 
 interface TradeData {
+  id?: string
   date: string
   symbol: string
   setup: string
@@ -15,13 +16,15 @@ interface TradeData {
 interface AddTradeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (trade: Omit<TradeData, "id">) => void
+  onSubmit: (trade: Omit<TradeData, "id"> | TradeData) => void
+  initialDate?: Date | null
+  existingTrade?: TradeData | null
 }
 
-export function AddTradeDialog({ open, onOpenChange, onSubmit }: AddTradeDialogProps) {
+export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, existingTrade }: AddTradeDialogProps) {
   const [formData, setFormData] = useState<TradeData>({
     date: new Date().toISOString().split('T')[0],
-    symbol: "XAUUSD", // Default anchor item
+    symbol: "XAUUSD",
     setup: "Manual Entry",
     rMultiple: 0,
     notes: "",
@@ -30,16 +33,25 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit }: AddTradeDialogP
 
   useEffect(() => {
     if (open) {
-      setFormData({
-        date: new Date().toISOString().split('T')[0],
-        symbol: "XAUUSD", 
-        setup: "Manual Entry",
-        rMultiple: 0,
-        notes: "",
-        screenshot: ""
-      })
+      if (existingTrade) {
+        // Edit Mode
+        setFormData({
+          ...existingTrade,
+          date: new Date(existingTrade.date).toISOString().split('T')[0]
+        })
+      } else {
+        // Create Mode (Respects selected calendar date)
+        setFormData({
+          date: initialDate ? initialDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          symbol: "XAUUSD", 
+          setup: "Manual Entry",
+          rMultiple: 0,
+          notes: "",
+          screenshot: ""
+        })
+      }
     }
-  }, [open])
+  }, [open, initialDate, existingTrade])
 
   if (!open) return null;
 
@@ -54,7 +66,9 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit }: AddTradeDialogP
         
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-border">
-          <h2 className="text-xl font-semibold text-foreground">Log Historical Trade</h2>
+          <h2 className="text-xl font-semibold text-foreground">
+            {existingTrade ? "Edit Trade Record" : "Log Historical Trade"}
+          </h2>
           <button 
             onClick={() => onOpenChange(false)}
             className="text-muted-foreground hover:text-foreground transition-colors p-1 rounded-full hover:bg-muted"
@@ -79,7 +93,6 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit }: AddTradeDialogP
                 />
               </div>
               
-              {/* 🔥 FIXED OPTION CHANGER SETTING GRID LINK */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground">Asset Symbol</label>
                 <select
@@ -95,7 +108,7 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit }: AddTradeDialogP
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Setup Type</label>
+                <label className="text-sm font-medium text-foreground">Setup Type / Bot</label>
                 <input 
                   type="text" 
                   placeholder="e.g. Trend Scalp"
@@ -126,7 +139,7 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit }: AddTradeDialogP
               <input 
                 type="url" 
                 placeholder="https://www.tradingview.com/x/..."
-                value={formData.screenshot}
+                value={formData.screenshot || ""}
                 onChange={(e) => setFormData({ ...formData, screenshot: e.target.value })}
                 className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
               />
@@ -137,7 +150,7 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit }: AddTradeDialogP
               <textarea 
                 rows={3}
                 placeholder="What went right? What went wrong?"
-                value={formData.notes}
+                value={formData.notes || ""}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 className="w-full bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none"
               />
@@ -147,13 +160,20 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit }: AddTradeDialogP
         </div>
 
         {/* Action Button */}
-        <div className="p-5 border-t border-border bg-muted/30 rounded-b-xl">
+        <div className="p-5 border-t border-border bg-muted/30 rounded-b-xl flex justify-end gap-3">
+          <button 
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="px-4 py-2 text-sm font-medium text-foreground hover:bg-muted rounded-md transition-colors"
+          >
+            Cancel
+          </button>
           <button 
             type="submit"
             form="trade-form"
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2.5 rounded-md transition-colors"
+            className="px-6 bg-primary hover:bg-primary/90 text-primary-foreground font-medium py-2.5 rounded-md transition-colors shadow-sm"
           >
-            Save Trade
+            {existingTrade ? "Update Trade" : "Save Trade"}
           </button>
         </div>
 
