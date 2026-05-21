@@ -5,9 +5,6 @@ import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, d
 import { db } from "../lib/firebase" 
 import { Sidebar } from "@/components/sidebar"
 import { TradingCalendar } from "@/components/trading-calendar"
-import { SlimMonthlyPerformance } from "@/components/slim-monthly-performance"
-import { SlimPnLChart } from "@/components/slim-pnl-chart"
-import { SlimJournal } from "@/components/slim-journal"
 import { ManualTradesCard } from "@/components/manual-trades-card"
 import { AddTradeDialog } from "@/components/add-trade-dialog"
 import { SessionIntelligence } from "@/components/session-intelligence"
@@ -37,6 +34,7 @@ export default function TradingDashboard() {
     year: new Date().getFullYear()
   })
 
+  // Firebase Real-time Pipeline
   useEffect(() => {
     const q = query(collection(db, "trades"), orderBy("timestamp", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -62,6 +60,13 @@ export default function TradingDashboard() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Bridge: Triggers dialog automatically when calendar date is clicked
+  useEffect(() => {
+    if (selectedDate) {
+      setIsAddTradeOpen(true);
+    }
+  }, [selectedDate]);
 
   const handleSaveTrade = async (trade: any) => {
     try {
@@ -104,26 +109,61 @@ export default function TradingDashboard() {
 
   const renderContent = () => {
     switch (activeNavItem) {
-      case "dashboard": return <div className="flex-1 overflow-auto"><DashboardView trades={trades} /></div>
+      case "dashboard": return <DashboardView trades={trades} />
       case "pnl-calendar": return (
-        <div className="flex flex-1 flex-col lg:flex-row overflow-hidden h-full w-full">
-            <div className="flex-1 p-4 lg:p-8 overflow-auto"><div className="bg-card/40 backdrop-blur-md rounded-xl border border-border/40 p-6 h-full shadow-lg"><TradingCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} tradeDates={trades.map(t=>new Date(t.date))} totalTrades={filteredTrades.length} wins={filteredTrades.filter(t=>t.rMultiple>0).length} netPnL={filteredTrades.reduce((sum, t)=>sum+t.rMultiple, 0)} winRate={filteredTrades.length > 0 ? Math.round((filteredTrades.filter(t=>t.rMultiple>0).length/filteredTrades.length)*100) : 0} onMonthYearChange={setCurrentMonthYear} /></div></div>
-            <div className="w-full lg:w-80 border-t lg:border-l border-border/40 p-4 space-y-4 bg-card/20 backdrop-blur-md"><ManualTradesCard trades={filteredTrades} onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true); }} onEditTrade={(t) => { setEditingTrade(t); setIsAddTradeOpen(true); }} onDeleteTrade={handleDeleteTrade} /></div>
+        <div className="flex flex-col lg:flex-row h-full gap-4 p-4 lg:p-6 overflow-hidden">
+            <div className="flex-1 min-h-[400px]">
+              <div className="glass-card p-6 h-full shadow-lg">
+                <TradingCalendar 
+                  selectedDate={selectedDate} 
+                  onDateSelect={setSelectedDate} 
+                  tradeDates={trades.map(t=>new Date(t.date))} 
+                  totalTrades={filteredTrades.length} 
+                  wins={filteredTrades.filter(t=>t.rMultiple>0).length} 
+                  netPnL={filteredTrades.reduce((sum, t)=>sum+t.rMultiple, 0)} 
+                  winRate={filteredTrades.length > 0 ? Math.round((filteredTrades.filter(t=>t.rMultiple>0).length/filteredTrades.length)*100) : 0} 
+                  onMonthYearChange={setCurrentMonthYear} 
+                />
+              </div>
+            </div>
+            <div className="w-full lg:w-80 h-[400px] lg:h-auto">
+              <ManualTradesCard 
+                trades={filteredTrades} 
+                onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true); }} 
+                onEditTrade={(t) => { setEditingTrade(t); setIsAddTradeOpen(true); }} 
+                onDeleteTrade={handleDeleteTrade} 
+              />
+            </div>
         </div>
       )
-      case "session-intelligence": return <div className="flex-1 p-8 overflow-auto"><SessionIntelligence trades={trades} /></div>
-      case "performance-metrics": return <div className="flex-1 p-8 overflow-auto"><PerformanceView trades={trades} /></div>
-      case "signal-history": return <div className="flex-1 p-8 overflow-auto"><SignalHistoryView trades={trades} /></div>
-      case "settings": return <div className="flex-1 p-8 overflow-auto"><BotConfiguration /></div>
-      default: return <div className="flex-1 p-8 text-muted-foreground">Initializing...</div>
+      case "session-intelligence": return <div className="p-8"><SessionIntelligence trades={trades} /></div>
+      case "performance-metrics": return <div className="p-8"><PerformanceView trades={trades} /></div>
+      case "signal-history": return <div className="p-8"><SignalHistoryView trades={trades} /></div>
+      case "settings": return <div className="p-8"><BotConfiguration /></div>
+      default: return <div className="p-8 text-muted-foreground">Initializing...</div>
     }
   }
 
   return (
-    <div className="flex flex-col lg:flex-row h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-background to-background overflow-hidden font-sans">
+    <div className="flex flex-col lg:flex-row h-screen bg-background overflow-hidden font-sans">
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} />
-      <main className="flex-1 overflow-y-auto">{renderContent()}</main>
-      <AddTradeDialog open={isAddTradeOpen} onOpenChange={(open) => { setIsAddTradeOpen(open); if (!open) { setSelectedDate(null); setEditingTrade(null); } }} onSubmit={handleSaveTrade} initialDate={selectedDate} existingTrade={editingTrade} />
+      
+      <main className="flex-1 h-full overflow-y-auto custom-scrollbar">
+        <div className="max-w-[1600px] mx-auto w-full h-full">
+            {renderContent()}
+        </div>
+      </main>
+
+      <AddTradeDialog 
+        open={isAddTradeOpen} 
+        onOpenChange={(open) => { 
+          setIsAddTradeOpen(open); 
+          if (!open) { setSelectedDate(null); setEditingTrade(null); } 
+        }} 
+        onSubmit={handleSaveTrade} 
+        initialDate={selectedDate} 
+        existingTrade={editingTrade} 
+      />
     </div>
   )
 }
