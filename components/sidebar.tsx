@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Calendar, LayoutDashboard, Clock, Settings, Shield, TrendingUp, Globe, History } from "lucide-react"
 
 interface SidebarProps {
@@ -8,6 +9,15 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
+  // Simulating connection detection logic
+  const [connectionState, setConnectionState] = useState<"ok" | "issue" | "offline">("ok");
+
+  const statusConfig = {
+    ok: "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse",
+    issue: "bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.8)]",
+    offline: "bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"
+  }
+
   const menuItems = [
     { id: "dashboard", name: "Executive Overview", icon: LayoutDashboard },
     { id: "pnl-calendar", name: "P&L Calendar", icon: Calendar },
@@ -57,12 +67,14 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
       </div>
 
       {/* Account Terminal Feed Card Node */}
-      <div className="p-3 bg-background/40 border border-border/40 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.2)] backdrop-blur-md">
-        <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+      <div className="p-4 bg-background/40 border border-border/40 rounded-xl shadow-[0_0_15px_rgba(0,0,0,0.2)] backdrop-blur-md cursor-pointer hover:bg-background/60 transition-colors"
+           onClick={() => setConnectionState(prev => prev === 'ok' ? 'issue' : prev === 'issue' ? 'offline' : 'ok')}
+      >
+        <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">
           <span>Broker Terminal</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse" />
+          <span className={`w-2 h-2 rounded-full ${statusConfig[connectionState]} transition-colors duration-300`} />
         </div>
-        <p className="text-xs font-black text-foreground mt-1 tracking-tight font-mono">Exness MT5 Real</p>
+        <p className="text-xs font-black text-foreground tracking-tight font-mono">Exness MT5 Real</p>
       </div>
     </div>
   )
