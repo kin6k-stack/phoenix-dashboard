@@ -12,9 +12,9 @@ import { ManualTradesCard } from "@/components/manual-trades-card"
 import { AddTradeDialog } from "@/components/add-trade-dialog"
 import { SessionIntelligence } from "@/components/session-intelligence"
 import { PerformanceView } from "@/components/performance-view"
-import { AssetMatrix } from "@/components/asset-matrix" 
 import { DashboardView } from "@/components/dashboard-view"
 import { BotConfiguration } from "@/components/bot-configuration"
+import { SignalHistoryView } from "@/components/signal-history" // NEW IMPORT
 
 interface Trade {
   id: string
@@ -29,7 +29,7 @@ interface Trade {
 export default function TradingDashboard() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [isAddTradeOpen, setIsAddTradeOpen] = useState(false)
-  const [editingTrade, setEditingTrade] = useState<Trade | null>(null) // NEW STATE
+  const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
   const [trades, setTrades] = useState<Trade[]>([])
   
   const [activeNavItem, setActiveNavItem] = useState("dashboard")
@@ -66,7 +66,6 @@ export default function TradingDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // When a calendar date is clicked, open dialog for that date
   useEffect(() => {
     if (selectedDate) {
       setEditingTrade(null);
@@ -74,7 +73,6 @@ export default function TradingDashboard() {
     }
   }, [selectedDate]);
 
-  // When edit is clicked on a row
   const openEditDialog = (trade: Trade) => {
     setEditingTrade(trade);
     setIsAddTradeOpen(true);
@@ -83,7 +81,6 @@ export default function TradingDashboard() {
   const handleSaveTrade = async (trade: any) => {
     try {
       if (trade.id) {
-        // UPDATE EXISTING TRADE
         await updateDoc(doc(db, "trades", trade.id), {
           symbol: trade.symbol.toUpperCase(),
           profit: Number(trade.rMultiple),
@@ -93,7 +90,6 @@ export default function TradingDashboard() {
           screenshot: trade.screenshot || ""
         });
       } else {
-        // ADD NEW TRADE
         await addDoc(collection(db, "trades"), {
           symbol: trade.symbol.toUpperCase(),
           profit: Number(trade.rMultiple), 
@@ -141,7 +137,7 @@ export default function TradingDashboard() {
         return (
           <div className="flex flex-1 overflow-hidden h-full w-full">
             <div className="flex-1 p-6 overflow-auto">
-              <div className="bg-card rounded-xl border border-border p-6 h-full">
+              <div className="bg-card rounded-xl border border-border p-6 h-full shadow-sm">
                 <TradingCalendar 
                   selectedDate={selectedDate}
                   onDateSelect={setSelectedDate}
@@ -159,7 +155,6 @@ export default function TradingDashboard() {
               <SlimPnLChart trades={filteredTrades} /> 
               <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
               
-              {/* Added onEditTrade handler */}
               <ManualTradesCard 
                 trades={filteredTrades} 
                 onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true); }} 
@@ -174,9 +169,9 @@ export default function TradingDashboard() {
         return (
           <div className="flex-1 p-6 overflow-auto bg-background">
             <div className="max-w-6xl mx-auto space-y-4">
-              <div className="flex flex-col gap-1">
-                <h1 className="text-xl font-black text-foreground uppercase tracking-wider">Session Intelligence HUD</h1>
-                <p className="text-xs text-muted-foreground font-medium">Real-time institutional liquidity alignment matrix data feeds.</p>
+              <div className="flex flex-col gap-1 mb-6">
+                <h1 className="text-2xl font-black text-foreground uppercase tracking-widest">Session Intelligence HUD</h1>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Real-time institutional liquidity alignment matrix data feeds.</p>
               </div>
               <SessionIntelligence />
             </div>
@@ -185,43 +180,41 @@ export default function TradingDashboard() {
 
       case "performance-metrics":
         return (
-          <div className="flex-1 p-6 overflow-auto bg-background">
+          <div className="flex-1 p-8 overflow-auto bg-background">
             <div className="max-w-6xl mx-auto space-y-4">
-              <div className="flex flex-col gap-1">
-                <h1 className="text-xl font-black text-foreground uppercase tracking-wider">Performance Statistics</h1>
-                <p className="text-xs text-muted-foreground font-medium">Segmented algorithmic strategy and execution history breakdowns.</p>
+              <div className="flex flex-col gap-1 mb-6">
+                <h1 className="text-2xl font-black text-foreground uppercase tracking-widest">Engine Telemetry</h1>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Segmented algorithmic strategy and execution history breakdowns.</p>
               </div>
               <PerformanceView trades={trades} />
             </div>
           </div>
         )
 
-      case "asset-matrix":
+      case "signal-history":
         return (
-          <div className="flex-1 p-6 overflow-auto bg-background">
+          <div className="flex-1 p-8 overflow-auto bg-background">
             <div className="max-w-6xl mx-auto space-y-4">
-              <div className="flex flex-col gap-1">
-                <h1 className="text-xl font-black text-foreground uppercase tracking-wider">Asset Matrix Terminal</h1>
-                <p className="text-xs text-muted-foreground font-medium">Cross-market relationships, macro correlation vectors, and asset weights.</p>
+              <div className="flex flex-col gap-1 mb-6">
+                <h1 className="text-2xl font-black text-foreground uppercase tracking-widest">Global Execution Ledger</h1>
+                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Immutable history of all fired signals and resulting outcomes.</p>
               </div>
-              <AssetMatrix trades={trades} />
+              <SignalHistoryView trades={trades} />
             </div>
           </div>
         )
 
       case "economic-calendar":
-        return <div className="flex-1 p-6 overflow-auto text-muted-foreground text-sm italic">Economic Calendar stream initializing...</div>
-      case "signal-history":
-        return <div className="flex-1 p-6 overflow-auto text-muted-foreground text-sm italic">Signal History database pipeline linking...</div>
+        return <div className="flex-1 p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Economic Calendar stream initializing...</div>
       case "settings": 
-        return <div className="flex-1 p-6 overflow-auto"><BotConfiguration /></div>
+        return <div className="flex-1 p-8 overflow-auto"><BotConfiguration /></div>
       default: 
-        return <div className="flex-1 p-6 overflow-auto text-muted-foreground text-sm italic">Section coming soon.</div>
+        return <div className="flex-1 p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Section coming soon.</div>
     }
   }
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden font-sans">
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} />
       {renderContent()}
       

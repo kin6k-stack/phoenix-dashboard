@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Shield, BarChart3, Activity } from "lucide-react"
+import { Shield, Cpu, Activity } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Trade {
@@ -27,8 +27,14 @@ export function PerformanceView({ trades = [] }: PerformanceViewProps) {
   }
 
   const filtered = trades.filter(applyFilter)
-  const goldTrades = filtered.filter(t => t.symbol === "XAUUSD")
-  const nasTrades = filtered.filter(t => t.symbol === "USTEC")
+
+  // Dynamically group trades by their bot/setup name
+  const botGroups = filtered.reduce((acc, trade) => {
+    const botName = trade.setup;
+    if (!acc[botName]) acc[botName] = [];
+    acc[botName].push(trade);
+    return acc;
+  }, {} as Record<string, Trade[]>);
 
   const getAssetStats = (assetTrades: Trade[]) => {
     const total = assetTrades.length
@@ -48,131 +54,98 @@ export function PerformanceView({ trades = [] }: PerformanceViewProps) {
     return { total, winsCount, lossesCount, winRate, profitFactor, netPnL }
   }
 
-  const goldStats = getAssetStats(goldTrades)
-  const nasStats = getAssetStats(nasTrades)
+  const getBotColor = (botName: string) => {
+    if (botName.toLowerCase().includes("gold") || botName.toLowerCase().includes("sentinel")) return "amber";
+    if (botName.toLowerCase().includes("nq") || botName.toLowerCase().includes("nasdaq")) return "cyan";
+    if (botName.toLowerCase().includes("manual")) return "slate";
+    return "indigo"; // Default for hybrid/others
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between p-4 bg-card rounded-xl border border-border">
+      <div className="flex items-center justify-between p-4 bg-card rounded-xl border border-border shadow-sm">
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Data Source Layer</span>
-          <span className="text-xs text-foreground font-medium italic">Isolating automated engines from manual journals</span>
+          <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">Data Source Layer</span>
+          <span className="text-[11px] text-foreground font-medium italic">Dynamic routing from MT5 bridges</span>
         </div>
-        <div className="flex gap-1 bg-background p-1 rounded-lg border border-border">
+        <div className="flex gap-1 bg-background p-1.5 rounded-lg border border-border shadow-inner">
           {(["ALL", "BOT", "MANUAL"] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setFilterMode(mode)}
-              className={`px-3 py-1.5 rounded-md text-[10px] font-black uppercase tracking-wider transition-all ${
+              className={`px-4 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-all ${
                 filterMode === mode
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted/40"
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
               }`}
             >
-              {mode === "ALL" ? "Combined Matrix" : mode === "BOT" ? "Core Bots" : "Manual Logs"}
+              {mode === "ALL" ? "Combined" : mode === "BOT" ? "Core Engines" : "Manual"}
             </button>
           ))}
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* GOLD */}
-        <Card className="border-border bg-card shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-1 h-full bg-amber-500/80" />
-          <CardHeader className="pb-3 border-b border-border/60">
-            <CardTitle className="flex items-center justify-between text-sm font-black uppercase tracking-wider text-foreground">
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-amber-500" />
-                <span>Gold Sentinel Engine (XAUUSD)</span>
-              </div>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded border border-amber-500/20">
-                {goldTrades.length} Trades Active
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-background/40 border border-border/60 p-3 rounded-lg">
-                <span className="text-[10px] font-bold text-muted-foreground block uppercase tracking-wider">Net Performance</span>
-                <span className={`text-xl font-black tabular-nums ${goldStats.netPnL >= 0 ? "text-emerald-400" : "text-rose-500"}`}>
-                  {goldStats.netPnL >= 0 ? "+" : ""}${goldStats.netPnL.toFixed(2)}
-                </span>
-              </div>
-              <div className="bg-background/40 border border-border/60 p-3 rounded-lg">
-                <span className="text-[10px] font-bold text-muted-foreground block uppercase tracking-wider">Profit Factor</span>
-                <span className="text-xl font-black tabular-nums text-foreground">{goldStats.profitFactor}</span>
-              </div>
-            </div>
-            <div className="space-y-2.5 pt-1">
-              <div className="flex justify-between items-center text-xs font-medium">
-                <span className="text-muted-foreground uppercase tracking-wide">Win Rate Efficiency</span>
-                <span className="text-foreground font-bold font-mono">{goldStats.winRate}%</span>
-              </div>
-              <div className="w-full bg-muted/40 h-1.5 rounded-full overflow-hidden border border-border/20">
-                <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${goldStats.winRate}%` }} />
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
-                <div className="flex justify-between p-2 bg-background/30 rounded border border-border/40">
-                  <span className="text-muted-foreground font-mono">Wins:</span>
-                  <span className="text-emerald-400 font-bold font-mono">{goldStats.winsCount}</span>
-                </div>
-                <div className="flex justify-between p-2 bg-background/30 rounded border border-border/40">
-                  <span className="text-muted-foreground font-mono">Losses:</span>
-                  <span className="text-rose-400 font-bold font-mono">{goldStats.lossesCount}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {Object.entries(botGroups).map(([botName, botTrades]) => {
+          const stats = getAssetStats(botTrades);
+          const colorTheme = getBotColor(botName);
+          const latestSymbol = botTrades[0]?.symbol || "UNKNOWN";
 
-        {/* NASDAQ */}
-        <Card className="border-border bg-card shadow-sm relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500/80" />
-          <CardHeader className="pb-3 border-b border-border/60">
-            <CardTitle className="flex items-center justify-between text-sm font-black uppercase tracking-wider text-foreground">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-cyan-400" />
-                <span>Phoenix NQ Engine (USTEC)</span>
-              </div>
-              <span className="text-xs font-mono font-bold px-2 py-0.5 bg-cyan-500/10 text-cyan-400 rounded border border-cyan-500/20">
-                {nasTrades.length} Trades Active
-              </span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-background/40 border border-border/60 p-3 rounded-lg">
-                <span className="text-[10px] font-bold text-muted-foreground block uppercase tracking-wider">Net Performance</span>
-                <span className={`text-xl font-black tabular-nums ${nasStats.netPnL >= 0 ? "text-emerald-400" : "text-rose-500"}`}>
-                  {nasStats.netPnL >= 0 ? "+" : ""}${nasStats.netPnL.toFixed(2)}
-                </span>
-              </div>
-              <div className="bg-background/40 border border-border/60 p-3 rounded-lg">
-                <span className="text-[10px] font-bold text-muted-foreground block uppercase tracking-wider">Profit Factor</span>
-                <span className="text-xl font-black tabular-nums text-foreground">{nasStats.profitFactor}</span>
-              </div>
-            </div>
-            <div className="space-y-2.5 pt-1">
-              <div className="flex justify-between items-center text-xs font-medium">
-                <span className="text-muted-foreground uppercase tracking-wide">Win Rate Efficiency</span>
-                <span className="text-foreground font-bold font-mono">{nasStats.winRate}%</span>
-              </div>
-              <div className="w-full bg-muted/40 h-1.5 rounded-full overflow-hidden border border-border/20">
-                <div className="bg-cyan-500 h-full transition-all duration-500" style={{ width: `${nasStats.winRate}%` }} />
-              </div>
-              <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
-                <div className="flex justify-between p-2 bg-background/30 rounded border border-border/40">
-                  <span className="text-muted-foreground font-mono">Wins:</span>
-                  <span className="text-emerald-400 font-bold font-mono">{nasStats.winsCount}</span>
+          return (
+            <Card key={botName} className="border-border/50 bg-card/60 backdrop-blur shadow-md relative overflow-hidden group hover:border-border transition-colors">
+              {/* Dynamic side border based on bot type */}
+              <div className={`absolute top-0 left-0 w-1.5 h-full bg-${colorTheme}-500/80`} />
+              
+              <CardHeader className="pb-4 border-b border-border/40">
+                <CardTitle className="flex items-center justify-between text-sm font-black uppercase tracking-widest text-foreground">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded bg-${colorTheme}-500/10 border border-${colorTheme}-500/20`}>
+                      {colorTheme === 'slate' ? <Activity className="h-4 w-4 text-slate-400" /> : <Cpu className={`h-4 w-4 text-${colorTheme}-400`} />}
+                    </div>
+                    <span className="tracking-tight">{botName} <span className="text-muted-foreground font-medium text-xs">({latestSymbol})</span></span>
+                  </div>
+                  <span className={`text-[10px] font-mono font-bold px-2.5 py-1 bg-${colorTheme}-500/10 text-${colorTheme}-400 rounded-md border border-${colorTheme}-500/20`}>
+                    {stats.total} Executions
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-background/50 border border-border/40 p-4 rounded-xl shadow-inner">
+                    <span className="text-[10px] font-black text-muted-foreground block uppercase tracking-widest mb-1">Net Performance</span>
+                    <span className={`text-2xl font-black tabular-nums tracking-tighter ${stats.netPnL >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      {stats.netPnL >= 0 ? "+" : ""}${stats.netPnL.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="bg-background/50 border border-border/40 p-4 rounded-xl shadow-inner">
+                    <span className="text-[10px] font-black text-muted-foreground block uppercase tracking-widest mb-1">Profit Factor</span>
+                    <span className="text-2xl font-black tabular-nums text-foreground tracking-tighter">{stats.profitFactor}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between p-2 bg-background/30 rounded border border-border/40">
-                  <span className="text-muted-foreground font-mono">Losses:</span>
-                  <span className="text-rose-400 font-bold font-mono">{nasStats.lossesCount}</span>
+                
+                <div className="space-y-3 pt-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground uppercase tracking-widest font-bold">Win Rate Efficiency</span>
+                    <span className="text-foreground font-black font-mono text-sm">{stats.winRate}%</span>
+                  </div>
+                  <div className="w-full bg-background h-2 rounded-full overflow-hidden border border-border/50 shadow-inner">
+                    <div className={`bg-${colorTheme}-500 h-full transition-all duration-700`} style={{ width: `${stats.winRate}%` }} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-3 text-xs">
+                    <div className="flex justify-between items-center p-2.5 bg-background/40 rounded-lg border border-border/40">
+                      <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Wins</span>
+                      <span className="text-emerald-400 font-black font-mono text-sm">{stats.winsCount}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2.5 bg-background/40 rounded-lg border border-border/40">
+                      <span className="text-muted-foreground font-bold uppercase tracking-widest text-[10px]">Losses</span>
+                      <span className="text-rose-400 font-black font-mono text-sm">{stats.lossesCount}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   )

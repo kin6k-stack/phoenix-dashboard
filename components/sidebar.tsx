@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, LayoutDashboard, Clock, Settings, Shield, BarChart3, TrendingUp, Globe, History } from "lucide-react"
+import { Calendar, LayoutDashboard, Clock, Settings, Shield, TrendingUp, Globe, History } from "lucide-react"
 
 interface SidebarProps {
   activeItem: string
@@ -13,9 +13,8 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
     { id: "pnl-calendar", name: "P&L Calendar", icon: Calendar },
     { id: "session-intelligence", name: "Session Intelligence", icon: Clock },
     { id: "performance-metrics", name: "Performance", icon: TrendingUp },      
-    { id: "asset-matrix", name: "Asset Matrix", icon: BarChart3 },            
-    { id: "economic-calendar", name: "Economic Calendar", icon: Globe },       
     { id: "signal-history", name: "Signal History", icon: History },          
+    { id: "economic-calendar", name: "Economic Calendar", icon: Globe },       
     { id: "settings", name: "Bot Configurations", icon: Settings }
   ]
 
@@ -65,7 +64,6 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
         </div>
         <p className="text-xs font-black text-foreground mt-1 tracking-tight font-mono">Exness MT5 Real</p>
       </div>
-
     </div>
   )
 }
