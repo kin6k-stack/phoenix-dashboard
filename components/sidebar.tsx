@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, LayoutDashboard, Clock, Settings, Shield, TrendingUp, History, Globe } from "lucide-react"
+import { Calendar, LayoutDashboard, Clock, Settings, Shield, TrendingUp, History, Globe, Menu } from "lucide-react"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 interface SidebarProps {
   activeItem: string
@@ -9,7 +10,6 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
-  // Connection state for the Broker Terminal
   const [connectionState] = useState<"ok" | "issue" | "offline">("ok");
 
   const statusConfig = {
@@ -28,8 +28,8 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
     { id: "settings", name: "Bot Configurations", icon: Settings }
   ]
 
-  return (
-    <div className="w-64 h-full bg-card/40 backdrop-blur-xl border-r border-border/40 flex flex-col justify-between p-4 flex-shrink-0 z-10">
+  const Navigation = () => (
+    <div className="w-64 h-full bg-card/90 backdrop-blur-xl border-r border-border/40 flex flex-col justify-between p-4">
       <div className="space-y-6">
         <div className="flex items-center gap-2.5 px-2 py-1.5 border-b border-border/40 pb-4">
           <Shield className="h-5 w-5 text-primary drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" />
@@ -37,7 +37,6 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
             Phoenix <span className="text-primary font-medium text-xs drop-shadow-sm">Command</span>
           </span>
         </div>
-
         <nav className="space-y-1">
           {menuItems.map((item) => {
             const IconComponent = item.icon
@@ -51,7 +50,6 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
           })}
         </nav>
       </div>
-
       <div className="p-4 bg-background/40 border border-border/40 rounded-xl shadow-lg backdrop-blur-md">
         <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">
           <span>Broker Terminal</span>
@@ -60,5 +58,18 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
         <p className="text-xs font-black text-foreground tracking-tight font-mono">Exness MT5 Real</p>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <div className="lg:hidden p-4 bg-card/40 border-b border-border/40 flex items-center">
+        <Sheet>
+          <SheetTrigger><Menu className="text-primary" /></SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64"><Navigation /></SheetContent>
+        </Sheet>
+        <span className="ml-4 font-black uppercase text-sm tracking-widest">Phoenix Command</span>
+      </div>
+      <div className="hidden lg:flex"><Navigation /></div>
+    </>
   )
 }

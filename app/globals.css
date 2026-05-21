@@ -134,3 +134,36 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  /* The Global Command Center Design System */
+  
+  /* Apply to any div/card to get the uniform glass effect */
+  .glass-card {
+    @apply bg-card/40 backdrop-blur-xl border border-border/40 shadow-lg;
+  }
+  
+  /* Apply to cards for the subtle primary color glow */
+  .glow-effect {
+    @apply shadow-[0_0_25px_rgba(6,182,212,0.08)];
+  }
+
+  /* Apply to headings or text for depth */
+  .text-glow {
+    @apply drop-shadow-[0_0_5px_rgba(255,255,255,0.3)];
+  }
+
+  /* Clean, invisible-until-hover scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full;
+  }
+}
+
+@layer utilities {
+  .font-mono {
+    font-family: monospace;
+  }
+}
