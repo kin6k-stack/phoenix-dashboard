@@ -28,7 +28,6 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
     { id: "settings", name: "Bot Configurations", icon: Settings }
   ]
 
-  // Shared Navigation component to ensure Desktop/Mobile consistency
   const NavigationContent = () => (
     <div className="w-64 h-full glass-card border-r-0 lg:border-r border-border/40 flex flex-col justify-between p-4">
       <div className="space-y-6">
@@ -68,8 +67,7 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
 
   return (
     <>
-      {/* Mobile/Tablet Header: Only visible on screens smaller than large (lg) */}
-      <div className="lg:hidden p-4 border-b border-border/40 flex items-center justify-between bg-card/40">
+      <div className="lg:hidden p-4 border-b border-border/40 flex items-center justify-between bg-card/40 shrink-0">
         <span className="font-black uppercase text-sm tracking-widest">Phoenix Command</span>
         <Sheet>
           <SheetTrigger className="p-2 hover:bg-muted/50 rounded-lg">
@@ -81,8 +79,7 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
         </Sheet>
       </div>
 
-      {/* Desktop Sidebar: Only visible on large (lg) screens and up */}
-      <div className="hidden lg:block h-screen">
+      <div className="hidden lg:block h-[100dvh]">
         <NavigationContent />
       </div>
     </>

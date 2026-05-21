@@ -5,7 +5,6 @@ import { TrendingUp, DollarSign, Target, Activity, BarChart3, Zap } from "lucide
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, CartesianGrid } from "recharts"
 
 export function DashboardView({ trades = [] }: { trades: any[] }) {
-  // --- Calculation Logic ---
   const totalPnl = trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0)
   const wins = trades.filter(t => t.rMultiple > 0).length
   const losses = trades.filter(t => t.rMultiple < 0).length
@@ -26,10 +25,9 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
   const weeklyData = Object.entries(weeklyMap).map(([name, pnl]) => ({ name, pnl }))
 
   return (
-    <div className="p-4 lg:p-8 space-y-6">
+    <div className="p-4 md:p-6 lg:p-8 space-y-6">
       
-      {/* 1. Top Metrics Row (Responsive 1 to 4 cols) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Total P&L", val: `$${totalPnl.toFixed(2)}`, icon: DollarSign, color: totalPnl >= 0 ? "text-emerald-400" : "text-rose-400" },
           { label: "Win Rate", val: `${winRate}%`, icon: Target, color: "text-blue-400" },
@@ -37,7 +35,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
           { label: "Avg Execution", val: `${avgR.toFixed(2)} R`, icon: Zap, color: "text-amber-400" }
         ].map((item, i) => (
           <Card key={i} className="glass-card glow-effect hover:scale-[1.02] transition-transform">
-            <CardContent className="p-5 flex flex-col justify-center">
+            <CardContent className="p-4 md:p-5 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1.5 rounded-lg bg-background/20"><item.icon size={14} className={item.color} /></div>
                 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">{item.label}</p>
@@ -48,19 +46,18 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
         ))}
       </div>
 
-      {/* 2. Main Visual Row */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 glass-card p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 glass-card p-4 md:p-5">
           <h3 className="text-xs font-black uppercase tracking-widest text-foreground mb-4 flex items-center gap-2">
             <TrendingUp size={14} className="text-emerald-400"/> System Equity Curve
           </h3>
-          <div className="h-[200px]">
+          <div className="h-[200px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={equityData}>
                 <defs><linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#34d399" stopOpacity={0.2}/><stop offset="95%" stopColor="#34d399" stopOpacity={0}/></linearGradient></defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
                 <XAxis dataKey="date" hide />
-                <YAxis hide />
+                <YAxis hide width={40} />
                 <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#333', borderRadius: '8px' }} />
                 <Area type="monotone" dataKey="value" stroke="#34d399" strokeWidth={2} fill="url(#colorValue)" />
               </AreaChart>
@@ -68,9 +65,9 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
           </div>
         </Card>
 
-        <Card className="glass-card p-5 flex flex-col justify-center">
+        <Card className="glass-card p-4 md:p-5 flex flex-col justify-center">
           <h3 className="text-xs font-black uppercase tracking-widest text-foreground mb-4">Win/Loss Distribution</h3>
-          <div className="h-[180px]">
+          <div className="h-[180px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={[{name: 'Wins', value: wins}, {name: 'Losses', value: losses}]} dataKey="value" innerRadius={50} outerRadius={70} paddingAngle={5}>
@@ -84,13 +81,12 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
         </Card>
       </div>
 
-      {/* 3. Bottom Uniform Row (Weekly P&L + Recent Activity) */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <Card className="glass-card p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="glass-card p-4 md:p-5">
           <h3 className="text-xs font-black uppercase tracking-widest text-foreground mb-4 flex items-center gap-2">
             <BarChart3 size={14} className="text-indigo-400"/> Weekly P&L
           </h3>
-          <div className="h-[150px]">
+          <div className="h-[150px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={weeklyData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
@@ -101,11 +97,11 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
           </div>
         </Card>
 
-        <Card className="glass-card p-5">
+        <Card className="glass-card p-4 md:p-5">
           <h3 className="text-xs font-black uppercase tracking-widest text-foreground mb-4 flex items-center gap-2">
             <Activity size={14} className="text-amber-400"/> Recent Activity
           </h3>
-          <div className="space-y-2 max-h-[150px] overflow-auto custom-scrollbar">
+          <div className="space-y-2 max-h-[150px] overflow-auto custom-scrollbar pr-2">
             {trades.slice(0, 5).map((t, i) => (
               <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-background/20 border border-border/20">
                 <div className="flex flex-col">
