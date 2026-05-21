@@ -135,9 +135,10 @@ export default function TradingDashboard() {
       
       case "pnl-calendar":
         return (
-          <div className="flex flex-1 overflow-hidden h-full w-full">
-            <div className="flex-1 p-8 overflow-auto">
-              <div className="bg-card/40 backdrop-blur-md rounded-xl border border-border/40 p-6 h-full shadow-[0_0_20px_rgba(0,0,0,0.15)]">
+          /* Responsive Layout Flex direction switches on lg break-points to handle vertical screen layouts */
+          <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden h-full w-full">
+            <div className="flex-1 p-4 md:p-8 overflow-visible lg:overflow-auto">
+              <div className="bg-card/40 backdrop-blur-md rounded-xl border border-border/40 p-4 md:p-6 h-full shadow-[0_0_20px_rgba(0,0,0,0.15)]">
                 <TradingCalendar 
                   selectedDate={selectedDate}
                   onDateSelect={setSelectedDate}
@@ -150,85 +151,5 @@ export default function TradingDashboard() {
                 />
               </div>
             </div>
-            <div className="w-80 border-l border-border/40 p-4 overflow-auto space-y-4 bg-card/20 backdrop-blur-md">
-              <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />
-              <SlimPnLChart trades={filteredTrades} /> 
-              <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
-              
-              <ManualTradesCard 
-                trades={filteredTrades} 
-                onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true); }} 
-                onEditTrade={openEditDialog}
-                onDeleteTrade={handleDeleteTrade} 
-              />
-            </div>
-          </div>
-        )
-      
-      case "session-intelligence":
-        return (
-          <div className="flex-1 p-8 overflow-auto">
-            <div className="max-w-6xl mx-auto space-y-4">
-              <div className="flex flex-col gap-1 mb-6">
-                <h1 className="text-2xl font-black text-foreground uppercase tracking-widest drop-shadow-sm">Session Intelligence HUD</h1>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Real-time institutional liquidity alignment matrix data feeds.</p>
-              </div>
-              <SessionIntelligence trades={trades} />
-            </div>
-          </div>
-        )
-
-      case "performance-metrics":
-        return (
-          <div className="flex-1 p-8 overflow-auto">
-            <div className="max-w-6xl mx-auto space-y-4">
-              <div className="flex flex-col gap-1 mb-6">
-                <h1 className="text-2xl font-black text-foreground uppercase tracking-widest drop-shadow-sm">Engine Telemetry</h1>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Segmented algorithmic strategy and execution history breakdowns.</p>
-              </div>
-              <PerformanceView trades={trades} />
-            </div>
-          </div>
-        )
-
-      case "signal-history":
-        return (
-          <div className="flex-1 p-8 overflow-auto">
-            <div className="max-w-6xl mx-auto space-y-4">
-              <div className="flex flex-col gap-1 mb-6">
-                <h1 className="text-2xl font-black text-foreground uppercase tracking-widest drop-shadow-sm">Global Execution Ledger</h1>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">Immutable history of all fired engine signals and resulting outcomes.</p>
-              </div>
-              <SignalHistoryView trades={trades} />
-            </div>
-          </div>
-        )
-
-      case "economic-calendar":
-        return <div className="flex-1 p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Economic Calendar stream initializing...</div>
-      case "settings": 
-        return <div className="flex-1 p-8 overflow-auto"><BotConfiguration /></div>
-      default: 
-        return <div className="flex-1 p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Section coming soon.</div>
-    }
-  }
-
-  return (
-    // Global Radial Gradient applied here so the whole UI feels tied together
-    <div className="flex h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-background to-background overflow-hidden font-sans">
-      <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} />
-      {renderContent()}
-      
-      <AddTradeDialog 
-        open={isAddTradeOpen}
-        onOpenChange={(open) => { 
-          setIsAddTradeOpen(open); 
-          if (!open) { setSelectedDate(null); setEditingTrade(null); } 
-        }}
-        onSubmit={handleSaveTrade}
-        initialDate={selectedDate}
-        existingTrade={editingTrade}
-      />
-    </div>
-  )
-}
+            {/* Sidebar utility panel adjusts from fixed-width side layout into dynamic full-width block below main component */}
+            <div className
