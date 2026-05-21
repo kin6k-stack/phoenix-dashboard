@@ -57,7 +57,7 @@ export function PerformanceView({ trades = [] }: PerformanceViewProps) {
     return { total, winsCount, lossesCount, winRate, profitFactor, netPnL }
   }
 
-  const coreBots = [
+  
   const coreBots = [
     { 
       title: "Gold Sentinel Engine", 
