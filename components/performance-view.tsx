@@ -59,9 +59,9 @@ export function PerformanceView({ trades = [] }: PerformanceViewProps) {
 
   const coreBots = [
   { title: "Gold Sentinel Engine", asset: "XAUUSD", icon: Shield, color: "amber", trades: getBotTrades("Gold Sentinel", "XAUUSD") },
-  { title: "Phoenix Hybrid Engine", asset: "XAUUSD", icon: Zap, color: "emerald", trades: getBotTrades("Phoenix Hybrid", "XAUUSD") },
-  { title: "Gold Sentinel Apex", asset: "XAUUSD", icon: Cpu, color: "indigo", trades: getBotTrades("Apex", "XAUUSD") },
-  { title: "Phoenix NQ Engine", asset: "USTEC", icon: BarChart3, color: "cyan", trades: getBotTrades("Phoenix NQ", "USTEC") }
+  { title: "Phoenix Hybrid Engine", asset: "XAUUSD", icon: Zap, color: "emerald", trades: getBotTrades("Phoenix Gold v11.12", "XAUUSD") },
+  { title: "Gold Sentinel Apex", asset: "XAUUSD", icon: Cpu, color: "indigo", trades: getBotTrades("Gold Sentinel Apex", "XAUUSD") },
+  { title: "Phoenix NQ Engine", asset: "USTEC", icon: BarChart3, color: "cyan", trades: getBotTrades("Phoenix NQ v1.6", "USTEC") }
 ];
 
   return (
