@@ -5,16 +5,49 @@ import { TrendingUp, DollarSign, Target, Activity, BarChart3, Zap } from "lucide
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, CartesianGrid } from "recharts"
 
 export function DashboardView({ trades = [] }: { trades: any[] }) {
+  // Base Metrics
   const totalPnl = trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0)
   const wins = trades.filter(t => t.rMultiple > 0).length
   const losses = trades.filter(t => t.rMultiple < 0).length
   const winRate = trades.length > 0 ? Math.round((wins / trades.length) * 100) : 0
   const avgR = trades.length > 0 ? (trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0) / trades.length) : 0
 
+  // --- TIME-SERIES VELOCITY CALCULATIONS ---
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const twoMonthsAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+  const currWeekTrades = trades.filter(t => new Date(t.date) >= oneWeekAgo);
+  const prevWeekTrades = trades.filter(t => { const d = new Date(t.date); return d >= twoWeeksAgo && d < oneWeekAgo; });
+  const currMonthTrades = trades.filter(t => new Date(t.date) >= oneMonthAgo);
+  const prevMonthTrades = trades.filter(t => { const d = new Date(t.date); return d >= twoMonthsAgo && d < oneMonthAgo; });
+
+  // P&L Delta
+  const currPnL = currWeekTrades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0);
+  const prevPnL = prevWeekTrades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0);
+  const pnlDelta = prevPnL !== 0 ? ((currPnL - prevPnL) / Math.abs(prevPnL)) * 100 : (currPnL > 0 ? 100 : 0);
+
+  // Win Rate Delta
+  const calcWR = (arr: any[]) => arr.length > 0 ? (arr.filter(t => t.rMultiple > 0).length / arr.length) * 100 : 0;
+  const wrDelta = calcWR(currWeekTrades) - calcWR(prevWeekTrades);
+
+  // Trades Delta (Not color coded)
+  const tradesDelta = prevWeekTrades.length > 0 ? ((currWeekTrades.length - prevWeekTrades.length) / prevWeekTrades.length) * 100 : (currWeekTrades.length > 0 ? 100 : 0);
+
+  // Avg Execution Delta (Monthly)
+  const calcAvg = (arr: any[]) => arr.length > 0 ? arr.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0) / arr.length : 0;
+  const currAvg = calcAvg(currMonthTrades);
+  const prevAvg = calcAvg(prevMonthTrades);
+  const avgDelta = prevAvg !== 0 ? ((currAvg - prevAvg) / Math.abs(prevAvg)) * 100 : (currAvg > 0 ? 100 : 0);
+
+  // --- CHART DATA PREPARATION ---
   let runningEquity = 200 
   const equityData = [...trades].reverse().map(t => {
     runningEquity += Number(t.rMultiple || 0)
-    return { date: new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), value: runningEquity }
+    // Task 1.1: Clamp Equity to 2 decimal places
+    return { date: new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), value: Number(runningEquity.toFixed(2)) }
   })
 
   const weeklyMap = trades.reduce((acc: any, t) => {
@@ -22,7 +55,8 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
     acc[week] = (acc[week] || 0) + Number(t.rMultiple || 0)
     return acc
   }, {})
-  const weeklyData = Object.entries(weeklyMap).map(([name, pnl]) => ({ name, pnl }))
+  // Task 1.1: Clamp Weekly P&L to 2 decimal places
+  const weeklyData = Object.entries(weeklyMap).map(([name, pnl]) => ({ name, pnl: Number(Number(pnl).toFixed(2)) }))
 
   const RADIAN = Math.PI / 180;
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -42,10 +76,42 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
       {/* Metrics Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         {[
-          { label: "Total P&L", val: `$${totalPnl.toFixed(2)}`, icon: DollarSign, color: totalPnl >= 0 ? "text-emerald-400" : "text-rose-400", glow: "shadow-[0_0_15px_rgba(16,185,129,0.1)]" },
-          { label: "Win Rate", val: `${winRate}%`, icon: Target, color: "text-blue-400", glow: "shadow-[0_0_15px_rgba(59,130,246,0.1)]" },
-          { label: "Total Trades", val: trades.length, icon: Activity, color: "text-indigo-400", glow: "shadow-[0_0_15px_rgba(99,102,241,0.1)]" },
-          { label: "Avg Execution", val: `${avgR.toFixed(2)} R`, icon: Zap, color: "text-amber-400", glow: "shadow-[0_0_15px_rgba(245,158,11,0.1)]" }
+          { 
+            label: "Total P&L", 
+            val: `$${totalPnl.toFixed(2)}`, 
+            icon: DollarSign, 
+            color: totalPnl >= 0 ? "text-emerald-400" : "text-rose-400", 
+            glow: "shadow-[0_0_15px_rgba(16,185,129,0.1)]",
+            delta: pnlDelta,
+            deltaColor: pnlDelta < 0 ? "text-rose-400" : "text-emerald-400"
+          },
+          { 
+            label: "Win Rate", 
+            val: `${winRate}%`, 
+            icon: Target, 
+            color: "text-blue-400", 
+            glow: "shadow-[0_0_15px_rgba(59,130,246,0.1)]",
+            delta: wrDelta,
+            deltaColor: wrDelta < 0 ? "text-rose-400" : "text-blue-400"
+          },
+          { 
+            label: "Total Trades", 
+            val: trades.length, 
+            icon: Activity, 
+            color: "text-indigo-400", 
+            glow: "shadow-[0_0_15px_rgba(99,102,241,0.1)]",
+            delta: tradesDelta,
+            deltaColor: "text-muted-foreground" // Task 1.3: Neutral gray, no color coding
+          },
+          { 
+            label: "Avg Execution", 
+            val: `${avgR.toFixed(2)} R`, 
+            icon: Zap, 
+            color: "text-amber-400", 
+            glow: "shadow-[0_0_15px_rgba(245,158,11,0.1)]",
+            delta: avgDelta,
+            deltaColor: avgDelta < 0 ? "text-rose-400" : "text-amber-400"
+          }
         ].map((item, i) => (
           <Card key={i} className={`border-border/40 bg-card/40 backdrop-blur-md ${item.glow} hover:bg-card/60 transition-colors`}>
             <CardContent className="p-5 flex flex-col justify-center">
@@ -55,7 +121,13 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                 </div>
                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{item.label}</p>
               </div>
-              <p className={`text-3xl font-black ${item.color} tracking-tighter drop-shadow-sm`}>{item.val}</p>
+              <div className="flex items-baseline gap-2">
+                <p className={`text-3xl font-black ${item.color} tracking-tighter drop-shadow-sm`}>{item.val}</p>
+                {/* Velocity Delta Indicator */}
+                <span className={`text-[10px] font-bold ${item.deltaColor} tracking-widest`}>
+                  {item.delta > 0 ? "▲" : item.delta < 0 ? "▼" : "—"} {Math.abs(item.delta).toFixed(1)}%
+                </span>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -83,6 +155,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                 <XAxis dataKey="date" hide />
                 <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#666', fontWeight: 'bold'}} />
                 <Tooltip 
+                  formatter={(value: number) => [`$${value.toFixed(2)}`, "Equity"]}
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }}
                   itemStyle={{ color: '#34d399', fontWeight: '900', fontFamily: 'monospace' }}
                 />
@@ -106,7 +179,17 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                   <Cell fill="#34d399" style={{ filter: 'drop-shadow(0px 0px 6px rgba(52,211,153,0.5))' }} />
                   <Cell fill="#fb7185" style={{ filter: 'drop-shadow(0px 0px 6px rgba(251,113,133,0.5))' }} />
                 </Pie>
-                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px' }} />
+                {/* Task 1.2: High-contrast readable tool-tip override */}
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#f8fafc', 
+                    borderColor: '#cbd5e1', 
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                  }} 
+                  itemStyle={{ color: '#0f172a', fontWeight: '900' }}
+                  labelStyle={{ color: '#0f172a' }}
+                />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -129,7 +212,11 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#666', fontWeight: 'bold'}} dy={10} />
                 <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#666', fontWeight: 'bold'}} />
-                <Tooltip cursor={{fill: '#333', opacity: 0.2}} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#fff' }} />
+                <Tooltip 
+                  formatter={(value: number) => [`$${value.toFixed(2)}`, "P&L"]}
+                  cursor={{fill: '#333', opacity: 0.2}} 
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#fff' }} 
+                />
                 <Bar dataKey="pnl" fill="#818cf8" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
