@@ -6,14 +6,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMonthYearChange }: any) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
-  // Map out daily trade aggregation figures cleanly
+  // Calculate daily trade aggregation sums efficiently
   const dailyPnLMap = trades.reduce((acc: any, t: any) => {
     const dStr = new Date(t.date).toDateString();
     acc[dStr] = (acc[dStr] || 0) + Number(t.rMultiple);
     return acc;
   }, {});
 
-  // Generate perfect structural 42-cell layout blocks
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
@@ -50,27 +49,27 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
   const todayStr = new Date().toDateString();
 
   return (
-    <div className="w-full flex flex-col h-full bg-[#070b12] p-6 rounded-xl border border-white/[0.02]">
+    <div className="w-full flex flex-col h-full bg-transparent">
       
-      {/* Navigation Control Area Panel Header */}
-      <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/[0.04]">
-        <h2 className="text-sm font-mono font-black tracking-widest uppercase text-foreground">
+      {/* Pristine Header Control Layer */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-black tracking-widest uppercase text-foreground">
           {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
         </h2>
         <div className="flex gap-2">
-           <button onClick={prevMonth} className="p-2 bg-[#03050a] border border-white/5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"><ChevronLeft size={14} /></button>
-           <button onClick={nextMonth} className="p-2 bg-[#03050a] border border-white/5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"><ChevronRight size={14} /></button>
+           <button onClick={prevMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronLeft size={16} /></button>
+           <button onClick={nextMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronRight size={16} /></button>
         </div>
       </div>
       
-      {/* Unified Dark Grid System Matrix Wrapper */}
-      <div className="grid grid-cols-7 gap-2 flex-1 p-3 rounded-lg bg-[#03050a] border border-white/[0.01]">
+      {/* Flat High-Density Grid Layout */}
+      <div className="grid grid-cols-7 gap-2 flex-1">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="text-center text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest mb-2">{day}</div>
+          <div key={day} className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">{day}</div>
         ))}
         
         {days.map((day, i) => {
-          if (!day) return <div key={i} className="min-h-[60px] bg-black/10 border border-white/[0.01] rounded-md opacity-25" />
+          if (!day) return <div key={i} className="min-h-[60px]" />
           
           const dayStr = day.toDateString();
           const dayPnL = dailyPnLMap[dayStr] || 0;
@@ -83,28 +82,26 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
             <button 
               key={i}
               onClick={() => onDateSelect(day)}
-              className={`p-2 border rounded-md flex flex-col items-start justify-between min-h-[60px] transition-all hover:border-foreground/30 cursor-pointer
-                ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/5 shadow-[0_0_15px_rgba(16,185,129,0.15)]' : ''}
-                ${isToday && !isSelected ? 'border-emerald-500/50 bg-emerald-950/20' : ''}
+              className={`p-2 border rounded-md flex flex-col items-start justify-between min-h-[60px] transition-all hover:border-foreground/50 cursor-pointer
+                ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/10' : ''}
+                ${isToday && !isSelected ? 'ring-1 ring-emerald-500/50 border-emerald-500/30 bg-emerald-500/[0.05]' : ''}
                 ${isNegative && !isSelected ? 'bg-rose-500/10 border-rose-500/30' : 
                   isPositive && !isSelected ? 'bg-emerald-500/10 border-emerald-500/30' : 
-                  !isSelected && !isToday ? 'bg-[#070b12] border-white/[0.03]' : ''}
+                  !isSelected && !isToday ? 'bg-background/40 border-border/40' : ''}
               `}
             >
-              <span className={`text-xs font-mono font-black ${isToday ? 'text-emerald-400 font-extrabold' : 'text-foreground/80'}`}>{day.getDate()}</span>
-              {dayPnL !== 0 ? (
+              <span className={`text-xs font-bold ${isToday ? 'text-emerald-400 font-black' : 'text-foreground'}`}>{day.getDate()}</span>
+              {dayPnL !== 0 && (
                 <span className={`text-[10px] font-mono font-black tracking-tighter tabular-nums ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {isNegative ? '-' : '+'}${Math.abs(dayPnL).toFixed(2)}
+                  {isNegative ? '' : '+'}${Math.abs(dayPnL).toFixed(2)}
                 </span>
-              ) : (
-                <span className="text-[10px] font-mono font-bold text-muted-foreground/10 transition-colors">—</span>
               )}
             </button>
           )
         })}
       </div>
-      <div className="mt-4 pt-2 text-center">
-        <p className="text-[9px] font-mono text-muted-foreground/40 uppercase tracking-widest">Command Center Operations Pipeline Monitoring Hub Active.</p>
+      <div className="mt-4 pt-4 border-t border-border/40 text-center">
+        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Click any date to view intraday ledger or log manual setups.</p>
       </div>
     </div>
   )
