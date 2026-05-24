@@ -42,6 +42,7 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
 
   const days = getDaysInMonth(currentDate)
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  const todayStr = new Date().toDateString();
 
   return (
     <div className="w-full flex flex-col h-full">
@@ -68,6 +69,7 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
           const isNegative = dayPnL < 0;
           const isPositive = dayPnL > 0;
           const isSelected = selectedDate?.toDateString() === dayStr;
+          const isToday = dayStr === todayStr;
           
           return (
             <button 
@@ -75,12 +77,13 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
               onClick={() => onDateSelect(day)}
               className={`p-2 border rounded-md flex flex-col items-start justify-between min-h-[60px] transition-all hover:border-foreground/50
                 ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/10' : ''}
-                ${isNegative && !isSelected ? 'bg-rose-500/10 border-rose-500/30' : 
-                  isPositive && !isSelected ? 'bg-emerald-500/10 border-emerald-500/30' : 
-                  !isSelected ? 'bg-background/40 border-border/40' : ''}
+                ${isToday && !isSelected ? 'ring-1 ring-emerald-500/50 bg-emerald-500/5' : ''}
+                ${isNegative && !isSelected && !isToday ? 'bg-rose-500/10 border-rose-500/30' : 
+                  isPositive && !isSelected && !isToday ? 'bg-emerald-500/10 border-emerald-500/30' : 
+                  !isSelected && !isToday ? 'bg-background/40 border-border/40' : ''}
               `}
             >
-              <span className="text-xs font-bold text-foreground">{day.getDate()}</span>
+              <span className={`text-xs font-bold ${isToday ? 'text-emerald-400' : 'text-foreground'}`}>{day.getDate()}</span>
               {dayPnL !== 0 && (
                 <span className={`text-[10px] font-black tracking-tighter ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
                   {isNegative ? '' : '+'}${Math.abs(dayPnL).toFixed(2)}

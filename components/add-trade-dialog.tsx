@@ -42,7 +42,8 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, exis
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-slate-950 border-border/40 shadow-2xl sm:max-w-[425px]">
+      {/* UI THEME FIX: True Glassmorphism with deep border */}
+      <DialogContent className="bg-[#0f172a]/95 backdrop-blur-xl border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="uppercase tracking-widest text-sm font-black text-foreground">
             {existingTrade ? "Edit Execution" : `Log Execution - ${targetDateStr}`}
@@ -53,14 +54,14 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, exis
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Asset</label>
-              <select className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none" value={formData.symbol} onChange={(e) => setFormData({...formData, symbol: e.target.value})}>
+              <select className="w-full bg-background/50 border border-border/50 rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none" value={formData.symbol} onChange={(e) => setFormData({...formData, symbol: e.target.value})}>
                 <option value="XAUUSDm">XAUUSDm</option>
                 <option value="USTECm">USTECm</option>
               </select>
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Direction</label>
-              <select className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none" value={formData.direction} onChange={(e) => setFormData({...formData, direction: e.target.value})}>
+              <select className="w-full bg-background/50 border border-border/50 rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none" value={formData.direction} onChange={(e) => setFormData({...formData, direction: e.target.value})}>
                 <option value="BUY">BUY</option>
                 <option value="SELL">SELL</option>
               </select>
@@ -70,22 +71,22 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, exis
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Setup / Engine</label>
-              <input type="text" className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none" value={formData.setup} onChange={(e) => setFormData({...formData, setup: e.target.value})} required/>
+              <input type="text" className="w-full bg-background/50 border border-border/50 rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none" value={formData.setup} onChange={(e) => setFormData({...formData, setup: e.target.value})} required/>
             </div>
             <div className="space-y-1">
               <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Net P&L ($)</label>
-              <input type="number" step="0.01" className={`w-full bg-background border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-primary outline-none font-black ${Number(formData.rMultiple) < 0 ? 'border-rose-500/50 text-rose-400' : 'border-emerald-500/50 text-emerald-400'}`} value={formData.rMultiple} onChange={(e) => setFormData({...formData, rMultiple: parseFloat(e.target.value)})} required/>
+              <input type="number" step="0.01" className={`w-full bg-background/50 border rounded px-3 py-2 text-sm focus:ring-1 focus:ring-primary outline-none font-black ${Number(formData.rMultiple) < 0 ? 'border-rose-500/50 text-rose-400' : 'border-emerald-500/50 text-emerald-400'}`} value={formData.rMultiple} onChange={(e) => setFormData({...formData, rMultiple: parseFloat(e.target.value)})} required/>
             </div>
           </div>
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">TradingView Image URL</label>
-            <input type="url" placeholder="https://www.tradingview.com/x/..." className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none" value={formData.screenshot} onChange={(e) => setFormData({...formData, screenshot: e.target.value})}/>
+            <input type="url" placeholder="https://www.tradingview.com/x/..." className="w-full bg-background/50 border border-border/50 rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none" value={formData.screenshot} onChange={(e) => setFormData({...formData, screenshot: e.target.value})}/>
           </div>
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Context Notes</label>
-            <textarea className="w-full bg-background border border-border rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none min-h-[80px]" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} placeholder="What was the setup trigger?"/>
+            <textarea className="w-full bg-background/50 border border-border/50 rounded px-3 py-2 text-sm text-foreground focus:ring-1 focus:ring-primary outline-none min-h-[80px]" value={formData.notes} onChange={(e) => setFormData({...formData, notes: e.target.value})} placeholder="What was the setup trigger?"/>
           </div>
 
           <div className="flex justify-end pt-2">
@@ -102,7 +103,7 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, exis
               <p className="text-xs italic text-muted-foreground text-center">No trades logged on this date.</p>
             ) : (
               dayTrades.map((t: any, i: number) => (
-                <div key={i} className="flex items-center justify-between p-2.5 rounded-md bg-background/50 border border-border/30 hover:border-border/60 transition-colors">
+                <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-background/40 border border-border/30 hover:border-white/10 transition-colors">
                   <div className="flex flex-col">
                     <span className="text-[11px] font-black uppercase flex items-center gap-1 text-foreground">
                       {t.direction?.toUpperCase() === "BUY" ? <ArrowUpRight size={12} className="text-emerald-400"/> : <ArrowDownRight size={12} className="text-rose-400"/>}
