@@ -3,18 +3,18 @@
 import { useState, useEffect } from "react"
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
 import { db } from "../lib/firebase" 
-import Sidebar from "@/components/sidebar"
-import TradingCalendar from "@/components/trading-calendar"
+import { Sidebar } from "@/components/sidebar"
+import { TradingCalendar } from "@/components/trading-calendar"
 import { SlimMonthlyPerformance } from "@/components/slim-monthly-performance"
 import { SlimPnLChart } from "@/components/slim-pnl-chart"
 import { SlimJournal } from "@/components/slim-journal"
 import { ManualTradesCard } from "@/components/manual-trades-card"
-import AddTradeDialog from "@/components/add-trade-dialog"
-import SessionIntelligence from "@/components/session-intelligence"
-import PerformanceView from "@/components/performance-view"
-import DashboardView from "@/components/dashboard-view"
+import { AddTradeDialog } from "@/components/add-trade-dialog"
+import { SessionIntelligence } from "@/components/session-intelligence"
+import { PerformanceView } from "@/components/performance-view"
+import { DashboardView } from "@/components/dashboard-view"
 import { BotConfiguration } from "@/components/bot-configuration"
-import SignalHistoryView from "@/components/signal-history" 
+import { SignalHistoryView } from "@/components/signal-history" 
 
 interface Trade {
   id: string
@@ -56,7 +56,7 @@ export default function TradingDashboard() {
           symbol: data.symbol || "Unknown",
           setup: data.bot || data.setup || "Manual Entry",
           rMultiple: data.profit !== undefined ? Number(data.profit) : 0, 
-          direction: data.direction || "BUY", // TASK 2.3: Order Direction Binding
+          direction: data.direction || "BUY",
           notes: data.notes || "No context notes recorded.",
           screenshot: data.screenshot || "" 
         };
@@ -143,7 +143,7 @@ export default function TradingDashboard() {
                   selectedDate={selectedDate}
                   onDateSelect={setSelectedDate}
                   tradeDates={tradeDates}
-                  trades={filteredTrades} // TASK 2.1: Injected Trades
+                  trades={filteredTrades}
                   totalTrades={totalTrades}
                   wins={wins}
                   netPnL={netPnL}
@@ -225,7 +225,7 @@ export default function TradingDashboard() {
         onSubmit={handleSaveTrade}
         initialDate={selectedDate}
         existingTrade={editingTrade}
-        trades={trades} // TASK 2.2: Pass trades for Intraday Ledger
+        trades={trades}
       />
     </div>
   )

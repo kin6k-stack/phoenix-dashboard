@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { ArrowUpRight, ArrowDownRight } from "lucide-react"
 
-export default function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, existingTrade, trades = [] }: any) {
+export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, existingTrade, trades = [] }: any) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     symbol: "XAUUSDm",
@@ -37,7 +37,6 @@ export default function AddTradeDialog({ open, onOpenChange, onSubmit, initialDa
     onSubmit(existingTrade ? { ...formData, id: existingTrade.id } : formData);
   }
 
-  // Task 2.2: Filter trades for the selected day
   const targetDateStr = initialDate ? initialDate.toDateString() : new Date().toDateString();
   const dayTrades = trades.filter((t: any) => new Date(t.date).toDateString() === targetDateStr);
 
@@ -96,7 +95,6 @@ export default function AddTradeDialog({ open, onOpenChange, onSubmit, initialDa
           </div>
         </form>
 
-        {/* Task 2.2: Intraday Ledger Drawer */}
         <div className="mt-4 border-t border-border/40 pt-4">
           <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-3">Intraday Execution Ledger</h4>
           <div className="max-h-[140px] overflow-y-auto space-y-2 custom-scrollbar pr-2">
@@ -107,7 +105,6 @@ export default function AddTradeDialog({ open, onOpenChange, onSubmit, initialDa
                 <div key={i} className="flex items-center justify-between p-2.5 rounded-md bg-background/50 border border-border/30 hover:border-border/60 transition-colors">
                   <div className="flex flex-col">
                     <span className="text-[11px] font-black uppercase flex items-center gap-1 text-foreground">
-                      {/* Task 2.3: Order Direction Binding */}
                       {t.direction?.toUpperCase() === "BUY" ? <ArrowUpRight size={12} className="text-emerald-400"/> : <ArrowDownRight size={12} className="text-rose-400"/>}
                       {t.symbol}
                     </span>

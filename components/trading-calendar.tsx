@@ -3,10 +3,9 @@
 import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-export default function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMonthYearChange }: any) {
+export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMonthYearChange }: any) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
-  // Task 2.1: Group P&L by Date
   const dailyPnLMap = trades.reduce((acc: any, t: any) => {
     const dStr = new Date(t.date).toDateString();
     acc[dStr] = (acc[dStr] || 0) + Number(t.rMultiple);

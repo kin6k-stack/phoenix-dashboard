@@ -4,10 +4,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Target, Activity } from "lucide-react"
 
-export default function PerformanceView({ trades = [] }: { trades: any[] }) {
+export function PerformanceView({ trades = [] }: { trades: any[] }) {
   const [selectedBot, setSelectedBot] = useState<string | null>(null);
 
-  // Group trades by engine
   const engines = trades.reduce((acc: any, t: any) => {
     const name = t.setup || "Manual Entry";
     if (!acc[name]) acc[name] = [];
@@ -15,7 +14,6 @@ export default function PerformanceView({ trades = [] }: { trades: any[] }) {
     return acc;
   }, {});
 
-  // Task 3.1: Accent Tonal Alignment
   const getEngineStyles = (name: string) => {
     const nameUpper = name.toUpperCase();
     if (nameUpper.includes("HYBRID NQ")) return { color: "text-indigo-400", glow: "shadow-[0_0_20px_rgba(99,102,241,0.15)]", border: "border-indigo-500/30" };
@@ -40,8 +38,6 @@ export default function PerformanceView({ trades = [] }: { trades: any[] }) {
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <h3 className={`text-sm font-black uppercase tracking-widest ${styles.color}`}>{name}</h3>
-                
-                {/* Task 3.2: Interactive Trigger Badge */}
                 <button 
                   onClick={() => setSelectedBot(name)}
                   className="px-2 py-1 bg-background/50 border border-border/50 rounded text-[10px] font-bold text-foreground hover:bg-white/10 transition-colors cursor-pointer"
@@ -64,7 +60,6 @@ export default function PerformanceView({ trades = [] }: { trades: any[] }) {
         )
       })}
 
-      {/* Task 3.2: Bot-Specific History Modal */}
       <Dialog open={!!selectedBot} onOpenChange={() => setSelectedBot(null)}>
         <DialogContent className="bg-slate-950 border-border/40 sm:max-w-[500px]">
           <DialogHeader>

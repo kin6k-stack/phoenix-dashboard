@@ -1,7 +1,7 @@
 "use client"
 import { ArrowUpRight, ArrowDownRight } from "lucide-react"
 
-export default function SignalHistoryView({ trades = [] }: { trades: any[] }) {
+export function SignalHistoryView({ trades = [] }: { trades: any[] }) {
   return (
     <div className="w-full border border-border/40 rounded-xl overflow-hidden bg-card/40 backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.15)]">
       <div className="overflow-x-auto">
@@ -10,7 +10,7 @@ export default function SignalHistoryView({ trades = [] }: { trades: any[] }) {
             <tr>
               <th className="p-4 font-bold">Date / Time</th>
               <th className="p-4 font-bold">Asset</th>
-              <th className="p-4 font-bold">Direction</th> {/* TASK 4.1: Direction Column */}
+              <th className="p-4 font-bold">Direction</th>
               <th className="p-4 font-bold">Engine / Setup</th>
               <th className="p-4 font-bold text-right">Outcome</th>
             </tr>
@@ -26,7 +26,6 @@ export default function SignalHistoryView({ trades = [] }: { trades: any[] }) {
                   <td className="p-4 text-xs font-mono text-muted-foreground">{new Date(t.date).toLocaleString()}</td>
                   <td className="p-4 font-black tracking-widest text-xs text-foreground">{t.symbol}</td>
                   <td className="p-4">
-                    {/* Task 4.1: Direction Binding */}
                     <span className={`inline-flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded ${t.direction?.toUpperCase() === 'BUY' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                       {t.direction?.toUpperCase() === 'BUY' ? <ArrowUpRight size={12}/> : <ArrowDownRight size={12}/>}
                       {t.direction?.toUpperCase() || 'BUY'}
