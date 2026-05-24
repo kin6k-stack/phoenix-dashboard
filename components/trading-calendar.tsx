@@ -25,6 +25,9 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(new Date(year, month, i))
     }
+    while (days.length < 42) {
+      days.push(null)
+    }
     return days
   }
 
@@ -51,8 +54,12 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
           {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
         </h2>
         <div className="flex gap-2">
-           <button onClick={prevMonth} className="p-2 bg-black/40 border border-white/5 rounded hover:bg-white/10 transition-colors text-foreground"><ChevronLeft size={16} /></button>
-           <button onClick={nextMonth} className="p-2 bg-black/40 border border-white/5 rounded hover:bg-white/10 transition-colors text-foreground"><ChevronRight size={16} /></button>
+           <button onClick={prevMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors">
+             <ChevronLeft size={16} />
+           </button>
+           <button onClick={nextMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors">
+             <ChevronRight size={16} />
+           </button>
         </div>
       </div>
       
@@ -75,17 +82,17 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
             <button 
               key={i}
               onClick={() => onDateSelect(day)}
-              className={`p-2 border rounded-md flex flex-col items-start justify-between min-h-[60px] transition-all hover:border-white/20
+              className={`p-2 border rounded-md flex flex-col items-start justify-between min-h-[60px] transition-all hover:border-foreground/50
                 ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/10' : ''}
                 ${isToday && !isSelected ? 'ring-1 ring-emerald-500/50 bg-emerald-500/5' : ''}
                 ${isNegative && !isSelected && !isToday ? 'bg-rose-500/10 border-rose-500/30' : 
                   isPositive && !isSelected && !isToday ? 'bg-emerald-500/10 border-emerald-500/30' : 
-                  !isSelected && !isToday ? 'bg-black/20 border-white/5' : ''}
+                  !isSelected && !isToday ? 'bg-background/40 border-border/40' : ''}
               `}
             >
               <span className={`text-xs font-bold ${isToday ? 'text-emerald-400' : 'text-foreground'}`}>{day.getDate()}</span>
               {dayPnL !== 0 && (
-                <span className={`text-[10px] font-mono font-black tracking-tighter ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
+                <span className={`text-[10px] font-black tracking-tighter ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
                   {isNegative ? '' : '+'}${Math.abs(dayPnL).toFixed(2)}
                 </span>
               )}
@@ -93,7 +100,7 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
           )
         })}
       </div>
-      <div className="mt-4 pt-4 border-t border-white/5 text-center">
+      <div className="mt-4 pt-4 border-t border-border/40 text-center">
         <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Click any date to view intraday ledger or log manual setups.</p>
       </div>
     </div>
