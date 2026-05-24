@@ -18,7 +18,7 @@ export function EconomicCalendar() {
         setEvents(upcoming)
       }
     } catch (error) {
-      console.error("Failed to fetch macro data", error)
+      console.error("Failed to sync institutional calendar telemetry:", error)
     }
     setLoading(false)
   }
@@ -35,39 +35,39 @@ export function EconomicCalendar() {
   }
 
   return (
-    <div className="w-full border border-border/40 rounded-xl overflow-hidden bg-card/40 backdrop-blur-xl shadow-[0_0_30px_rgba(0,0,0,0.3)]">
-      <div className="flex justify-between items-center p-4 border-b border-border/30 bg-background/40">
+    <div className="w-full border border-white/5 rounded-xl overflow-hidden bg-black/40 backdrop-blur-xl shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+      <div className="flex justify-between items-center p-4 border-b border-white/5 bg-white/5">
         <div className="flex items-center gap-2">
-          <Globe size={16} className="text-primary" />
-          <h3 className="text-xs font-black uppercase tracking-widest text-foreground">Live USD Macro Feed</h3>
+          <Globe size={14} className="text-primary" />
+          <h3 className="text-[11px] font-black uppercase tracking-widest text-foreground">Live USD Macro Feed Matrix</h3>
         </div>
         <button onClick={fetchCalendar} className="text-muted-foreground hover:text-primary transition-colors cursor-pointer">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
 
       <div className="p-0">
         {loading ? (
-          <div className="p-12 text-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest animate-pulse">Syncing Institutional Feed...</div>
+          <div className="p-12 text-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest animate-pulse">Syncing Institutional Volatility Streams...</div>
         ) : events.length === 0 ? (
-          <div className="p-12 text-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest">No upcoming high impact USD events found.</div>
+          <div className="p-12 text-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest">No upcoming high impact USD events parsed.</div>
         ) : (
-          <div className="divide-y divide-border/20 max-h-[600px] overflow-y-auto custom-scrollbar">
+          <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto custom-scrollbar">
             {events.map((event, idx) => {
               const impact = getImpact(event.indicator);
               const eventDate = new Date(event.announcement_datetime);
               const isToday = new Date().toDateString() === eventDate.toDateString();
               
               return (
-                <div key={idx} className="p-4 hover:bg-white/5 transition-colors flex items-center justify-between group">
+                <div key={idx} className="p-4 hover:bg-white/[0.02] transition-colors flex items-center justify-between group">
                   <div className="flex items-center gap-4">
-                    <div className={`w-2 h-2 rounded-full ${impact.dot}`} />
-                    <div className="flex flex-col">
+                    <div className={`w-1.5 h-1.5 rounded-full ${impact.dot}`} />
+                    <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-black text-foreground uppercase tracking-wider">{event.title}</span>
                         {isToday && <span className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[8px] px-1.5 py-0.5 rounded font-black tracking-widest animate-pulse">TODAY</span>}
                       </div>
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{event.source || "Federal Reserve / BLS"}</span>
+                      <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">{event.source || "Macroeconomic Release Index"}</span>
                     </div>
                   </div>
                   
@@ -76,7 +76,7 @@ export function EconomicCalendar() {
                       <Clock size={12} className="text-muted-foreground"/> 
                       {eventDate.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
                     </span>
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-border/40 bg-background/50 ${impact.color}`}>
+                    <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-white/5 bg-black/40 ${impact.color}`}>
                       {impact.level} IMPACT
                     </span>
                   </div>
