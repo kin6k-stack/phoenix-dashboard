@@ -13,6 +13,7 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
     return acc;
   }, {});
 
+  // Generate perfect structural 42-cell layout blocks
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
@@ -49,27 +50,27 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
   const todayStr = new Date().toDateString();
 
   return (
-    <div className="w-full flex flex-col h-full bg-[#070b12] p-1 rounded-xl">
+    <div className="w-full flex flex-col h-full bg-[#070b12] p-6 rounded-xl border border-white/[0.02]">
       
-      {/* Visual Update: Re-styled header wrapper using pure institutional flat dark backdrops */}
-      <div className="flex justify-between items-center mb-6 p-4 rounded-lg bg-[#03050a] border border-white/[0.03]">
+      {/* Navigation Control Area Panel Header */}
+      <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/[0.04]">
         <h2 className="text-sm font-mono font-black tracking-widest uppercase text-foreground">
           {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
         </h2>
         <div className="flex gap-2">
-           <button onClick={prevMonth} className="p-2 bg-[#070b12] border border-white/5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"><ChevronLeft size={14} /></button>
-           <button onClick={nextMonth} className="p-2 bg-[#070b12] border border-white/5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"><ChevronRight size={14} /></button>
+           <button onClick={prevMonth} className="p-2 bg-[#03050a] border border-white/5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"><ChevronLeft size={14} /></button>
+           <button onClick={nextMonth} className="p-2 bg-[#03050a] border border-white/5 rounded-md hover:bg-white/5 text-muted-foreground hover:text-foreground transition-all duration-200 cursor-pointer"><ChevronRight size={14} /></button>
         </div>
       </div>
       
-      {/* Main Structural Day Matrix Grid */}
-      <div className="grid grid-cols-7 gap-2 flex-1 p-2 rounded-xl bg-[#03050a] border border-white/[0.02]">
+      {/* Unified Dark Grid System Matrix Wrapper */}
+      <div className="grid grid-cols-7 gap-2 flex-1 p-3 rounded-lg bg-[#03050a] border border-white/[0.01]">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="text-center text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest mb-2">{day}</div>
+          <div key={day} className="text-center text-[10px] font-black text-muted-foreground/50 uppercase tracking-widest mb-2">{day}</div>
         ))}
         
         {days.map((day, i) => {
-          if (!day) return <div key={i} className="min-h-[60px] bg-black/10 border border-white/[0.01] rounded-md opacity-10" />
+          if (!day) return <div key={i} className="min-h-[60px] bg-black/10 border border-white/[0.01] rounded-md opacity-25" />
           
           const dayStr = day.toDateString();
           const dayPnL = dailyPnLMap[dayStr] || 0;

@@ -42,7 +42,7 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, exis
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      {/* VISUAL THEME RESTORATION: Enforces pure deep-obsidian backing layers with high density contrast blocks */}
+      {/* COHESIVE THEME SHIELD: Anchored directly into full rich deep terminal dark baseline slots */}
       <DialogContent className="bg-[#070b12] border border-white/5 shadow-[0_0_50px_rgba(0,0,0,0.85)] sm:max-w-[450px] text-foreground rounded-xl backdrop-blur-3xl">
         <DialogHeader className="pb-3 border-b border-white/5">
           <DialogTitle className="uppercase tracking-widest text-[11px] font-black text-foreground/90 flex items-center gap-2">
