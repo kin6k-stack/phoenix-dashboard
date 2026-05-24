@@ -2,27 +2,38 @@
 import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { Target, Activity, Cpu, Zap, PenTool, ArrowUpRight, ArrowDownRight } from "lucide-react"
 
 export function PerformanceView({ trades = [] }: { trades: any[] }) {
   const [filterMode, setFilterMode] = useState<"ALL" | "BOT" | "MANUAL">("ALL")
   const [selectedBot, setSelectedBot] = useState<string | null>(null)
 
-  // Group trades by engine
-  const engines = trades.reduce((acc: any, t: any) => {
-    const name = t.setup || "Manual Entry"
-    if (!acc[name]) acc[name] = []
-    acc[name].push(t)
-    return acc
-  }, {})
+  // Force initialize Manual Entry so the tile never disappears
+  const engines: Record<string, any[]> = {
+    "Manual Entry": []
+  };
 
+  // Group trades by engine
+  trades.forEach((t: any) => {
+    const name = t.setup || "Manual Entry"
+    if (!engines[name]) engines[name] = []
+    if (t.setup) engines[name].push(t) // Only push if it's an actual trade
+    else if (name === "Manual Entry") engines[name].push(t)
+  })
+
+  // Theme & Icon Mapping
   const getEngineStyles = (name: string) => {
     const nameUpper = name.toUpperCase()
-    if (nameUpper.includes("HYBRID NQ") || nameUpper.includes("USTEC")) return { color: "text-indigo-400", bg: "bg-indigo-500", glow: "shadow-[0_0_20px_rgba(99,102,241,0.15)]", border: "border-indigo-500/30" }
-    if (nameUpper.includes("HYBRID GOLD")) return { color: "text-amber-400", bg: "bg-amber-500", glow: "shadow-[0_0_20px_rgba(251,191,36,0.15)]", border: "border-amber-500/30" }
-    if (nameUpper.includes("GOLD APEX")) return { color: "text-emerald-400", bg: "bg-emerald-500", glow: "shadow-[0_0_20px_rgba(52,211,153,0.15)]", border: "border-emerald-500/30" }
-    if (nameUpper.includes("MANUAL")) return { color: "text-fuchsia-400", bg: "bg-fuchsia-500", glow: "shadow-[0_0_20px_rgba(232,121,249,0.15)]", border: "border-fuchsia-500/30" }
-    return { color: "text-blue-400", bg: "bg-blue-500", glow: "shadow-[0_0_20px_rgba(59,130,246,0.15)]", border: "border-blue-500/30" }
+    if (nameUpper.includes("HYBRID NQ") || nameUpper.includes("USTEC")) 
+      return { icon: Cpu, color: "text-purple-400", bg: "bg-purple-500", glow: "shadow-[0_0_20px_rgba(168,85,247,0.15)]", border: "border-purple-500/30" }
+    if (nameUpper.includes("HYBRID GOLD")) 
+      return { icon: Zap, color: "text-orange-400", bg: "bg-orange-500", glow: "shadow-[0_0_20px_rgba(249,115,22,0.15)]", border: "border-orange-500/30" }
+    if (nameUpper.includes("GOLD APEX")) 
+      return { icon: Target, color: "text-emerald-400", bg: "bg-emerald-500", glow: "shadow-[0_0_20px_rgba(52,211,153,0.15)]", border: "border-emerald-500/30" }
+    if (nameUpper.includes("MANUAL")) 
+      return { icon: PenTool, color: "text-blue-400", bg: "bg-blue-500", glow: "shadow-[0_0_20px_rgba(59,130,246,0.15)]", border: "border-blue-500/30" }
+    
+    return { icon: Activity, color: "text-slate-400", bg: "bg-slate-500", glow: "shadow-[0_0_20px_rgba(148,163,184,0.15)]", border: "border-slate-500/30" }
   }
 
   const filteredEngines = Object.entries(engines).filter(([name]) => {
@@ -55,7 +66,7 @@ export function PerformanceView({ trades = [] }: { trades: any[] }) {
 
       {/* Analytics Tiles */}
       <div className="grid md:grid-cols-2 gap-6">
-        {filteredEngines.map(([name, engineTrades]: [string, any]) => {
+        {filteredEngines.map(([name, engineTrades]: [string, any[]]) => {
           const styles = getEngineStyles(name)
           const wins = engineTrades.filter((t: any) => t.rMultiple > 0).length
           const losses = engineTrades.filter((t: any) => t.rMultiple < 0).length
@@ -69,7 +80,12 @@ export function PerformanceView({ trades = [] }: { trades: any[] }) {
             <Card key={name} className={`bg-card/40 backdrop-blur-md ${styles.border} ${styles.glow}`}>
               <CardContent className="p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className={`text-sm font-black uppercase tracking-widest ${styles.color}`}>{name}</h3>
+                  {/* Icon & Name Rendering */}
+                  <h3 className={`text-sm font-black uppercase tracking-widest flex items-center gap-2 ${styles.color}`}>
+                    <styles.icon size={16} /> {name}
+                  </h3>
+                  
+                  {/* Trade History Trigger */}
                   <button 
                     onClick={() => setSelectedBot(name)}
                     className="text-[11px] text-muted-foreground font-bold hover:text-foreground transition-colors cursor-pointer"
@@ -81,7 +97,7 @@ export function PerformanceView({ trades = [] }: { trades: any[] }) {
                 <div className="space-y-6">
                   <div className="flex justify-between items-end">
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Net Performance</p>
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest mb-1">Net P&L</p>
                       <p className={`text-3xl font-black tabular-nums ${netPnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {netPnl >= 0 ? '+' : ''}${netPnl.toFixed(2)}
                       </p>
@@ -114,7 +130,7 @@ export function PerformanceView({ trades = [] }: { trades: any[] }) {
 
       {/* Bot-Specific History Modal */}
       <Dialog open={!!selectedBot} onOpenChange={() => setSelectedBot(null)}>
-        <DialogContent className="bg-[#0f172a]/95 backdrop-blur-xl border-white/10 shadow-[0_0_40px_rgba(0,0,0,0.5)] sm:max-w-[500px]">
+        <DialogContent className="bg-card/80 backdrop-blur-xl border-border/40 shadow-2xl sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="uppercase tracking-widest text-sm font-black text-foreground">
               {selectedBot} Execution Ledger
@@ -122,10 +138,10 @@ export function PerformanceView({ trades = [] }: { trades: any[] }) {
           </DialogHeader>
           <div className="max-h-[300px] overflow-y-auto space-y-2 custom-scrollbar mt-4 pr-2">
             {botTrades.length === 0 ? (
-              <p className="text-xs italic text-muted-foreground text-center">No historical executions found.</p>
+              <p className="text-xs italic text-muted-foreground text-center py-4">No historical executions found.</p>
             ) : (
               botTrades.map((t: any, i: number) => (
-                <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-background/40 border border-border/30 hover:border-white/10 transition-colors">
+                <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-background/40 border border-border/30 hover:border-border/60 transition-colors">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] font-black tracking-widest uppercase text-foreground">{t.symbol}</span>
