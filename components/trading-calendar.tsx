@@ -6,7 +6,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMonthYearChange }: any) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
-  // Dynamic PnL calculation per day frame
   const dailyPnLMap = trades.reduce((acc: any, t: any) => {
     const dStr = new Date(t.date).toDateString();
     acc[dStr] = (acc[dStr] || 0) + Number(t.rMultiple);
@@ -47,7 +46,6 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
 
   return (
     <div className="w-full flex flex-col h-full">
-      {/* Restored: Exact original top title block header alignment */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-lg font-black tracking-widest uppercase text-foreground">
           {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
