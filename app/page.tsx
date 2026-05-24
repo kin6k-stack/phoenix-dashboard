@@ -3,18 +3,18 @@
 import { useState, useEffect } from "react"
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
 import { db } from "../lib/firebase" 
-import { Sidebar } from "@/components/sidebar"
-import { TradingCalendar } from "@/components/trading-calendar"
+import Sidebar from "@/components/sidebar"
+import TradingCalendar from "@/components/trading-calendar"
 import { SlimMonthlyPerformance } from "@/components/slim-monthly-performance"
 import { SlimPnLChart } from "@/components/slim-pnl-chart"
 import { SlimJournal } from "@/components/slim-journal"
 import { ManualTradesCard } from "@/components/manual-trades-card"
-import { AddTradeDialog } from "@/components/add-trade-dialog"
-import { SessionIntelligence } from "@/components/session-intelligence"
-import { PerformanceView } from "@/components/performance-view"
-import { DashboardView } from "@/components/dashboard-view"
+import AddTradeDialog from "@/components/add-trade-dialog"
+import SessionIntelligence from "@/components/session-intelligence"
+import PerformanceView from "@/components/performance-view"
+import DashboardView from "@/components/dashboard-view"
 import { BotConfiguration } from "@/components/bot-configuration"
-import { SignalHistoryView } from "@/components/signal-history" 
+import SignalHistoryView from "@/components/signal-history" 
 
 interface Trade {
   id: string
@@ -22,6 +22,7 @@ interface Trade {
   symbol: string
   setup: string
   rMultiple: number
+  direction: string
   notes: string
   screenshot?: string 
 }
@@ -31,9 +32,7 @@ export default function TradingDashboard() {
   const [isAddTradeOpen, setIsAddTradeOpen] = useState(false)
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null)
   const [trades, setTrades] = useState<Trade[]>([])
-  
   const [activeNavItem, setActiveNavItem] = useState("dashboard")
-  
   const [currentMonthYear, setCurrentMonthYear] = useState<{ month: number; year: number }>({
     month: new Date().getMonth(),
     year: new Date().getFullYear()
@@ -57,6 +56,7 @@ export default function TradingDashboard() {
           symbol: data.symbol || "Unknown",
           setup: data.bot || data.setup || "Manual Entry",
           rMultiple: data.profit !== undefined ? Number(data.profit) : 0, 
+          direction: data.direction || "BUY", // TASK 2.3: Order Direction Binding
           notes: data.notes || "No context notes recorded.",
           screenshot: data.screenshot || "" 
         };
@@ -85,6 +85,7 @@ export default function TradingDashboard() {
           symbol: trade.symbol.toUpperCase(),
           profit: Number(trade.rMultiple),
           bot: trade.setup,
+          direction: trade.direction,
           timestamp: new Date(trade.date),
           notes: trade.notes,
           screenshot: trade.screenshot || ""
@@ -95,6 +96,7 @@ export default function TradingDashboard() {
           profit: Number(trade.rMultiple), 
           type: "MANUAL",
           bot: trade.setup || "Manual Entry",
+          direction: trade.direction || "BUY",
           timestamp: new Date(trade.date),
           notes: trade.notes || "Historical trade added via web dashboard",
           screenshot: trade.screenshot || ""
@@ -132,7 +134,6 @@ export default function TradingDashboard() {
     switch (activeNavItem) {
       case "dashboard": 
         return <div className="flex-1 overflow-auto"><DashboardView trades={trades} /></div>
-      
       case "pnl-calendar":
         return (
           <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden h-full w-full">
@@ -142,6 +143,7 @@ export default function TradingDashboard() {
                   selectedDate={selectedDate}
                   onDateSelect={setSelectedDate}
                   tradeDates={tradeDates}
+                  trades={filteredTrades} // TASK 2.1: Injected Trades
                   totalTrades={totalTrades}
                   wins={wins}
                   netPnL={netPnL}
@@ -154,7 +156,6 @@ export default function TradingDashboard() {
               <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />
               <SlimPnLChart trades={filteredTrades} /> 
               <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
-              
               <ManualTradesCard 
                 trades={filteredTrades} 
                 onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true); }} 
@@ -164,7 +165,6 @@ export default function TradingDashboard() {
             </div>
           </div>
         )
-      
       case "session-intelligence":
         return (
           <div className="flex-1 p-4 md:p-8 overflow-auto">
@@ -177,7 +177,6 @@ export default function TradingDashboard() {
             </div>
           </div>
         )
-
       case "performance-metrics":
         return (
           <div className="flex-1 p-4 md:p-8 overflow-auto">
@@ -190,7 +189,6 @@ export default function TradingDashboard() {
             </div>
           </div>
         )
-
       case "signal-history":
         return (
           <div className="flex-1 p-4 md:p-8 overflow-auto">
@@ -203,7 +201,6 @@ export default function TradingDashboard() {
             </div>
           </div>
         )
-
       case "economic-calendar":
         return <div className="flex-1 p-4 md:p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Economic Calendar stream initializing...</div>
       case "settings": 
@@ -216,20 +213,19 @@ export default function TradingDashboard() {
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-background to-background overflow-hidden font-sans">
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} />
-      
       <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0 overflow-hidden">
         {renderContent()}
       </div>
-      
       <AddTradeDialog 
         open={isAddTradeOpen}
-        onOpenChange={(open) => { 
+        onOpenChange={(open: boolean) => { 
           setIsAddTradeOpen(open); 
           if (!open) { setSelectedDate(null); setEditingTrade(null); } 
         }}
         onSubmit={handleSaveTrade}
         initialDate={selectedDate}
         existingTrade={editingTrade}
+        trades={trades} // TASK 2.2: Pass trades for Intraday Ledger
       />
     </div>
   )
