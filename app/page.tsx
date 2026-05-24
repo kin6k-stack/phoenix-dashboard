@@ -56,7 +56,8 @@ export default function TradingDashboard() {
           symbol: data.symbol || "Unknown",
           setup: data.bot || data.setup || "Manual Entry",
           rMultiple: data.profit !== undefined ? Number(data.profit) : 0, 
-          direction: data.direction || "BUY",
+          // BUG FIX: Catch 'type' or 'action' if 'direction' is missing from the bot payload
+          direction: (data.direction || data.type || data.action || "BUY").toUpperCase(),
           notes: data.notes || "No context notes recorded.",
           screenshot: data.screenshot || "" 
         };
@@ -138,7 +139,7 @@ export default function TradingDashboard() {
         return (
           <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden h-full w-full">
             <div className="flex-1 p-4 md:p-8 overflow-visible lg:overflow-auto">
-              <div className="bg-card/40 backdrop-blur-md rounded-xl border border-border/40 p-4 md:p-6 h-full shadow-[0_0_20px_rgba(0,0,0,0.15)]">
+              <div className="bg-[#0f172a]/40 backdrop-blur-xl rounded-xl border border-white/5 p-4 md:p-6 h-full shadow-[0_0_30px_rgba(0,0,0,0.3)]">
                 <TradingCalendar 
                   selectedDate={selectedDate}
                   onDateSelect={setSelectedDate}
@@ -152,7 +153,7 @@ export default function TradingDashboard() {
                 />
               </div>
             </div>
-            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-border/40 p-4 overflow-visible lg:overflow-auto space-y-4 bg-card/20 backdrop-blur-md">
+            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-white/5 p-4 overflow-visible lg:overflow-auto space-y-4 bg-black/20 backdrop-blur-md">
               <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />
               <SlimPnLChart trades={filteredTrades} /> 
               <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
@@ -201,8 +202,6 @@ export default function TradingDashboard() {
             </div>
           </div>
         )
-      case "economic-calendar":
-        return <div className="flex-1 p-4 md:p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Economic Calendar stream initializing...</div>
       case "settings": 
         return <div className="flex-1 p-4 md:p-8 overflow-auto"><BotConfiguration /></div>
       default: 
@@ -211,7 +210,7 @@ export default function TradingDashboard() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-background to-background overflow-hidden font-sans">
+    <div className="flex flex-col md:flex-row h-screen w-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#030712] via-[#090c11] to-black overflow-hidden font-sans">
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} />
       <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0 overflow-hidden">
         {renderContent()}
