@@ -3,18 +3,18 @@
 import { useState, useEffect } from "react"
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
 import { db } from "../lib/firebase" 
-import { Sidebar } from "@/components/sidebar"
-import { TradingCalendar } from "@/components/trading-calendar"
+import Sidebar from "../components/sidebar"
+import TradingCalendar from "../components/trading-calendar"
 import { SlimMonthlyPerformance } from "@/components/slim-monthly-performance"
 import { SlimPnLChart } from "@/components/slim-pnl-chart"
 import { SlimJournal } from "@/components/slim-journal"
 import { ManualTradesCard } from "@/components/manual-trades-card"
-import { AddTradeDialog } from "@/components/add-trade-dialog"
-import { SessionIntelligence } from "@/components/session-intelligence"
-import { PerformanceView } from "@/components/performance-view"
-import { DashboardView } from "@/components/dashboard-view"
-import { BotConfiguration } from "@/components/bot-configuration"
-import { SignalHistoryView } from "@/components/signal-history" 
+import AddTradeDialog from "../components/add-trade-dialog"
+import SessionIntelligence from "../components/session-intelligence"
+import PerformanceView from "../components/performance-view"
+import DashboardView from "../components/dashboard-view"
+import SignalHistoryView from "../components/signal-history" 
+import EconomicCalendar from "../components/economic-calendar"
 
 interface Trade {
   id: string
@@ -56,7 +56,6 @@ export default function TradingDashboard() {
           symbol: data.symbol || "Unknown",
           setup: data.bot || data.setup || "Manual Entry",
           rMultiple: data.profit !== undefined ? Number(data.profit) : 0, 
-          // BUG FIX: Catch 'type' or 'action' if 'direction' is missing from the bot payload
           direction: (data.direction || data.type || data.action || "BUY").toUpperCase(),
           notes: data.notes || "No context notes recorded.",
           screenshot: data.screenshot || "" 
@@ -139,7 +138,8 @@ export default function TradingDashboard() {
         return (
           <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden h-full w-full">
             <div className="flex-1 p-4 md:p-8 overflow-visible lg:overflow-auto">
-              <div className="bg-[#0f172a]/40 backdrop-blur-xl rounded-xl border border-white/5 p-4 md:p-6 h-full shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+              {/* THEME FIX: Changed bg-[#0f172a]/40 to bg-black/40 to perfectly match the right sidebar depth */}
+              <div className="bg-black/40 backdrop-blur-xl rounded-xl border border-white/5 p-4 md:p-6 h-full shadow-[0_0_30px_rgba(0,0,0,0.5)]">
                 <TradingCalendar 
                   selectedDate={selectedDate}
                   onDateSelect={setSelectedDate}
@@ -202,8 +202,19 @@ export default function TradingDashboard() {
             </div>
           </div>
         )
-      case "settings": 
-        return <div className="flex-1 p-4 md:p-8 overflow-auto"><BotConfiguration /></div>
+      case "economic-calendar":
+        return (
+          <div className="flex-1 p-4 md:p-8 overflow-auto">
+            <div className="max-w-6xl mx-auto space-y-4">
+              <div className="flex flex-col gap-1 mb-6">
+                <h1 className="text-xl md:text-2xl font-black text-foreground uppercase tracking-widest drop-shadow-sm">Economic Calendar</h1>
+                <p className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-widest">Live FXMacroData Institutional Release Schedule.</p>
+              </div>
+              {/* THEME FIX: Renders the active calendar component */}
+              <EconomicCalendar />
+            </div>
+          </div>
+        )
       default: 
         return <div className="flex-1 p-4 md:p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Section coming soon.</div>
     }
