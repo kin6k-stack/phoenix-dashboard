@@ -6,14 +6,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMonthYearChange }: any) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
-  // Dynamic PnL allocation map based on trade data
+  // Dynamic PnL calculation per day frame
   const dailyPnLMap = trades.reduce((acc: any, t: any) => {
     const dStr = new Date(t.date).toDateString();
     acc[dStr] = (acc[dStr] || 0) + Number(t.rMultiple);
     return acc;
   }, {});
 
-  // Mathematical block generation for proper grid alignment
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear()
     const month = date.getMonth()
@@ -26,9 +25,6 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
     }
     for (let i = 1; i <= daysInMonth; i++) {
       days.push(new Date(year, month, i))
-    }
-    while (days.length < 42) {
-      days.push(null)
     }
     return days
   }
@@ -50,27 +46,25 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
   const todayStr = new Date().toDateString();
 
   return (
-    <div className="w-full flex flex-col h-full bg-transparent">
-      
-      {/* Visual Update: Darker header container */}
-      <div className="flex justify-between items-center mb-6 p-4 rounded-xl bg-[#1e293b]/60 border border-border">
-        <h2 className="text-xl font-bold tracking-tight text-white">
+    <div className="w-full flex flex-col h-full">
+      {/* Restored: Exact original top title block header alignment */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-black tracking-widest uppercase text-foreground">
           {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
         </h2>
         <div className="flex gap-2">
-           <button onClick={prevMonth} className="p-2 bg-slate-700/50 border border-slate-700 rounded hover:bg-slate-700/80 transition-colors"><ChevronLeft size={18} className="text-white" /></button>
-           <button onClick={nextMonth} className="p-2 bg-slate-700/50 border border-slate-700 rounded hover:bg-slate-700/80 transition-colors"><ChevronRight size={18} className="text-white" /></button>
+           <button onClick={prevMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronLeft size={16} /></button>
+           <button onClick={nextMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronRight size={16} /></button>
         </div>
       </div>
       
-      {/* Trading Matrix Day Grid */}
       <div className="grid grid-cols-7 gap-2 flex-1">
-        {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-          <div key={day} className="text-center text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">{day}</div>
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          <div key={day} className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">{day}</div>
         ))}
         
         {days.map((day, i) => {
-          if (!day) return <div key={i} className="min-h-[60px] bg-slate-900/10 border border-slate-900 rounded-lg" />
+          if (!day) return <div key={i} className="min-h-[60px]" />
           
           const dayStr = day.toDateString();
           const dayPnL = dailyPnLMap[dayStr] || 0;
@@ -83,20 +77,18 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
             <button 
               key={i}
               onClick={() => onDateSelect(day)}
-              className={`p-3 border rounded-xl flex flex-col items-start justify-between min-h-[65px] transition-all relative overflow-hidden group
-                ${isSelected ? 'ring-2 ring-emerald-500 bg-emerald-600/30' : ''}
-                ${isToday && !isSelected ? 'ring-1 ring-emerald-500 bg-emerald-500/10' : ''}
-                ${isNegative && !isSelected ? 'bg-rose-950 border-rose-900 hover:border-rose-700' : 
-                  isPositive && !isSelected ? 'bg-emerald-950 border-emerald-900 hover:border-emerald-700' : 
-                  !isSelected && !isToday ? 'bg-slate-900/50 border-slate-800 hover:border-slate-700' : ''}
+              className={`p-2 border rounded-md flex flex-col items-start justify-between min-h-[60px] transition-all hover:border-foreground/50 cursor-pointer
+                ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/10' : ''}
+                ${isToday && !isSelected ? 'ring-1 ring-emerald-500/50 bg-emerald-500/10' : ''}
+                ${isNegative && !isSelected ? 'bg-rose-500/10 border-rose-500/30' : 
+                  isPositive && !isSelected ? 'bg-emerald-500/10 border-emerald-500/30' : 
+                  !isSelected ? 'bg-background/40 border-border/40' : ''}
               `}
             >
-              <span className={`text-sm font-bold ${isToday ? 'text-emerald-300' : 'text-foreground'}`}>{day.getDate()}</span>
-              
-              {/* Dynamic trade aggregation result display */}
+              <span className={`text-xs font-bold ${isToday ? 'text-emerald-400 font-extrabold' : 'text-foreground'}`}>{day.getDate()}</span>
               {dayPnL !== 0 && (
-                <span className={`text-xs font-mono font-extrabold tracking-tight tabular-nums ${isNegative ? 'text-rose-300' : 'text-emerald-300'}`}>
-                  {isNegative ? '-' : '+'}${Math.abs(dayPnL).toFixed(2)}
+                <span className={`text-[10px] font-mono font-black tracking-tighter ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {isNegative ? '' : '+'}${Math.abs(dayPnL).toFixed(2)}
                 </span>
               )}
             </button>
@@ -104,7 +96,7 @@ export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMon
         })}
       </div>
       <div className="mt-4 pt-4 border-t border-border/40 text-center">
-        <p className="text-xs font-mono text-muted-foreground uppercase tracking-widest">Select an execution date window to reveal intraday historical logs.</p>
+        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Click any date to view intraday ledger or log manual setups.</p>
       </div>
     </div>
   )
