@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Globe, RefreshCw, Clock } from "lucide-react"
 
-export default function EconomicCalendar() {
+export function EconomicCalendar() {
   const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -35,13 +35,13 @@ export default function EconomicCalendar() {
   }
 
   return (
-    <div className="w-full border border-white/5 rounded-xl overflow-hidden bg-black/40 backdrop-blur-xl shadow-[0_0_30px_rgba(0,0,0,0.3)]">
-      <div className="flex justify-between items-center p-4 border-b border-white/5 bg-white/5">
+    <div className="w-full border border-border/40 rounded-xl overflow-hidden bg-card/40 backdrop-blur-xl shadow-[0_0_30px_rgba(0,0,0,0.3)]">
+      <div className="flex justify-between items-center p-4 border-b border-border/30 bg-background/40">
         <div className="flex items-center gap-2">
           <Globe size={16} className="text-primary" />
           <h3 className="text-xs font-black uppercase tracking-widest text-foreground">Live USD Macro Feed</h3>
         </div>
-        <button onClick={fetchCalendar} className="text-muted-foreground hover:text-primary transition-colors">
+        <button onClick={fetchCalendar} className="text-muted-foreground hover:text-primary transition-colors cursor-pointer">
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
@@ -50,9 +50,9 @@ export default function EconomicCalendar() {
         {loading ? (
           <div className="p-12 text-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest animate-pulse">Syncing Institutional Feed...</div>
         ) : events.length === 0 ? (
-          <div className="p-12 text-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest">No upcoming USD events found.</div>
+          <div className="p-12 text-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest">No upcoming high impact USD events found.</div>
         ) : (
-          <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto custom-scrollbar">
+          <div className="divide-y divide-border/20 max-h-[600px] overflow-y-auto custom-scrollbar">
             {events.map((event, idx) => {
               const impact = getImpact(event.indicator);
               const eventDate = new Date(event.announcement_datetime);
@@ -76,7 +76,7 @@ export default function EconomicCalendar() {
                       <Clock size={12} className="text-muted-foreground"/> 
                       {eventDate.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
                     </span>
-                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-white/5 bg-black/40 ${impact.color}`}>
+                    <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded border border-border/40 bg-background/50 ${impact.color}`}>
                       {impact.level} IMPACT
                     </span>
                   </div>
