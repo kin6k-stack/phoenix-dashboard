@@ -16,7 +16,7 @@ interface MacroEvent {
   liveStatus: string
 }
 
-export default function EconomicCalendarView() {
+export function EconomicCalendarView() {
   const [events, setEvents] = useState<MacroEvent[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
