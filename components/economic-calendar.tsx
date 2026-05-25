@@ -1,180 +1,197 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, RefreshCw, AlertCircle, ShieldCheck, Zap, HelpCircle } from "lucide-react"
+import { Calendar, AlertTriangle, ShieldCheck, Layers, Filter, RefreshCw, Zap } from "lucide-react"
 
 interface MacroEvent {
-  title: string
-  announcement_datetime: string
-  indicator: string
-  source: string
+  id: string
+  time: string
+  date: string
   currency: string
+  event: string
+  importance: "HIGH" | "MEDIUM" | "LOW"
+  impactAsset: string
+  previous: string
+  forecast: string
+  liveStatus: string
 }
 
-export function EconomicCalendar() {
-  const [eventsByMonth, setEventsByMonth] = useState<Record<string, MacroEvent[]>>({})
-  const [loading, setLoading] = useState(true)
-  const [activeImportance, setActiveImportance] = useState<"ALL" | "HIGH" | "MED">("HIGH")
+export default function EconomicCalendarView() {
+  const [events, setEvents] = useState<MacroEvent[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  // Filtering states
+  const [importanceFilter, setImportanceFilter] = useState<string>("ALL")
+  const [assetFilter, setAssetFilter] = useState<string>("ALL")
 
-  const fetchThreeMonthCalendar = async () => {
+  const fetchCalendarData = async () => {
     setLoading(true)
     try {
-      // Pulling data directly via standard secure endpoint proxy
-      const res = await fetch("https://fxmacrodata.com/api/v1/calendar/usd")
-      if (res.ok) {
-        const data: MacroEvent[] = await res.json()
-        const nowMs = Date.now()
-        const maxHorizonMs = nowMs + 90 * 24 * 60 * 60 * 1000 // Strict 3-Month structural window filter
-
-        // Sort chronologically and isolate lookahead horizon window
-        const filtered = data
-          .filter((e) => {
-            const t = new Date(e.announcement_datetime).getTime()
-            return t >= nowMs && t <= maxHorizonMs
-          })
-          .sort((a, b) => new Date(a.announcement_datetime).getTime() - new Date(b.announcement_datetime).getTime())
-
-        // Group explicitly by localized Month name strings
-        const grouped: Record<string, MacroEvent[]> = {}
-        filtered.forEach((event) => {
-          const dateObj = new Date(event.announcement_datetime)
-          const monthKey = dateObj.toLocaleString("en-US", { month: "long", year: "numeric" })
-
-          if (!grouped[monthKey]) {
-            grouped[monthKey] = []
-          }
-          grouped[monthKey].push(event)
-        })
-
-        setEventsByMonth(grouped)
+      const res = await fetch("/api/calendar")
+      const result = await res.json()
+      if (result.success) {
+        setEvents(result.data)
+        setError(null)
+      } else {
+        setError("Macro data retrieval mismatch.")
       }
-    } catch (error) {
-      console.error("Failed to fetch rolling calendar matrix:", error)
+    } catch (err) {
+      setError("Server connection disrupted.")
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   useEffect(() => {
-    fetchThreeMonthCalendar()
+    fetchCalendarData()
   }, [])
 
-  // Maps statistical high/med risk indicators explicitly to XAUUSD and USTEC parameters
-  const getImpactData = (indicator: string) => {
-    const ind = indicator?.toLowerCase() || ""
-    if (["policy_rate", "non_farm_payrolls", "inflation", "core_inflation", "gdp", "unemployment", "pce"].some(k => ind.includes(k))) {
-      return { level: "HIGH", color: "text-rose-400 border-rose-500/20 bg-rose-500/5", dot: "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.6)]" }
-    }
-    if (["retail_sales", "ppi", "trade_balance", "job_openings", "consumer_sentiment", "pmi", "nmi"].some(k => ind.includes(k))) {
-      return { level: "MED", color: "text-amber-400 border-amber-500/20 bg-amber-500/5", dot: "bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.6)]" }
-    }
-    return { level: "LOW", color: "text-slate-400 border-white/5 bg-white/5", dot: "bg-slate-500" }
-  }
+  // Filtering Matrix Logic
+  const filteredEvents = events.filter((evt) => {
+    const matchesImportance = importanceFilter === "ALL" || evt.importance === importanceFilter
+    const matchesAsset = assetFilter === "ALL" || evt.impactAsset.includes(assetFilter) || evt.impactAsset === "GLOBAL DESK"
+    return matchesImportance && matchesAsset
+  })
 
   return (
-    <div className="space-y-6 w-full">
-      {/* Target Alignment Summary Module Header */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-card/40 backdrop-blur-md rounded-xl border border-border/40 shadow-sm">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-black text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-            <Calendar size={13} className="text-primary" /> Strategy Filter Focus: XAUUSD & USTEC
-          </span>
-          <span className="text-[10px] text-foreground font-medium italic">Isolating high-volatility macroeconomic catalysts over a 90-day pipeline</span>
+    <div className="w-full min-h-screen bg-[#03050a] text-slate-100 p-6 font-sans">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800/60 pb-6 mb-6">
+        <div>
+          <h1 className="text-xl font-bold tracking-wider text-amber-400 flex items-center gap-2">
+            <Calendar className="w-5 h-5" /> MACROECONOMIC INTEGRATION COMMAND
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Tracking active risk thresholds for XAUUSD, USTEC, and USD Index layers over a 60-day horizon.
+          </p>
+        </div>
+        <button 
+          onClick={fetchCalendarData}
+          className="mt-4 md:mt-0 flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded bg-slate-900 border border-slate-700/80 hover:bg-slate-800 hover:text-amber-400 transition-all cursor-pointer"
+        >
+          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin text-amber-400" : ""}`} /> 
+          FORCE REFRESH MATRIX
+        </button>
+      </div>
+
+      {/* FILTER BAR CONTAINER */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 bg-slate-950/40 p-4 border border-slate-850/60 rounded backdrop-blur-md">
+        {/* IMPORTANCE FILTER PANEL */}
+        <div>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+            <Filter className="w-3 h-3 text-dodgerblue" /> Volatility Threshold Filter
+          </label>
+          <div className="flex gap-2">
+            {["ALL", "HIGH", "MEDIUM"].map((level) => (
+              <button
+                key={level}
+                onClick={() => setImportanceFilter(level)}
+                className={`px-3 py-1.5 text-xs rounded transition-all cursor-pointer font-medium border ${
+                  importanceFilter === level 
+                    ? "bg-amber-500/10 text-amber-400 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.1)]" 
+                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                }`}
+              >
+                {level === "ALL" ? "SHOW ALL OUTCOMES" : `${level} IMPACT SETUP`}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Cohesive design layout menu keys matching the tabs interface */}
-        <div className="flex justify-end gap-1 bg-background/50 p-1 rounded-lg border border-border/50 max-w-fit md:ml-auto">
-          {(["HIGH", "MED", "ALL"] as const).map((importance) => (
-            <button
-              key={importance}
-              onClick={() => setActiveImportance(importance)}
-              className={`px-3 py-1.5 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
-                activeImportance === importance
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground hover:bg-white/5"
-              }`}
-            >
-              {importance === "ALL" ? "Combined Feed" : `${importance} Risk`}
-            </button>
-          ))}
-          <button 
-            onClick={threeMonthHorizonSync}
-            className="p-1.5 ml-1 text-muted-foreground hover:text-foreground hover:bg-white/5 rounded-md transition-colors"
-          >
-            <RefreshCw size={11} className={loading ? "animate-spin" : ""} />
-          </button>
+        {/* ASSET FOCUS FILTER PANEL */}
+        <div>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2">
+            <Layers className="w-3 h-3 text-dodgerblue" /> Operational Target Allocation
+          </label>
+          <div className="flex gap-2">
+            {["ALL", "XAUUSD", "USTEC", "USD"].map((asset) => (
+              <button
+                key={asset}
+                onClick={() => setAssetFilter(asset)}
+                className={`px-3 py-1.5 text-xs rounded transition-all cursor-pointer font-medium border ${
+                  assetFilter === asset 
+                    ? "bg-blue-500/10 text-blue-400 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.1)]" 
+                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                }`}
+              >
+                {asset === "ALL" ? "OMNI TARGETS" : asset}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Render Lists segments classified cleanly by Month blocks */}
+      {/* RENDER BODY STATE */}
       {loading ? (
-        <div className="p-16 text-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest animate-pulse border border-border/40 bg-card/20 rounded-xl backdrop-blur-md">
-          Synchronizing institutional lookahead streams...
+        <div className="w-full h-64 flex flex-col items-center justify-center gap-3 bg-slate-950/20 border border-slate-900 rounded">
+          <RefreshCw className="w-8 h-8 animate-spin text-amber-500" />
+          <p className="text-xs text-slate-400 font-medium tracking-widest">SYNCHRONIZING SECURE CALENDAR CHANNELS...</p>
         </div>
-      ) : Object.keys(eventsByMonth).length === 0 ? (
-        <div className="p-16 text-center text-[10px] font-mono text-muted-foreground uppercase tracking-widest border border-border/40 bg-card/20 rounded-xl backdrop-blur-md">
-          No matching macro metrics captured for this asset window template.
+      ) : error ? (
+        <div className="w-full p-6 flex items-center gap-3 bg-red-950/20 border border-red-900/50 text-red-400 rounded">
+          <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+          <p className="text-xs font-medium">{error} Check Vercel application environment variables variables list.</p>
+        </div>
+      ) : filteredEvents.length === 0 ? (
+        <div className="w-full py-16 text-center bg-slate-950/20 border border-slate-900 rounded">
+          <p className="text-xs text-slate-500 font-medium">No macroeconomic items match selected filters criteria metrics.</p>
         </div>
       ) : (
-        <div className="space-y-6">
-          {Object.entries(eventsByMonth).map(([monthName, monthEvents]) => {
-            // Apply targeted risk-filter matrix logic safely on each month segment
-            const displays = monthEvents.filter((ev) => {
-              const r = getImpactData(ev.indicator).level
-              if (activeImportance === "ALL") return true
-              return r === activeImportance
-            })
-
-            if (displays.length === 0) return null
-
-            return (
-              <div key={monthName} className="space-y-3">
-                {/* Month Group Divider Ribbon */}
-                <div className="flex items-center gap-3 px-1">
-                  <span className="text-[11px] font-mono font-black uppercase tracking-widest text-primary drop-shadow-[0_0_8px_rgba(16,185,129,0.2)]">
-                    {monthName}
-                  </span>
-                  <div className="h-px flex-1 bg-gradient-to-r from-border/60 via-border/10 to-transparent" />
-                  <span className="text-[9px] font-mono font-bold text-muted-foreground tracking-widest">
-                    {displays.length} Releases Active
-                  </span>
-                </div>
-
-                {/* Sub-grid array block list cards mapping inside month container */}
-                <div className="border border-border/40 rounded-xl overflow-hidden bg-card/40 backdrop-blur-md divide-y divide-border/20 shadow-md">
-                  {displays.map((event, idx) => {
-                    const impact = getImpactData(event.indicator)
-                    const dateObj = new Date(event.announcement_datetime)
-
-                    return (
-                      <div key={idx} className="p-4 hover:bg-white/[0.01] transition-colors flex items-center justify-between group">
-                        <div className="flex items-center gap-4 min-w-0">
-                          <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${impact.dot}`} />
-                          <div className="flex flex-col gap-0.5 truncate">
-                            <span className="text-xs font-black text-foreground uppercase tracking-wider truncate">
-                              {event.title}
-                            </span>
-                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-widest">
-                              {event.source || "Bureau of Economic Analysis / BLS"}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-right flex flex-col items-end gap-1.5 flex-shrink-0 ml-4">
-                          <span className="text-[10px] font-mono font-black text-foreground/90 flex items-center gap-1">
-                            <Clock size={11} className="text-muted-foreground/60" />
-                            {dateObj.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                          <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded border ${impact.color}`}>
-                            {impact.level} IMPACT
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
+        /* HIGHFIDELITY FINANCIAL TIMELINE MATRIX */
+        <div className="w-full bg-[#070b12] border border-slate-850/80 rounded overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-900/80 text-[10px] uppercase font-bold tracking-widest text-slate-400 border-b border-slate-800/80">
+                  <th className="py-3.5 px-4 w-28">TIMESTAMP</th>
+                  <th className="py-3.5 px-4 w-20">ZONE</th>
+                  <th className="py-3.5 px-4">FUNDAMENTAL METRIC DESCRIPTION</th>
+                  <th className="py-3.5 px-4 w-32">IMPACT SPEC</th>
+                  <th className="py-3.5 px-4 w-24 text-center">RISK WEIGHT</th>
+                  <th className="py-3.5 px-4 w-20 text-right">FORECAST</th>
+                  <th className="py-3.5 px-4 w-20 text-right">PREVIOUS</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-850/50 text-xs">
+                {filteredEvents.map((evt) => (
+                  <tr key={evt.id} className="hover:bg-slate-900/30 transition-colors group">
+                    <td className="py-4 px-4 font-mono text-slate-400 group-hover:text-slate-200">
+                      <span className="block text-[11px] font-bold text-slate-300">{evt.date}</span>
+                      <span className="text-[10px] text-slate-500 mt-0.5 block">{evt.time} EST</span>
+                    </td>
+                    <td className="py-4 px-4 font-bold text-slate-300">
+                      <span className="bg-slate-900 px-2 py-0.5 border border-slate-800 rounded text-[10px]">
+                        {evt.currency}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 font-semibold text-slate-200 group-hover:text-white">
+                      {evt.event}
+                    </td>
+                    <td className="py-4 px-4 font-mono text-[11px] text-blue-400 font-medium">
+                      {evt.impactAsset}
+                    </td>
+                    <td className="py-4 px-4 text-center">
+                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-bold border tracking-wide ${
+                        evt.importance === "HIGH" 
+                          ? "bg-red-500/10 text-red-400 border-red-500/30 shadow-[0_0_8px_rgba(239,68,68,0.05)]" 
+                          : "bg-orange-500/10 text-orange-400 border-orange-500/30"
+                      }`}>
+                        <Zap className="w-2.5 h-2.5 fill-current" />
+                        {evt.importance}
+                      </span>
+                    </td>
+                    <td className="py-4 px-4 text-right font-mono font-medium text-slate-300">
+                      {evt.forecast}
+                    </td>
+                    <td className="py-4 px-4 text-right font-mono text-slate-500">
+                      {evt.previous}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
