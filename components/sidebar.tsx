@@ -27,7 +27,6 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
     { id: "performance-metrics", name: "Performance", icon: TrendingUp },      
     { id: "signal-history", name: "Signal History", icon: History },          
     { id: "economic-calendar", name: "Economic Calendar", icon: Globe },       
-    { id: "settings", name: "Bot Configurations", icon: Settings }
   ]
 
   const NavigationContent = () => (

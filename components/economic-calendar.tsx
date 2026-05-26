@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Calendar, AlertTriangle, ShieldCheck, Layers, Filter, RefreshCw, Zap } from "lucide-react"
+import { Calendar, AlertTriangle, Layers, Filter, RefreshCw, Zap } from "lucide-react"
 
 interface MacroEvent {
   id: string
@@ -16,7 +16,7 @@ interface MacroEvent {
   liveStatus: string
 }
 
- export function EconomicCalendar() {
+export function EconomicCalendar() {
   const [events, setEvents] = useState<MacroEvent[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,7 +59,7 @@ interface MacroEvent {
       {/* HEADER SECTION */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between border-b border-slate-800/60 pb-6 mb-6">
         <div>
-          <h1 className="text-xl font-bold tracking-wider text-amber-400 flex items-center gap-2">
+          <h1 className="text-xl font-bold tracking-wider text-green-400 flex items-center gap-2">
             <Calendar className="w-5 h-5" /> MACROECONOMIC INTEGRATION COMMAND
           </h1>
           <p className="text-xs text-slate-400 mt-1">
@@ -68,9 +68,9 @@ interface MacroEvent {
         </div>
         <button 
           onClick={fetchCalendarData}
-          className="mt-4 md:mt-0 flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded bg-slate-900 border border-slate-700/80 hover:bg-slate-800 hover:text-amber-400 transition-all cursor-pointer"
+          className="mt-4 md:mt-0 flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded bg-slate-900 border border-slate-700/80 hover:bg-slate-800 hover:text-green-400 transition-all cursor-pointer"
         >
-          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin text-amber-400" : ""}`} /> 
+          <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin text-green-400" : ""}`} /> 
           FORCE REFRESH MATRIX
         </button>
       </div>
@@ -80,7 +80,7 @@ interface MacroEvent {
         {/* IMPORTANCE FILTER PANEL */}
         <div>
           <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2">
-            <Filter className="w-3 h-3 text-dodgerblue" /> Volatility Threshold Filter
+            <Filter className="w-3 h-3 text-green-400" /> Volatility Threshold Filter
           </label>
           <div className="flex gap-2">
             {["ALL", "HIGH", "MEDIUM"].map((level) => (
@@ -89,7 +89,7 @@ interface MacroEvent {
                 onClick={() => setImportanceFilter(level)}
                 className={`px-3 py-1.5 text-xs rounded transition-all cursor-pointer font-medium border ${
                   importanceFilter === level 
-                    ? "bg-amber-500/10 text-amber-400 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.1)]" 
+                    ? "bg-green-500/10 text-green-400 border-green-500/40 shadow-[0_0_12px_rgba(34,197,94,0.1)]" 
                     : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
                 }`}
               >
@@ -102,7 +102,7 @@ interface MacroEvent {
         {/* ASSET FOCUS FILTER PANEL */}
         <div>
           <label className="text-xs font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2">
-            <Layers className="w-3 h-3 text-dodgerblue" /> Operational Target Allocation
+            <Layers className="w-3 h-3 text-green-400" /> Operational Target Allocation
           </label>
           <div className="flex gap-2">
             {["ALL", "XAUUSD", "USTEC", "USD"].map((asset) => (
@@ -111,7 +111,7 @@ interface MacroEvent {
                 onClick={() => setAssetFilter(asset)}
                 className={`px-3 py-1.5 text-xs rounded transition-all cursor-pointer font-medium border ${
                   assetFilter === asset 
-                    ? "bg-blue-500/10 text-blue-400 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.1)]" 
+                    ? "bg-green-500/10 text-green-400 border-green-500/40 shadow-[0_0_12px_rgba(34,197,94,0.1)]" 
                     : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
                 }`}
               >
@@ -125,7 +125,7 @@ interface MacroEvent {
       {/* RENDER BODY STATE */}
       {loading ? (
         <div className="w-full h-64 flex flex-col items-center justify-center gap-3 bg-slate-950/20 border border-slate-900 rounded">
-          <RefreshCw className="w-8 h-8 animate-spin text-amber-500" />
+          <RefreshCw className="w-8 h-8 animate-spin text-green-500" />
           <p className="text-xs text-slate-400 font-medium tracking-widest">SYNCHRONIZING SECURE CALENDAR CHANNELS...</p>
         </div>
       ) : error ? (
@@ -138,7 +138,7 @@ interface MacroEvent {
           <p className="text-xs text-slate-500 font-medium">No macroeconomic items match selected filters criteria metrics.</p>
         </div>
       ) : (
-        /* HIGHFIDELITY FINANCIAL TIMELINE MATRIX */
+        /* HIGH-FIDELITY FINANCIAL TIMELINE MATRIX */
         <div className="w-full bg-[#070b12] border border-slate-850/80 rounded overflow-hidden shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -168,7 +168,7 @@ interface MacroEvent {
                     <td className="py-4 px-4 font-semibold text-slate-200 group-hover:text-white">
                       {evt.event}
                     </td>
-                    <td className="py-4 px-4 font-mono text-[11px] text-blue-400 font-medium">
+                    <td className="py-4 px-4 font-mono text-[11px] text-green-400 font-medium">
                       {evt.impactAsset}
                     </td>
                     <td className="py-4 px-4 text-center">

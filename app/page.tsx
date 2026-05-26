@@ -13,7 +13,6 @@ import { AddTradeDialog } from "@/components/add-trade-dialog"
 import { SessionIntelligence } from "@/components/session-intelligence"
 import { PerformanceView } from "@/components/performance-view"
 import { DashboardView } from "@/components/dashboard-view"
-import { BotConfiguration } from "@/components/bot-configuration"
 import { SignalHistoryView } from "@/components/signal-history" 
 import { EconomicCalendar } from "@/components/economic-calendar"
 
