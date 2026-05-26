@@ -78,7 +78,7 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
           <Shield className="h-4 w-4 text-primary" />
           <span className="text-xs font-black uppercase tracking-widest text-foreground">Phoenix Cmd</span>
         </div>
-        
+
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <button className="p-2 text-muted-foreground hover:text-foreground rounded-md border border-border/40 bg-background/50">
@@ -101,4 +101,3 @@ export function Sidebar({ activeItem, onItemClick }: SidebarProps) {
       </div>
     </>
   )
-}

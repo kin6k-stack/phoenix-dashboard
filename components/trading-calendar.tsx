@@ -1,107 +1,106 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Zap, Shield } from "lucide-react"
 
-export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMonthYearChange }: any) {
+interface Trade {
+  id: string
+  ticket: string
+  symbol: string
+  type: string
+  profit: number
+  date: string
+}
+
+export function TradingCalendar({ trades = [] }: { trades: Trade[] }) {
   const [currentDate, setCurrentDate] = useState(new Date())
 
-  // Calculate daily trade aggregation sums efficiently
-  const dailyPnLMap = trades.reduce((acc: any, t: any) => {
-    const dStr = new Date(t.date).toDateString();
-    acc[dStr] = (acc[dStr] || 0) + Number(t.rMultiple);
-    return acc;
-  }, {});
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const firstDayOfMonth = new Date(year, month, 1).getDay()
-    
-    const days = []
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(null)
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(new Date(year, month, i))
-    }
-    while (days.length < 42) {
-      days.push(null)
-    }
-    return days
+  const firstDayOfMonth = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+  const prevMonth = () => setCurrentDate(new Date(year, month - 1, 1))
+  const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1))
+
+  const months = [
+    "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE",
+    "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"
+  ]
+
+  // Calculate daily P&L mappings
+  const getDayData = (day: number) => {
+    const formattedDate = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+    const dailyTrades = trades.filter((t) => t.date === formattedDate)
+    const totalPnl = dailyTrades.reduce((sum, t) => sum + t.profit, 0)
+    return { tradesCount: dailyTrades.length, totalPnl }
   }
-
-  const nextMonth = () => {
-    const next = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
-    setCurrentDate(next)
-    if (onMonthYearChange) onMonthYearChange({ month: next.getMonth(), year: next.getFullYear() })
-  }
-
-  const prevMonth = () => {
-    const prev = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-    setCurrentDate(prev)
-    if (onMonthYearChange) onMonthYearChange({ month: prev.getMonth(), year: prev.getFullYear() })
-  }
-
-  const days = getDaysInMonth(currentDate)
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-  const todayStr = new Date().toDateString();
 
   return (
-    <div className="w-full flex flex-col h-full bg-transparent">
-      
-      {/* Pristine Header Control Layer */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-black tracking-widest uppercase text-foreground">
-          {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-        </h2>
-        <div className="flex gap-2">
-           <button onClick={prevMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronLeft size={16} /></button>
-           <button onClick={nextMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronRight size={16} /></button>
+    <div className="w-full min-h-screen bg-[#020406] text-slate-200 p-6 font-sans">
+      {/* NAVIGATION PANEL BAR */}
+      <div className="flex items-center justify-between border-b border-slate-900 pb-4 mb-6">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl font-bold tracking-widest text-green-400 font-mono">
+            {months[month]} {year}
+          </h2>
+          <div className="flex bg-[#070b12] border border-slate-800 rounded-md overflow-hidden">
+            <button onClick={prevMonth} className="p-2 border-r border-slate-800 text-slate-400 hover:text-green-400 hover:bg-[#0c1017] transition-colors cursor-pointer">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button onClick={nextMonth} className="p-2 text-slate-400 hover:text-green-400 hover:bg-[#0c1017] transition-colors cursor-pointer">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+        
+        <div className="flex gap-4 text-xs font-mono">
+          <div className="flex items-center gap-1.5 text-green-400 bg-green-500/5 px-2.5 py-1 rounded border border-green-500/10">
+            <Shield className="w-3 h-3" /> BALANCED TELEMETRY
+          </div>
         </div>
       </div>
-      
-      {/* Flat High-Density Grid Layout */}
-      <div className="grid grid-cols-7 gap-2 flex-1">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">{day}</div>
-        ))}
-        
-        {days.map((day, i) => {
-          if (!day) return <div key={i} className="min-h-[60px]" />
-          
-          const dayStr = day.toDateString();
-          const dayPnL = dailyPnLMap[dayStr] || 0;
-          const isNegative = dayPnL < 0;
-          const isPositive = dayPnL > 0;
-          const isSelected = selectedDate?.toDateString() === dayStr;
-          const isToday = dayStr === todayStr;
-          
-          return (
-            <button 
-              key={i}
-              onClick={() => onDateSelect(day)}
-              className={`p-2 border rounded-md flex flex-col items-start justify-between min-h-[60px] transition-all hover:border-foreground/50 cursor-pointer
-                ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/10' : ''}
-                ${isToday && !isSelected ? 'ring-1 ring-emerald-500/50 border-emerald-500/30 bg-emerald-500/[0.05]' : ''}
-                ${isNegative && !isSelected ? 'bg-rose-500/10 border-rose-500/30' : 
-                  isPositive && !isSelected ? 'bg-emerald-500/10 border-emerald-500/30' : 
-                  !isSelected && !isToday ? 'bg-background/40 border-border/40' : ''}
-              `}
-            >
-              <span className={`text-xs font-bold ${isToday ? 'text-emerald-400 font-black' : 'text-foreground'}`}>{day.getDate()}</span>
-              {dayPnL !== 0 && (
-                <span className={`text-[10px] font-mono font-black tracking-tighter tabular-nums ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {isNegative ? '' : '+'}${Math.abs(dayPnL).toFixed(2)}
-                </span>
-              )}
-            </button>
-          )
-        })}
-      </div>
-      <div className="mt-4 pt-4 border-t border-border/40 text-center">
-        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Click any date to view intraday ledger or log manual setups.</p>
+
+      {/* MATRIX CALENDAR FRAMEWORK */}
+      <div className="border border-slate-800/40 rounded-xl overflow-hidden bg-[#070b12]/40 backdrop-blur-md shadow-2xl">
+        <div className="grid grid-cols-7 bg-[#000001] text-[10px] font-bold uppercase tracking-widest text-slate-500 text-center py-3 border-b border-slate-800/60">
+          <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
+        </div>
+
+        <div className="grid grid-cols-7 bg-[#06090e]/20">
+          {/* Empty prefix padding days */}
+          {Array.from({ length: firstDayOfMonth }).map((_, i) => (
+            <div key={`empty-${i}`} className="h-28 border-b border-r border-slate-900/40 bg-[#020406]/30" />
+          ))}
+
+          {/* Active monthly day tracks */}
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const day = i + 1
+            const { tradesCount, totalPnl } = getDayData(day)
+            
+            let pnlStyle = "text-slate-500"
+            let cellGlow = "hover:bg-[#0d131f]/20"
+            if (tradesCount > 0) {
+              pnlStyle = totalPnl >= 0 ? "text-green-400 font-bold" : "text-red-400 font-bold"
+              cellGlow = totalPnl >= 0 ? "bg-green-950/10 hover:bg-green-950/20" : "bg-red-950/10 hover:bg-red-950/20"
+            }
+
+            return (
+              <div key={`day-${day}`} className={`h-28 p-2 border-b border-r border-slate-900/60 flex flex-col justify-between transition-all ${cellGlow}`}>
+                <span className="text-[11px] font-bold font-mono text-slate-400">{day}</span>
+                {tradesCount > 0 && (
+                  <div className="text-right font-mono">
+                    <span className="text-[9px] text-slate-500 block">{tradesCount} Trades</span>
+                    <span className={`text-xs block mt-0.5 ${pnlStyle}`}>
+                      {totalPnl >= 0 ? `+$${totalPnl.toFixed(2)}` : `-$${Math.abs(totalPnl).toFixed(2)}`}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
