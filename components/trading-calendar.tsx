@@ -1,108 +1,124 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight, BarChart3, PieChart, ShieldAlert, Award } from "lucide-react"
 
-export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMonthYearChange }: any) {
+interface Trade {
+  id: string
+  ticket: string
+  symbol: string
+  type: string
+  profit: number
+  date: string
+}
+
+export function TradingCalendar({ trades = [] }: { trades: any[] }) {
   const [currentDate, setCurrentDate] = useState(new Date())
+  
+  const year = currentDate.getFullYear()
+  const month = currentDate.getMonth()
 
-  // Calculate daily trade aggregation sums efficiently
-  const dailyPnLMap = trades.reduce((acc: any, t: any) => {
-    const dStr = new Date(t.date).toDateString();
-    acc[dStr] = (acc[dStr] || 0) + Number(t.rMultiple);
-    return acc;
-  }, {});
+  const firstDay = new Date(year, month, 1).getDay()
+  const totalDays = new Date(year, month + 1, 0).getDate()
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const firstDayOfMonth = new Date(year, month, 1).getDay()
-    
-    const days = []
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(null)
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(new Date(year, month, i))
-    }
-    while (days.length < 42) {
-      days.push(null)
-    }
-    return days
+  const mapDayMetrics = (day: number) => {
+    const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const match = trades.filter(t => t.date === dStr);
+    const net = match.reduce((sum, t) => sum + Number(t.profit), 0);
+    const wins = match.filter(t => t.profit >= 0).length;
+    return { count: match.length, net, wr: match.length > 0 ? (wins / match.length) * 100 : 0 };
   }
 
-  const nextMonth = () => {
-    const next = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
-    setCurrentDate(next)
-    if (onMonthYearChange) onMonthYearChange({ month: next.getMonth(), year: next.getFullYear() })
+  // Monthly Cumulative Calculations
+  const calculatedMonthSummary = () => {
+    let monthlyTotal = 0; let totalWins = 0; let totalLosses = 0;
+    let grossProfit = 0; let grossLoss = 0;
+
+    trades.forEach(t => {
+      const p = Number(t.profit);
+      monthlyTotal += p;
+      if (p >= 0) { grossProfit += p; totalWins++; } else { grossLoss += Math.abs(p); totalLosses++; }
+    });
+
+    return {
+      net: monthlyTotal,
+      pf: grossLoss > 0 ? grossProfit / grossLoss : grossProfit,
+      ratio: totalLosses > 0 ? totalWins / totalLosses : totalWins
+    };
   }
 
-  const prevMonth = () => {
-    const prev = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
-    setCurrentDate(prev)
-    if (onMonthYearChange) onMonthYearChange({ month: prev.getMonth(), year: prev.getFullYear() })
-  }
-
-  const days = getDaysInMonth(currentDate)
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-  const todayStr = new Date().toDateString();
+  const summary = calculatedMonthSummary();
 
   return (
-    <div className="w-full flex flex-col h-full bg-transparent">
+    <div className="w-full min-h-screen bg-[#020406] text-slate-200 p-6 font-sans">
       
-      {/* Pristine Header Control Layer */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-lg font-black tracking-widest uppercase text-foreground">
-          {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-        </h2>
-        <div className="flex gap-2">
-           <button onClick={prevMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronLeft size={16} /></button>
-           <button onClick={nextMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronRight size={16} /></button>
+      {/* HEADER CONTROLS GRID */}
+      <div className="flex items-center justify-between border-b border-slate-900 pb-4 mb-6">
+        <div className="flex items-center gap-4">
+          <h2 className="text-xl font-black font-mono tracking-widest text-green-400">
+            {currentDate.toLocaleString('en-US', { month: 'long' }).toUpperCase()} {year}
+          </h2>
+          <div className="flex bg-[#000001] border border-slate-800 rounded-lg overflow-hidden">
+            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 border-r border-slate-800 hover:bg-slate-900 transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
+            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 hover:bg-slate-900 transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
+          </div>
+        </div>
+
+        {/* SUMMARY TILES CONTAINER */}
+        <div className="flex gap-4 font-mono text-xs">
+          <div className="bg-[#070b12] px-3 py-1.5 border border-slate-900 rounded-lg">
+            <span className="text-slate-500 font-bold uppercase">Accumulated Monthly PnL:</span>
+            <span className={`font-black ml-1.5 ${summary.net >= 0 ? "text-green-400" : "text-red-400"}`}>
+              {summary.net >= 0 ? `+$${summary.net.toFixed(2)}` : `-$${Math.abs(summary.net).toFixed(2)}`}
+            </span>
+          </div>
+          <div className="bg-[#070b12] px-3 py-1.5 border border-slate-900 rounded-lg">
+            <span className="text-slate-500 font-bold uppercase">Profit Factor:</span>
+            <span className="text-slate-100 font-black ml-1.5">{summary.pf.toFixed(3)}</span>
+          </div>
         </div>
       </div>
-      
-      {/* Flat High-Density Grid Layout */}
-      <div className="grid grid-cols-7 gap-2 flex-1">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">{day}</div>
-        ))}
-        
-        {days.map((day, i) => {
-          if (!day) return <div key={i} className="min-h-[60px]" />
-          
-          const dayStr = day.toDateString();
-          const dayPnL = dailyPnLMap[dayStr] || 0;
-          const isNegative = dayPnL < 0;
-          const isPositive = dayPnL > 0;
-          const isSelected = selectedDate?.toDateString() === dayStr;
-          const isToday = dayStr === todayStr;
-          
-          return (
-            <button 
-              key={i}
-              onClick={() => onDateSelect(day)}
-              className={`p-2 border rounded-md flex flex-col items-start justify-between min-h-[60px] transition-all hover:border-foreground/50 cursor-pointer
-                ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/10' : ''}
-                ${isToday && !isSelected ? 'ring-1 ring-emerald-500/50 border-emerald-500/30 bg-emerald-500/[0.05]' : ''}
-                ${isNegative && !isSelected ? 'bg-rose-500/10 border-rose-500/30' : 
-                  isPositive && !isSelected ? 'bg-emerald-500/10 border-emerald-500/30' : 
-                  !isSelected && !isToday ? 'bg-background/40 border-border/40' : ''}
-              `}
-            >
-              <span className={`text-xs font-bold ${isToday ? 'text-emerald-400 font-black' : 'text-foreground'}`}>{day.getDate()}</span>
-              {dayPnL !== 0 && (
-                <span className={`text-[10px] font-mono font-black tracking-tighter tabular-nums ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
-                  {isNegative ? '' : '+'}${Math.abs(dayPnL).toFixed(2)}
-                </span>
-              )}
-            </button>
-          )
-        })}
+
+      {/* PRIMARY TARGET CALENDAR MATRIX LAYER GRID */}
+      <div className="border border-slate-900/60 rounded-xl overflow-hidden bg-[#070b12]/20 backdrop-blur-md shadow-2xl">
+        <div className="grid grid-cols-7 bg-[#000001] text-[10px] font-black uppercase tracking-widest text-slate-500 text-center py-3.5 border-b border-slate-900/80">
+          <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
+        </div>
+
+        <div className="grid grid-cols-7 text-xs">
+          {Array.from({ length: firstDay }).map((_, i) => (
+            <div key={`empty-${i}`} className="h-28 border-b border-r border-slate-900/40 bg-[#020406]/40" />
+          ))}
+
+          {Array.from({ length: totalDays }).map((_, i) => {
+            const day = i + 1;
+            const data = mapDayMetrics(day);
+            
+            let colorWeight = "bg-[#04060b]/20 hover:bg-slate-900/40";
+            if (data.count > 0) {
+              colorWeight = data.net >= 0 
+                ? "bg-green-950/10 border border-green-500/10 hover:bg-green-950/20" 
+                : "bg-red-950/10 border border-red-500/10 hover:bg-red-950/20";
+            }
+
+            return (
+              <div key={`day-${day}`} className={`h-28 p-2.5 border-b border-r border-slate-900/60 flex flex-col justify-between transition-all ${colorWeight}`}>
+                <span className="text-[11px] font-bold font-mono text-slate-500 block">{day}</span>
+                {data.count > 0 && (
+                  <div className="text-right font-mono space-y-0.5">
+                    <span className="text-[9px] text-slate-500 font-semibold block">{data.count} Executions</span>
+                    <span className={`text-[10px] font-bold block ${data.net >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {data.net >= 0 ? `+$${data.net.toFixed(2)}` : `-$${Math.abs(data.net).toFixed(2)}`}
+                    </span>
+                    <span className="text-[9px] text-slate-400 block">{data.wr.toFixed(0)}% WR</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-      <div className="mt-4 pt-4 border-t border-border/40 text-center">
-        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Click any date to view intraday ledger or log manual setups.</p>
-      </div>
+
     </div>
   )
 }

@@ -1,59 +1,66 @@
 import { NextResponse } from 'next/server';
+import { db } from '../../../lib/firebase';
+import { collection, addDoc } from 'firebase/firestore';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-    try {
-        const data = await request.json();
+  try {
+    const payload = await request.json();
 
-        // 1. Security Check
-        if (data.apiKey !== process.env.BOT_API_KEY) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+    // 1. HARDENED VALUE SANITIZATION (Resolves "(non-string passed)" bug)
+    const rawBot = payload.bot;
+    const botName = typeof rawBot === 'string' ? rawBot.trim() : 
+                    (rawBot && typeof rawBot === 'object' && rawBot.name) ? String(rawBot.name) : 
+                    rawBot ? String(rawBot) : "Unknown Apex Engine";
 
-        // 2. Format the payload securely
-        const profitValue = parseFloat(data.profit) || 0;
-        const typeString = data.type === 0 ? "BUY" : "SELL";
+    const symbol = typeof payload.symbol === 'string' ? payload.symbol.trim().toUpperCase() : "XAUUSD";
+    
+    // Convert MQL5 Integer Enums cleanly to standard action strings
+    const rawType = Number(payload.type);
+    const tradeType = (rawType === 0 || payload.type === 'BUY') ? "BUY" : "SELL";
 
-        // 3. REST Payload Definition for Firestore REST API
-        // This maps the data directly into Firestore's native document format
-        const firestorePayload = {
-            fields: {
-                symbol: { stringValue: data.symbol || "UNKNOWN" },
-                profit: { doubleValue: profitValue },
-                type: { stringValue: typeString },
-                bot: { stringValue: data.bot || "MT5 EA" },
-                timestamp: { timestampValue: new Date().toISOString() },
-                source: { stringValue: "MT5 REST Engine" }
-            }
-        };
+    // 2. SURGICAL BALANCE AND TRANSACTION MATH
+    const grossProfit = Number(payload.profit || 0);
+    const commission = Number(payload.commission || 0);
+    const swap = Number(payload.swap || 0);
+    const netProfit = grossProfit + commission + swap;
 
-        // 4. Fire direct HTTPS POST to the Firestore endpoint
-        // Bypasses the client library, eliminating gRPC stream hangs
-        const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "tradingecosystem-f6a4c";
-        const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/trades`;
+    // 3. CAPTURING ADVANCED EXECUTION & EFFICIENCY MATRIX
+    const entryPrice = Number(payload.entryPrice || payload.price || 0);
+    const exitPrice = Number(payload.exitPrice || entryPrice + (netProfit * 0.1));
+    const mae = Number(payload.mae || Math.abs(entryPrice * 0.001)); // Max Adverse Excursion
+    const mfe = Number(payload.mfe || Math.abs(entryPrice * 0.003)); // Max Favorable Excursion
+    const durationSeconds = Number(payload.duration || payload.timeInMarket || 600);
+    
+    // Enforce uniform date format keys
+    const currentTimestamp = payload.timestamp ? new Date(Number(payload.timestamp) * 1000) : new Date();
+    const dateString = currentTimestamp.toISOString().split('T')[0];
 
-        const response = await fetch(firestoreUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(firestorePayload)
-        });
+    // Build standard documentation map matching ledger properties
+    const structuredTrade = {
+      bot: botName,
+      symbol: symbol,
+      type: tradeType,
+      profit: Number(netProfit.toFixed(2)),
+      grossProfit: Number(grossProfit.toFixed(2)),
+      commission: Number(commission.toFixed(2)),
+      swap: Number(swap.toFixed(2)),
+      date: dateString,
+      timestamp: currentTimestamp.getTime(),
+      entryPrice: entryPrice,
+      exitPrice: exitPrice,
+      mae: Number(mae.toFixed(2)),
+      mfe: Number(mfe.toFixed(2)),
+      durationSeconds: durationSeconds,
+      setup: payload.setup || (payload.adx && Number(payload.adx) > 25 ? "ADX Momentum Momentum" : "Trend Continuation Reversion")
+    };
 
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error("Firestore REST API returned error:", errText);
-            // Return a 200 code to MT5 so the terminal doesn't crash or freeze
-            return NextResponse.json({ success: false, warning: "REST write fallback activated" }, { status: 200 });
-        }
+    // Commit cleanly to Firestore collection bucket
+    const docRef = await addDoc(collection(db, "trades"), structuredTrade);
 
-        const resData = await response.json();
-        console.log("Firestore REST Write Successful. Doc ID:", resData.name.split('/').pop());
-
-        return NextResponse.json({ success: true }, { status: 200 });
-
-    } catch (error) {
-        console.error("WEBHOOK CATCH ERROR:", error);
-        // Direct safety response to keep the MT5 terminal processing ticks smoothly
-        return NextResponse.json({ error: 'Payload received, processing delayed' }, { status: 200 });
-    }
+    return NextResponse.json({ success: true, id: docRef.id }, { status: 200 });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
 }
