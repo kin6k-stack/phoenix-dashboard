@@ -1,169 +1,107 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { ChevronLeft, ChevronRight, Pencil } from "lucide-react"
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, getDay } from "date-fns"
-import { Button } from "@/components/ui/button"
+import { useState } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 
-interface TradingCalendarProps {
-  selectedDate: Date | null
-  onDateSelect: (date: Date) => void
-  tradeDates?: Date[]
-  totalTrades?: number
-  wins?: number
-  netPnL?: number
-  winRate?: number
-  // 🔥 REGISTER HOOK INTERACTION VARIABLE
-  onMonthYearChange?: (monthYear: { month: number; year: number }) => void
-}
+export function TradingCalendar({ selectedDate, onDateSelect, trades = [], onMonthYearChange }: any) {
+  const [currentDate, setCurrentDate] = useState(new Date())
 
-export function TradingCalendar({ 
-  selectedDate, 
-  onDateSelect, 
-  tradeDates = [],
-  totalTrades = 0,
-  wins = 0,
-  netPnL = 0,
-  winRate = 0,
-  onMonthYearChange
-}: TradingCalendarProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
-  const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
-  const startDay = getDay(monthStart)
-  
-  const totalSlots = 42;
-  const emptyDaysAtEnd = totalSlots - (startDay + days.length);
-  const weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
+  // Calculate daily trade aggregation sums efficiently
+  const dailyPnLMap = trades.reduce((acc: any, t: any) => {
+    const dStr = new Date(t.date).toDateString();
+    acc[dStr] = (acc[dStr] || 0) + Number(t.rMultiple);
+    return acc;
+  }, {});
 
-  // 🔥 EVENT FIRE PIPELINE: Updates parent filtering baseline parameters dynamically
-  useEffect(() => {
-    if (onMonthYearChange) {
-      onMonthYearChange({
-        month: currentMonth.getMonth(),
-        year: currentMonth.getFullYear()
-      });
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const firstDayOfMonth = new Date(year, month, 1).getDay()
+    
+    const days = []
+    for (let i = 0; i < firstDayOfMonth; i++) {
+      days.push(null)
     }
-  }, [currentMonth, onMonthYearChange]);
-  
-  const hasTrade = (date: Date) => {
-    return tradeDates.some(d => 
-      d.getDate() === date.getDate() && 
-      d.getMonth() === date.getMonth() && 
-      d.getFullYear() === date.getFullYear()
-    )
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(new Date(year, month, i))
+    }
+    while (days.length < 42) {
+      days.push(null)
+    }
+    return days
   }
 
+  const nextMonth = () => {
+    const next = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+    setCurrentDate(next)
+    if (onMonthYearChange) onMonthYearChange({ month: next.getMonth(), year: next.getFullYear() })
+  }
+
+  const prevMonth = () => {
+    const prev = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+    setCurrentDate(prev)
+    if (onMonthYearChange) onMonthYearChange({ month: prev.getMonth(), year: prev.getFullYear() })
+  }
+
+  const days = getDaysInMonth(currentDate)
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  const todayStr = new Date().toDateString();
+
   return (
-    <div className="w-full h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 hover:bg-muted"
-            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <h2 className="text-lg font-semibold text-foreground">
-            {format(currentMonth, "MMMM yyyy")}
-          </h2>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="h-8 w-8 hover:bg-muted"
-            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-        
-        <button 
-          onClick={() => onDateSelect(new Date())}
-          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-none p-0"
-        >
-          <Pencil className="h-3 w-3" />
-          <span>click date to journal</span>
-        </button>
-      </div>
-
-      {/* Stats Bar */}
-      <div className="flex gap-6 mb-4 text-sm">
-        <div>
-          <span className="text-muted-foreground">TRADES</span>
-          <span className="ml-2 font-semibold text-foreground">{totalTrades}</span>
-        </div>
-        <div>
-          <span className="text-muted-foreground">WINS</span>
-          <span className="ml-2 font-semibold text-foreground">{wins}</span>
-        </div>
-        <div>
-          <span className="text-muted-foreground">P&L</span>
-          <span className={`ml-2 font-semibold ${netPnL >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-            {netPnL >= 0 ? "+" : ""}${netPnL.toFixed(2)}
-          </span>
-        </div>
-        <div>
-          <span className="text-muted-foreground">WIN %</span>
-          <span className="ml-2 font-semibold text-foreground">{winRate}%</span>
+    <div className="w-full flex flex-col h-full bg-transparent">
+      
+      {/* Pristine Header Control Layer */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-lg font-black tracking-widest uppercase text-foreground">
+          {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+        </h2>
+        <div className="flex gap-2">
+           <button onClick={prevMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronLeft size={16} /></button>
+           <button onClick={nextMonth} className="p-2 bg-background/50 border border-border/50 rounded hover:bg-white/10 transition-colors text-foreground cursor-pointer"><ChevronRight size={16} /></button>
         </div>
       </div>
-
-      {/* Weekday Headers */}
-      <div className="grid grid-cols-7 mb-2">
-        {weekDays.map((day) => (
-          <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
-            {day}
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar Grid */}
-      <div className="grid grid-cols-7 grid-rows-6 flex-1 border-t border-l border-border bg-card overflow-hidden">
-        {Array.from({ length: startDay }).map((_, i) => (
-          <div key={`empty-start-${i}`} className="border-r border-b border-border bg-muted/10" />
+      
+      {/* Flat High-Density Grid Layout */}
+      <div className="grid grid-cols-7 gap-2 flex-1">
+        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+          <div key={day} className="text-center text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">{day}</div>
         ))}
         
-        {days.map((day) => {
-          const isSelected = selectedDate && 
-            day.getDate() === selectedDate.getDate() &&
-            day.getMonth() === selectedDate.getMonth() &&
-            day.getFullYear() === selectedDate.getFullYear()
-          const hasTradeOnDay = hasTrade(day)
+        {days.map((day, i) => {
+          if (!day) return <div key={i} className="min-h-[60px]" />
+          
+          const dayStr = day.toDateString();
+          const dayPnL = dailyPnLMap[dayStr] || 0;
+          const isNegative = dayPnL < 0;
+          const isPositive = dayPnL > 0;
+          const isSelected = selectedDate?.toDateString() === dayStr;
+          const isToday = dayStr === todayStr;
           
           return (
-            <button
-              key={day.toISOString()}
+            <button 
+              key={i}
               onClick={() => onDateSelect(day)}
-              className={`
-                border-r border-b border-border p-2 flex flex-col items-center justify-start transition-colors relative
-                hover:bg-muted/50 focus:outline-none
-                ${isSelected ? "bg-primary/20" : ""}
-                ${hasTradeOnDay ? "bg-emerald-500/10" : ""}
-                ${!isSameMonth(day, currentMonth) ? "text-muted-foreground" : "text-foreground"}
+              className={`p-2 border rounded-md flex flex-col items-start justify-between min-h-[60px] transition-all hover:border-foreground/50 cursor-pointer
+                ${isSelected ? 'ring-2 ring-primary border-primary bg-primary/10' : ''}
+                ${isToday && !isSelected ? 'ring-1 ring-emerald-500/50 border-emerald-500/30 bg-emerald-500/[0.05]' : ''}
+                ${isNegative && !isSelected ? 'bg-rose-500/10 border-rose-500/30' : 
+                  isPositive && !isSelected ? 'bg-emerald-500/10 border-emerald-500/30' : 
+                  !isSelected && !isToday ? 'bg-background/40 border-border/40' : ''}
               `}
             >
-              <span className={`
-                text-sm mt-1 w-7 h-7 flex items-center justify-center rounded-full
-                ${isToday(day) ? "bg-primary text-primary-foreground font-semibold" : ""}
-              `}>
-                {format(day, "d")}
-              </span>
-              
-              {hasTradeOnDay && (
-                 <div className="absolute bottom-2 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]"></div>
+              <span className={`text-xs font-bold ${isToday ? 'text-emerald-400 font-black' : 'text-foreground'}`}>{day.getDate()}</span>
+              {dayPnL !== 0 && (
+                <span className={`text-[10px] font-mono font-black tracking-tighter tabular-nums ${isNegative ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {isNegative ? '' : '+'}${Math.abs(dayPnL).toFixed(2)}
+                </span>
               )}
             </button>
           )
         })}
-
-        {Array.from({ length: emptyDaysAtEnd }).map((_, i) => (
-          <div key={`empty-end-${i}`} className="border-r border-b border-border bg-muted/10" />
-        ))}
+      </div>
+      <div className="mt-4 pt-4 border-t border-border/40 text-center">
+        <p className="text-[10px] font-mono text-muted-foreground uppercase tracking-widest">Click any date to view intraday ledger or log manual setups.</p>
       </div>
     </div>
   )
