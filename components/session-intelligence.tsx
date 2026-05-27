@@ -12,7 +12,7 @@ interface TechnicalLevels {
   vah: number; val: number; poc: number;
 }
 
-export function SessionIntelligence() {
+export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
   const [asset, setAsset] = useState<"XAUUSD" | "USTEC">("XAUUSD")
   const [timeMode, setTimeMode] = useState<"INTRADAY" | "SWING">("INTRADAY")
   const [currentTime, setCurrentTime] = useState(new Date())
