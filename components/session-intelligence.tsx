@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Clock, Layers, Filter, Crosshair, Shield, Zap, Flame, Eye, Lock, Unlock } from "lucide-react"
+import { Clock, Layers, Filter, Crosshair, Shield, Zap, Flame, Lock } from "lucide-react"
 
 interface TechnicalLevels {
   pdh: number; pdl: number; pdc: number;
@@ -16,8 +16,7 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
   const [asset, setAsset] = useState<"XAUUSD" | "USTEC">("XAUUSD")
   const [timeMode, setTimeMode] = useState<"INTRADAY" | "SWING">("INTRADAY")
   const [currentTime, setCurrentTime] = useState(new Date())
-  
-  // Rule Checklists states persisted locally
+
   const [noTradeFriday, setNoTradeFriday] = useState<boolean>(() => {
     if (typeof window !== "undefined") return localStorage.getItem("phx_rule_friday") === "true"
     return false
@@ -42,7 +41,6 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
     }
   }
 
-  // Daily Live Timeframe Technical Intelligence Feeds
   const intradayLevels: Record<"XAUUSD" | "USTEC", TechnicalLevels> = {
     XAUUSD: { pdh: 2435.50, pdl: 2410.20, pdc: 2422.10, eqh: 2442.00, eql: 2405.10, fvgHigh: 2428.50, fvgLow: 2424.00, avwap: 2425.20, vah: 2431.00, val: 2415.00, poc: 2421.50 },
     USTEC: { pdh: 18650.0, pdl: 18420.0, pdc: 18560.0, eqh: 18720.0, eql: 18390.0, fvgHigh: 18510.0, fvgLow: 18480.0, avwap: 18545.0, vah: 18610.0, val: 18460.0, poc: 18530.0 }
@@ -50,34 +48,30 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
 
   const swingLevels: Record<"XAUUSD" | "USTEC", TechnicalLevels> = {
     XAUUSD: { pdh: 2450.00, pdl: 2380.00, pdc: 2415.00, eqh: 2482.00, eql: 2360.00, fvgHigh: 2405.00, fvgLow: 2390.00, avwap: 2410.00, vah: 2440.00, val: 2395.00, poc: 2408.00 },
-    USTEC: { pdh: 18900.0, pdl: 18100.0, pdc: 18450.0, eqh: 19120.0, eql: 17980.0, fvgHigh: 18350.0, fvgLow: 18210.0, avwap: 18410.0, vah: 18750.0, val: 18200.0, poc: 18420.0 }
+    USTEC: { pdh: 18900.0, pdl: 18100.0, pdc: 18450.0, eqh: 19120.0, eql: 17980.0, fvgHigh: 18350.0, fill: 0, fvgLow: 18210.0, avwap: 18410.0, vah: 18750.0, val: 18200.0, poc: 18420.0 }
   }
 
   const levels = timeMode === "INTRADAY" ? intradayLevels[asset] : swingLevels[asset]
 
-  // Dynamic Session Allocation Math
   const getSessionState = () => {
     const hour = currentTime.getUTCHours()
-    if (hour >= 7 && hour < 13) return { session: "LONDON RUNNING", countdown: "London Close approaching", color: "text-green-400", ib: "Range established" }
-    if (hour >= 13 && hour < 19) return { session: "NEW YORK S Session Open", countdown: "NY Equities active", color: "text-amber-400", ib: "Breakout window active" }
-    return { session: "ASIA CONSOLIDATION CONTEXT", countdown: "London session countdown armed", color: "text-blue-400", ib: "Building liquidity boundaries" }
+    if (hour >= 7 && hour < 13) return { session: "LONDON ACTIVE RUNTIME", countdown: "Approaching NY Overlap", color: "text-green-400", ib: "Initial boundaries mapped" }
+    if (hour >= 13 && hour < 19) return { session: "NEW YORK LIQUIDITY DRIVE", countdown: "NY Core Session active", color: "text-amber-400", ib: "Breakout parameters scanned" }
+    return { session: "ASIA ACCUMULATION context", countdown: "Countdown to London open", color: "text-blue-400", ib: "Range expansion tracking armed" }
   }
 
   const session = getSessionState()
 
   return (
     <div className="w-full min-h-screen bg-[#020406] text-slate-100 p-6 font-sans">
-      
-      {/* HEADER HUD LAYER */}
       <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between border-b border-slate-900 pb-5 mb-6 gap-4">
         <div>
           <h1 className="text-xl font-black tracking-wider text-green-400 flex items-center gap-2 font-mono">
-            <Activity className="w-5 h-5 animate-pulse" /> PHOENIX SESSION INTELLIGENCE DESK
+            <Zap className="w-5 h-5 animate-pulse" /> PHOENIX SESSION INTELLIGENCE DESK
           </h1>
           <p className="text-xs text-slate-500 mt-1">Cross-market analysis models with localized memory architecture grids.</p>
         </div>
 
-        {/* HUD MULTI-CONTROLS SWITCHER */}
         <div className="flex flex-wrap gap-3 items-center">
           <div className="flex bg-[#000001] p-1 border border-slate-800 rounded-lg">
             <button onClick={() => setAsset("XAUUSD")} className={`px-4 py-1.5 text-xs font-mono font-bold tracking-widest rounded-md transition-all ${asset === "XAUUSD" ? "bg-green-500/10 text-green-400 border border-green-500/20" : "text-slate-500"}`}>GOLD</button>
@@ -91,7 +85,6 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
         </div>
       </div>
 
-      {/* BLOCK 1: TIME, SESSION & INITIAL BALANCE HUBS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <Card className="bg-[#070b12]/40 border border-slate-900 shadow-2xl backdrop-blur-md">
           <CardHeader className="bg-[#000001] py-3 px-4 border-b border-slate-900/60 flex flex-row items-center gap-2">
@@ -114,7 +107,6 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
           </CardContent>
         </Card>
 
-        {/* BLOCK 2: QUANT ORDER-BLOCK & LIQUIDITY MATRIX */}
         <Card className="bg-[#070b12]/40 border border-slate-900 shadow-2xl backdrop-blur-md">
           <CardHeader className="bg-[#000001] py-3 px-4 border-b border-slate-900/60 flex flex-row items-center gap-2">
             <Crosshair className="w-4 h-4 text-green-400" />
@@ -144,7 +136,6 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
           </CardContent>
         </Card>
 
-        {/* BLOCK 3: VOLUME POINT OF CONTROL DESK */}
         <Card className="bg-[#070b12]/40 border border-slate-900 shadow-2xl backdrop-blur-md">
           <CardHeader className="bg-[#000001] py-3 px-4 border-b border-slate-900/60 flex flex-row items-center gap-2">
             <Filter className="w-4 h-4 text-green-400" />
@@ -152,7 +143,7 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
           </CardHeader>
           <CardContent className="pt-4 px-4 pb-4 font-mono text-xs space-y-2">
             <div className="flex justify-between border-b border-slate-900/40 pb-1">
-              <span className="text-slate-500 font-bold">Anchored VWAP Anchor:</span>
+              <span className="text-slate-500 font-bold">Anchored VWAP:</span>
               <span className="text-green-400 font-bold">{levels.avwap.toFixed(2)}</span>
             </div>
             <div className="flex justify-between border-b border-slate-900/40 pb-1">
@@ -164,17 +155,14 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
               <span className="text-slate-200 font-bold">{levels.val.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-500 font-bold">Point of Control (POC Magnet):</span>
+              <span className="text-slate-500 font-bold">Point of Control (POC):</span>
               <span className="text-amber-400 font-black tracking-wider">{levels.poc.toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* COMMAND CENTER OPERATIONS & RISK PROTOCOL TOGGLES */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* RISK MATRIX EVALUATIONS */}
         <Card className="bg-[#070b12]/40 border border-slate-900 shadow-2xl backdrop-blur-md lg:col-span-1">
           <CardHeader className="bg-[#000001] py-3 px-4 border-b border-slate-900/60 flex flex-row items-center gap-2">
             <Shield className="w-4 h-4 text-green-400" />
@@ -187,16 +175,15 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
             </div>
             <div className="flex justify-between">
               <span className="text-slate-500 font-bold">Expected R-Multiple setup target:</span>
-              <span className="text-green-400 font-bold font-black">1:2.50 Target Matrix</span>
+              <span className="text-green-400 font-black">1:2.50 Target Matrix</span>
             </div>
           </CardContent>
         </Card>
 
-        {/* PLAN HARD LIMIT CHECKLISTS TIE */}
         <Card className="bg-[#070b12]/40 border border-slate-900 shadow-2xl backdrop-blur-md lg:col-span-2">
           <CardHeader className="bg-[#000001] py-3 px-4 border-b border-slate-900/60 flex flex-row items-center gap-2">
             <Lock className="w-4 h-4 text-green-400" />
-            <CardTitle className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Compliance Rule Circuit Brakers</CardTitle>
+            <CardTitle className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Compliance Rule Circuit Breakers</CardTitle>
           </CardHeader>
           <CardContent className="pt-4 px-4 pb-4 font-mono text-xs flex flex-col sm:flex-row gap-6 justify-between">
             <div className="flex items-center justify-between w-full bg-[#000001]/40 p-3 border border-slate-900 rounded-lg">
@@ -221,7 +208,6 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
           </CardContent>
         </Card>
       </div>
-
     </div>
   )
 }
