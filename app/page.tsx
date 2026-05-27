@@ -163,6 +163,8 @@ export default function TradingDashboard() {
               <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />
               <SlimPnLChart trades={filteredTrades} /> 
               <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
+              
+              {/* FIXED: Now specifically passes manualTradesList instead of filteredTrades */}
               <ManualTradesCard 
                 trades={manualTradesList} 
                 onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true); }} 
