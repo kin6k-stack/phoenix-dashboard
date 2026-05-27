@@ -130,6 +130,13 @@ export default function TradingDashboard() {
   const netPnL = filteredTrades.reduce((sum, t) => sum + t.rMultiple, 0)
   const tradeDates = trades.map(t => new Date(t.date))
 
+  // CRITICAL FIX: Explicitly filter only Manual trades for the sidebar card
+  const manualTradesList = filteredTrades.filter(t => 
+    t.setup.toUpperCase() === "MANUAL EXECUTION" || 
+    t.setup.toUpperCase() === "MANUAL ENTRY" || 
+    t.setup.toUpperCase() === "MANUAL"
+  );
+
   const renderContent = () => {
     switch (activeNavItem) {
       case "dashboard": 
@@ -138,7 +145,6 @@ export default function TradingDashboard() {
         return (
           <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden h-full w-full">
             <div className="flex-1 p-4 md:p-8 overflow-visible lg:overflow-auto">
-              {/* THEME ALIGNMENT: Inherits true ultra-dark glass tone matching the layout panels */}
               <div className="bg-[#090d16]/90 backdrop-blur-xl rounded-xl border border-border/40 p-4 md:p-6 h-full shadow-[0_0_30px_rgba(0,0,0,0.6)]">
                 <TradingCalendar 
                   selectedDate={selectedDate}
@@ -157,8 +163,10 @@ export default function TradingDashboard() {
               <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />
               <SlimPnLChart trades={filteredTrades} /> 
               <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
+              
+              {/* NOW RECEIVING STRICTLY MANUAL TRADES ONLY */}
               <ManualTradesCard 
-                trades={filteredTrades} 
+                trades={manualTradesList} 
                 onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true); }} 
                 onEditTrade={openEditDialog}
                 onDeleteTrade={handleDeleteTrade} 
