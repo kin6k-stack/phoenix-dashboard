@@ -81,19 +81,29 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
   const [filterMode, setFilterMode] = useState<"ALL" | "BOT" | "MANUAL">("ALL")
   const [selectedBot, setSelectedBot] = useState<string | null>(null)
 
-  // Build engine map — always include Manual Entry
-  const engines: Record<string, Trade[]> = { "Manual Entry": [] }
+  // Build engine map — dynamically normalize old "Manual Entry" records to "Manual Execution"
+  const engines: Record<string, Trade[]> = { "Manual Execution": [] }
+  
   trades.forEach((t) => {
-    const name = t.setup || "Manual Entry"
+    let name = t.setup || "Manual Execution"
+    
+    // Convert old strings to the new naming convention so they group together
+    if (name.toUpperCase() === "MANUAL ENTRY") {
+        name = "Manual Execution";
+    }
+
     if (!engines[name]) engines[name] = []
-    if (t.setup) engines[name].push(t)
-    else engines["Manual Entry"].push(t)
+    engines[name].push(t)
   })
 
+  // Filter out any engines that don't match the current tab selection
   const filteredEngines = Object.entries(engines).filter(([name]) => {
-    if (filterMode === "BOT") return name.toUpperCase() !== "MANUAL ENTRY"
-    if (filterMode === "MANUAL") return name.toUpperCase() === "MANUAL ENTRY"
-    return true
+    const isManual = name.toUpperCase().includes("MANUAL");
+    
+    if (filterMode === "BOT") return !isManual; // Hide manuals from Core Engines
+    if (filterMode === "MANUAL") return isManual; // Show ONLY manuals in Manual Logs
+    
+    return true; // Show all in Combined Matrix
   })
 
   const getModeLabel = (m: string) =>

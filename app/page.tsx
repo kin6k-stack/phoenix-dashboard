@@ -54,7 +54,8 @@ export default function TradingDashboard() {
           id: doc.id,
           date: tradeDate,
           symbol: data.symbol || "Unknown",
-          setup: data.bot || data.setup || "Manual Entry",
+          // Swapped default from Manual Entry to Manual Execution
+          setup: data.bot || data.setup || "Manual Execution",
           rMultiple: data.profit !== undefined ? Number(data.profit) : 0, 
           direction: (data.direction || data.type || data.action || "BUY").toUpperCase(),
           notes: data.notes || "No context notes recorded.",
@@ -95,7 +96,8 @@ export default function TradingDashboard() {
           symbol: trade.symbol.toUpperCase(),
           profit: Number(trade.rMultiple), 
           type: "MANUAL",
-          bot: trade.setup || "Manual Entry",
+          // Swapped default from Manual Entry to Manual Execution
+          bot: trade.setup || "Manual Execution",
           direction: trade.direction || "BUY",
           timestamp: new Date(trade.date),
           notes: trade.notes || "Historical trade added via web dashboard",
@@ -130,11 +132,9 @@ export default function TradingDashboard() {
   const netPnL = filteredTrades.reduce((sum, t) => sum + t.rMultiple, 0)
   const tradeDates = trades.map(t => new Date(t.date))
 
-  // CRITICAL FIX: Explicitly filter only Manual trades for the sidebar card
+  // Ensure sidebar strictly catches any variation of the word MANUAL
   const manualTradesList = filteredTrades.filter(t => 
-    t.setup.toUpperCase() === "MANUAL EXECUTION" || 
-    t.setup.toUpperCase() === "MANUAL ENTRY" || 
-    t.setup.toUpperCase() === "MANUAL"
+    t.setup.toUpperCase().includes("MANUAL")
   );
 
   const renderContent = () => {
@@ -163,8 +163,6 @@ export default function TradingDashboard() {
               <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />
               <SlimPnLChart trades={filteredTrades} /> 
               <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
-              
-              {/* NOW RECEIVING STRICTLY MANUAL TRADES ONLY */}
               <ManualTradesCard 
                 trades={manualTradesList} 
                 onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true); }} 
