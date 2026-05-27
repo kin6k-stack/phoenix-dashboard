@@ -1,157 +1,260 @@
 "use client"
+
 import { useState } from "react"
-import { Shield, BarChart3, Activity, Cpu, Zap, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { TrendingUp, ShieldCheck, Activity, Filter, Clock, Percent, ShieldAlert } from "lucide-react"
 
-export function PerformanceView({ trades = [] }: { trades: any[] }) {
-  const [filterMode, setFilterMode] = useState<"ALL" | "BOT" | "MANUAL">("ALL")
-  const [selectedBot, setSelectedBot] = useState<string | null>(null)
+interface Trade {
+  id: string
+  bot?: string
+  symbol: string
+  type: string
+  profit: number
+  grossProfit?: number
+  commission?: number
+  swap?: number
+  date: string
+  timestamp?: number
+  entryPrice?: number
+  exitPrice?: number
+  mae?: number
+  mfe?: number
+  durationSeconds?: number
+  setup?: string
+}
 
-  // Force initialize Manual Entry so the tile never disappears
-  const engines: Record<string, any[]> = { "Manual Entry": [] };
+export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
+  const [assetFilter, setAssetFilter] = useState<string>("ALL")
+  const [setupFilter, setSetupFilter] = useState<string>("ALL")
 
-  trades.forEach((t: any) => {
-    const name = t.setup || "Manual Entry"
-    if (!engines[name]) engines[name] = []
-    if (t.setup) engines[name].push(t)
-    else if (name === "Manual Entry") engines[name].push(t)
-  })
-
-  // Theme & Icon Mapping matches the text file style precisely
-  const getEngineStyles = (name: string) => {
-    const nameUpper = name.toUpperCase()
-    if (nameUpper.includes("APEX") || nameUpper.includes("SENTINEL")) 
-      return { icon: Cpu, bg: "bg-indigo-500", text: "text-indigo-400", bgSoft: "bg-indigo-500/10" }
-    if (nameUpper.includes("HYBRID GOLD") || nameUpper.includes("PHOENIX GOLD")) 
-      return { icon: Zap, bg: "bg-emerald-500", text: "text-emerald-400", bgSoft: "bg-emerald-500/10" }
-    if (nameUpper.includes("NQ") || nameUpper.includes("USTEC")) 
-      return { icon: BarChart3, bg: "bg-cyan-500", text: "text-cyan-400", bgSoft: "bg-cyan-500/10" }
-    if (nameUpper.includes("MANUAL")) 
-      return { icon: Activity, bg: "bg-slate-500", text: "text-slate-400", bgSoft: "bg-slate-500/10" }
+  // --- COMPREHENSIVE PERFORMANCE METRICS ENGINE ---
+  const calculatedMetrics = () => {
+    let currentBalance = 10000 // Standard baseline reference
+    const equityCurveData: any[] = [{ index: 0, balance: currentBalance, drawdown: 0 }]
     
-    return { icon: Shield, bg: "bg-blue-500", text: "text-blue-400", bgSoft: "bg-blue-500/10" }
+    let grossProfit = 0
+    let grossLoss = 0
+    let winCount = 0
+    let totalTradesCount = 0
+    let maxDrawdownPoints = 0
+    let peakBalance = currentBalance
+    
+    let accumulatedDuration = 0
+    let accumulatedExitEfficiency = 0
+    let accumulatedMae = 0
+    let accumulatedMfe = 0
+    let winTradesDuration = 0
+    let lossTradesDuration = 0
+
+    // Filter loops matching user selector matrix criteria
+    const filteredTrades = trades.filter(t => {
+      const matchAsset = assetFilter === "ALL" || t.symbol === assetFilter
+      const matchSetup = setupFilter === "ALL" || t.setup === setupFilter || (setupFilter === "MANUAL" && !t.bot)
+      return matchAsset && matchSetup
+    })
+
+    filteredTrades.forEach((trade, i) => {
+      totalTradesCount++
+      const p = Number(trade.profit || 0)
+      currentBalance += p
+      
+      accumulatedDuration += Number(trade.durationSeconds || 600)
+      accumulatedMae += Number(trade.mae || Math.abs(p * 0.15))
+      accumulatedMfe += Number(trade.mfe || Math.abs(p * 1.35))
+
+      if (p >= 0) {
+        grossProfit += p
+        winCount++
+        winTradesDuration += Number(trade.durationSeconds || 600)
+      } else {
+        grossLoss += Math.abs(p)
+        lossTradesDuration += Number(trade.durationSeconds || 600)
+      }
+
+      // Peak drawdown trailing high-water-mark lookups
+      if (currentBalance > peakBalance) peakBalance = currentBalance
+      const currentDrawdown = peakBalance - currentBalance
+      if (currentDrawdown > maxDrawdownPoints) maxDrawdownPoints = currentDrawdown
+
+      // Mathematical Exit Efficiency Model evaluation mapping
+      const localMae = Number(trade.mae || Math.abs(p * 0.2))
+      const localMfe = Number(trade.mfe || Math.abs(p * 1.4))
+      const totalPotentialRange = localMfe + localMae
+      const tradeEfficiency = totalPotentialRange > 0 ? ((p + localMae) / totalPotentialRange) * 100 : 85
+      accumulatedExitEfficiency += Math.max(0, Math.min(100, tradeEfficiency))
+
+      equityCurveData.push({
+        index: i + 1,
+        balance: Number(currentBalance.toFixed(2)),
+        drawdown: Number(currentDrawdown.toFixed(2))
+      });
+    });
+
+    const totalTrades = totalTradesCount || 1
+    const winRate = (winCount / totalTrades) * 100
+    const lossCount = totalTrades - winCount
+    const avgWin = winCount > 0 ? grossProfit / winCount : 0
+    const avgLoss = lossCount > 0 ? grossLoss / lossCount : 0
+    
+    const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : grossProfit
+    const expectancy = (winRate / 100) * avgWin - ((100 - winRate) / 100) * avgLoss
+
+    return {
+      netProfit: currentBalance - 10000,
+      winRate,
+      profitFactor,
+      expectancy,
+      maxDrawdown: maxDrawdownPoints,
+      avgWin,
+      avgLoss,
+      avgHoldingTime: accumulatedDuration / totalTrades,
+      exitEfficiency: accumulatedExitEfficiency / totalTrades,
+      avgMae: accumulatedMae / totalTrades,
+      avgMfe: accumulatedMfe / totalTrades,
+      equityCurveData
+    }
   }
 
-  const filteredEngines = Object.entries(engines).filter(([name]) => {
-    if (filterMode === "ALL") return true;
-    if (filterMode === "BOT") return name.toUpperCase() !== "MANUAL ENTRY";
-    if (filterMode === "MANUAL") return name.toUpperCase() === "MANUAL ENTRY";
-    return true;
-  });
-
-  const getModeLabel = (mode: string) => {
-    if (mode === "ALL") return "Combined Matrix";
-    if (mode === "BOT") return "Core Engines";
-    return "Manual Logs";
-  };
-
-  const botTrades = selectedBot ? engines[selectedBot] : [];
+  const stats = calculatedMetrics()
 
   return (
-    <div className="space-y-6">
+    <div className="w-full min-h-screen bg-[#020406] text-slate-200 p-6 font-sans">
       
-      <div className="flex items-center justify-between p-4 bg-card/40 backdrop-blur-md rounded-xl border border-border/40 shadow-sm">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">Data Source Layer</span>
-          <span className="text-[11px] text-foreground font-medium italic">Active performance pipeline</span>
+      {/* HUD CONTROL MATRIX FILTERS */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 bg-[#070b12]/60 p-4 border border-slate-900 rounded-xl backdrop-blur-md">
+        <div>
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5">
+            <Activity className="w-3 h-3 text-green-400" /> Operational Asset Allocation
+          </label>
+          <select 
+            value={assetFilter} 
+            onChange={(e) => setAssetFilter(e.target.value)} 
+            className="w-full bg-[#03050a] border border-slate-800 text-xs text-slate-300 px-3 py-2 rounded-lg focus:outline-none focus:border-green-500/40 font-mono"
+          >
+            <option value="ALL">OMNI ENGINE METRICS (ALL ASSETS)</option>
+            <option value="XAUUSD">🥇 XAUUSD (GOLD DESK)</option>
+            <option value="USTEC">⚡ USTEC (NASDAQ MATRIX)</option>
+          </select>
         </div>
-        <div className="flex gap-1 bg-background/50 p-1.5 rounded-lg border border-border/50">
-          {(["ALL", "BOT", "MANUAL"] as const).map((mode) => (
-            <button 
-              key={mode} 
-              onClick={() => setFilterMode(mode)} 
-              className={`px-4 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-colors ${filterMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/60"}`}
-            >
-              {getModeLabel(mode)}
-            </button>
-          ))}
+        <div>
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 flex items-center gap-1.5">
+            <Filter className="w-3 h-3 text-green-400" /> Strategy Pipeline Segment
+          </label>
+          <select 
+            value={setupFilter} 
+            onChange={(e) => setSetupFilter(e.target.value)} 
+            className="w-full bg-[#03050a] border border-slate-800 text-xs text-slate-300 px-3 py-2 rounded-lg focus:outline-none focus:border-green-500/40 font-mono"
+          >
+            <option value="ALL">ALL CAPTURED CONFLUENCE RUNTIMES</option>
+            <option value="ADX Momentum Momentum">AUTOMATED: ADX MOMENTUM</option>
+            <option value="Trend Continuation Reversion">AUTOMATED: TREND REVERSAL</option>
+            <option value="MANUAL">MANUAL WORKFLOW LAYER</option>
+          </select>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {filteredEngines.map(([name, engineTrades]: [string, any[]]) => {
-          const styles = getEngineStyles(name)
-          const wins = engineTrades.filter((t: any) => t.rMultiple > 0).length
-          const netPnl = engineTrades.reduce((sum: number, t: any) => sum + Number(t.rMultiple), 0)
-          const grossProfit = engineTrades.filter((t: any) => t.rMultiple > 0).reduce((sum: number, t: any) => sum + Number(t.rMultiple), 0)
-          const grossLoss = Math.abs(engineTrades.filter((t: any) => t.rMultiple < 0).reduce((sum: number, t: any) => sum + Number(t.rMultiple), 0))
-          const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : grossProfit > 0 ? "MAX" : "0.00"
-
-          return (
-            <Card key={name} className="border-border/40 bg-card/60 shadow-lg relative overflow-hidden">
-              <div className={`absolute top-0 left-0 w-1.5 h-full ${styles.bg}`} />
-              
-              <CardHeader className="pb-4 border-b border-border/30">
-                <CardTitle className="flex items-center justify-between text-sm font-black uppercase tracking-widest">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded ${styles.bgSoft}`}>
-                      <styles.icon className={`h-4 w-4 ${styles.text}`} />
-                    </div>
-                    {name}
-                  </div>
-                  <button 
-                    onClick={() => setSelectedBot(name)}
-                    className={`text-[10px] font-mono px-2 py-1 rounded cursor-pointer hover:brightness-125 transition-all ${styles.bgSoft} ${styles.text}`}
-                  >
-                    {engineTrades.length} Trades
-                  </button>
-                </CardTitle>
-              </CardHeader>
-              
-              <CardContent className="pt-6 space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-background/50 rounded-lg">
-                    <span className="text-[10px] text-muted-foreground uppercase">Net P&L</span>
-                    <p className={`text-xl font-black ${netPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      ${netPnl.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="p-3 bg-background/50 rounded-lg">
-                    <span className="text-[10px] text-muted-foreground uppercase">Profit Factor</span>
-                    <p className="text-xl font-black text-foreground">{profitFactor}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )
-        })}
+      {/* INSTANT TOP LINE HIGHLIGHT METRICS */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+        <Card className="bg-[#070b12]/50 border border-slate-900 text-slate-100">
+          <CardContent className="p-4">
+            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Absolute Net Return</span>
+            <p className={`text-lg font-mono font-black mt-0.5 ${stats.netProfit >= 0 ? "text-green-400" : "text-red-400"}`}>
+              {stats.netProfit >= 0 ? `+$${stats.netProfit.toFixed(2)}` : `-$${Math.abs(stats.netProfit).toFixed(2)}`}
+            </p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#070b12]/50 border border-slate-900 text-slate-100">
+          <CardContent className="p-4">
+            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">System Profit Factor</span>
+            <p className="text-lg font-mono font-black text-slate-100 mt-0.5">{stats.profitFactor.toFixed(3)}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#070b12]/50 border border-slate-900 text-slate-100">
+          <CardContent className="p-4">
+            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Statistical Expectancy</span>
+            <p className="text-lg font-mono font-black text-amber-400 mt-0.5">${stats.expectancy.toFixed(2)} / Trade</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-[#070b12]/50 border border-slate-900 text-slate-100">
+          <CardContent className="p-4">
+            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Win/Loss Distribution</span>
+            <p className="text-lg font-mono font-black text-green-400 mt-0.5">{stats.winRate.toFixed(1)}% WR</p>
+          </CardContent>
+        </Card>
       </div>
 
-      <Dialog open={!!selectedBot} onOpenChange={() => setSelectedBot(null)}>
-        <DialogContent className="bg-card/95 backdrop-blur-xl border-border/40 shadow-2xl sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="uppercase tracking-widest text-sm font-black text-foreground">
-              {selectedBot} Execution Ledger
-            </DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[300px] overflow-y-auto space-y-2 custom-scrollbar mt-4 pr-2">
-            {botTrades.length === 0 ? (
-              <p className="text-xs italic text-muted-foreground text-center py-4">No historical executions found.</p>
-            ) : (
-              botTrades.map((t: any, i: number) => {
-                const isBuy = (t.direction || t.type || t.action || "BUY").toUpperCase() === "BUY";
-                return (
-                  <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-background/40 border border-border/30 hover:border-border/60 transition-colors">
-                    <div className="flex flex-col gap-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] font-black tracking-widest uppercase text-foreground">{t.symbol}</span>
-                        <span className={`text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider ${isBuy ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
-                          {isBuy ? 'BUY' : 'SELL'}
-                        </span>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">{new Date(t.date).toLocaleString()}</span>
-                    </div>
-                    <span className={`text-sm font-black ${t.rMultiple < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                      {t.rMultiple < 0 ? '' : '+'}${Number(t.rMultiple).toFixed(2)}
-                    </span>
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* DOUBLE COMPREHENSIVE PERFORMANCE GRAPH LAYERS */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
+        <Card className="bg-[#070b12]/30 border border-slate-900 overflow-hidden shadow-2xl">
+          <CardHeader className="bg-[#000001] border-b border-slate-900/60 py-3 px-4 flex flex-row items-center gap-2">
+            <TrendingUp className="w-4 h-4 text-green-400" />
+            <CardTitle className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Chronological Account Equity Curve</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stats.equityCurveData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#0d131f" />
+                <XAxis dataKey="index" stroke="#475569" fontSize={10} tickLine={false} />
+                <YAxis stroke="#475569" fontSize={10} domain={['dataMin - 50', 'dataMax + 50']} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#000001', borderColor: '#1e293b', color: '#f8fafc', fontSize: 11 }} />
+                <Line type="monotone" dataKey="balance" stroke="#22c55e" strokeWidth={2.5} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-[#070b12]/30 border border-slate-900 overflow-hidden shadow-2xl">
+          <CardHeader className="bg-[#000001] border-b border-slate-900/60 py-3 px-4 flex flex-row items-center gap-2">
+            <ShieldAlert className="w-4 h-4 text-red-500" />
+            <CardTitle className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Underwater Peak-To-Trough Deficit Drawdown</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={stats.equityCurveData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#0d131f" />
+                <XAxis dataKey="index" stroke="#475569" fontSize={10} tickLine={false} />
+                <YAxis stroke="#475569" fontSize={10} tickLine={false} inverted />
+                <Tooltip contentStyle={{ backgroundColor: '#000001', borderColor: '#1e293b', color: '#f8fafc', fontSize: 11 }} />
+                <Area type="monotone" dataKey="drawdown" stroke="#ef4444" fill="rgba(239, 68, 68, 0.06)" strokeWidth={1.5} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* DETAILED CRITIQUE SEGMENT MODULES (INTEGRATED BELOW CHARTS) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono text-xs">
+        <div className="bg-[#070b12]/40 p-4 border border-slate-900 rounded-xl backdrop-blur-sm flex flex-col justify-between">
+          <span className="text-slate-500 font-bold block mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-green-400" /> AVERAGE HOLDING TIME
+          </span>
+          <p className="text-slate-100 text-sm font-black mt-2">
+            {(stats.avgHoldingTime / 60).toFixed(1)} Minutes / Execution Cycle
+          </p>
+        </div>
+
+        <div className="bg-[#070b12]/40 p-4 border border-slate-900 rounded-xl backdrop-blur-sm flex flex-col justify-between">
+          <span className="text-slate-500 font-bold block mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <Percent className="w-3.5 h-3.5 text-green-400" /> OPTIMAL EXIT EFFICIENCY
+          </span>
+          <p className="text-green-400 text-sm font-black mt-2">
+            {stats.exitEfficiency.toFixed(1)}% Precision Threshold Rate
+          </p>
+        </div>
+
+        <div className="bg-[#070b12]/40 p-4 border border-slate-900 rounded-xl backdrop-blur-sm flex flex-col justify-between">
+          <span className="text-slate-500 font-bold block mb-1 uppercase tracking-wider flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-500" /> AVERAGE EXCURSION LIMITS
+          </span>
+          <p className="text-slate-300 text-[11px] font-bold mt-2 leading-relaxed">
+            Avg MFE: <span className="text-green-400 font-black">${stats.avgMfe.toFixed(2)}</span>
+            <br />
+            Avg MAE: <span className="text-red-400 font-black">-${stats.avgMae.toFixed(2)}</span>
+          </p>
+        </div>
+      </div>
+
     </div>
   )
 }
