@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { initializeFirestore, initializeDb, DB } from "firebase/firestore";
+import { initializeFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -11,13 +11,11 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize App safely
+// Initialize App safely (prevents duplicate app error on hot reload)
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// 🔥 SURGICAL FIX FOR SERVERLESS TIMEOUTS:
-// Instead of getFirestore(app), we use initializeFirestore with long polling.
-// This forces Firebase to use clean, instant HTTP requests instead of heavy gRPC streams.
+// Use long polling to avoid gRPC stream issues in serverless/Vercel environments
 export const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true, 
-  useFetchStreams: false
+  experimentalAutoDetectLongPolling: true,
+  useFetchStreams: false,
 });
