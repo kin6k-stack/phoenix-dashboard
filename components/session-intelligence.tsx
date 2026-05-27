@@ -1,6 +1,6 @@
 "use client"
 
-<<<<<<< HEAD
+ HEAD
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, Layers, Filter, Crosshair, Shield, Zap, Flame, Lock } from "lucide-react"
@@ -196,6 +196,43 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
             <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-1">London Session</h3>
             <p className={`text-xl font-black ${isLondon && !isWeekend ? 'text-foreground' : 'text-muted-foreground'}`}>
               {isWeekend ? "CLOSED" : isLondon ? "ACTIVE" : "WAITING"}
+=======
+import { useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
+import { Clock, Activity, Crosshair, MapMap, ShieldAlert } from "lucide-react"
+
+export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
+  const [selectedAsset, setSelectedAsset] = useState<"XAUUSD" | "USTEC">("XAUUSD")
+
+  // Interactive State for Jeafx S&D Mapping
+  const [keyLevels, setKeyLevels] = useState({
+    XAUUSD: { majorSupply: "", minorSupply: "", poc: "", minorDemand: "", majorDemand: "" },
+    USTEC: { majorSupply: "", minorSupply: "", poc: "", minorDemand: "", majorDemand: "" }
+  })
+
+  const handleLevelChange = (level: string, value: string) => {
+    setKeyLevels(prev => ({
+      ...prev,
+      [selectedAsset]: { ...prev[selectedAsset], [level]: value }
+    }))
+  }
+
+  const now = new Date()
+  const isWeekend = now.getDay() === 0 || now.getDay() === 6
+  const hour = now.getUTCHours() - 4 // GMT-4 NYC Time assumption
+  const isLondon = hour >= 3 && hour < 12
+  const isNY = hour >= 8 && hour < 17
+
+  return (
+    <div className="space-y-6">
+      {/* Row 1: Session Clocks */}
+      <div className="grid md:grid-cols-3 gap-6">
+        <Card className={`border-border/40 bg-card/40 backdrop-blur-md ${isWeekend ? 'opacity-50' : 'shadow-[0_0_20px_rgba(59,130,246,0.1)]'}`}>
+          <CardContent className="p-6 flex flex-col justify-center items-center text-center relative overflow-hidden">
+            <Clock className={`mb-3 ${isLondon && !isWeekend ? 'text-blue-400' : 'text-muted-foreground'}`} size={24} />
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-1">London Session</h3>
+            <p className={`text-xl font-black ${isLondon && !isWeekend ? 'text-foreground' : 'text-muted-foreground'}`}>
+              {isWeekend ? "CLOSED" : isLondon ? "ACTIVE" : "WAITING"}
             </p>
           </CardContent>
         </Card>
@@ -206,10 +243,24 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
             <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-1">New York Session</h3>
             <p className={`text-xl font-black ${isNY && !isWeekend ? 'text-foreground' : 'text-muted-foreground'}`}>
               {isWeekend ? "CLOSED" : isNY ? "ACTIVE" : "WAITING"}
+>>>>>>> parent of 4428233 (SES inteligence)
             </p>
           </CardContent>
         </Card>
 
+<<<<<<< HEAD
+        <Card className={`border-border/40 bg-card/40 backdrop-blur-md ${isWeekend ? 'opacity-50' : 'shadow-[0_0_20px_rgba(52,211,153,0.1)]'}`}>
+          <CardContent className="p-6 flex flex-col justify-center items-center text-center relative overflow-hidden">
+            <Clock className={`mb-3 ${isNY && !isWeekend ? 'text-emerald-400' : 'text-muted-foreground'}`} size={24} />
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground mb-1">New York Session</h3>
+            <p className={`text-xl font-black ${isNY && !isWeekend ? 'text-foreground' : 'text-muted-foreground'}`}>
+              {isWeekend ? "CLOSED" : isNY ? "ACTIVE" : "WAITING"}
+            </p>
+          </CardContent>
+        </Card>
+
+=======
+>>>>>>> parent of 4428233 (SES inteligence)
         <Card className="border-border/40 bg-card/40 backdrop-blur-md shadow-[0_0_20px_rgba(244,63,94,0.1)]">
           <CardContent className="p-6 flex flex-col justify-center items-center text-center">
             <ShieldAlert className="mb-3 text-rose-400" size={24} />
@@ -217,11 +268,15 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
             <p className="text-xl font-black text-foreground">
               {isWeekend ? "OFFLINE (0.00)" : "SYSTEM NOMINAL"}
             </p>
+<<<<<<< HEAD
+>>>>>>> parent of 4428233 (SES inteligence)
+=======
 >>>>>>> parent of 4428233 (SES inteligence)
           </CardContent>
         </Card>
       </div>
 
+<<<<<<< HEAD
 <<<<<<< HEAD
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="bg-[#070b12]/40 border border-slate-900 shadow-2xl backdrop-blur-md lg:col-span-1">
@@ -270,6 +325,8 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
         </Card>
       </div>
 =======
+=======
+>>>>>>> parent of 4428233 (SES inteligence)
       {/* Row 2: Jeafx S&D Level Mapper */}
       <Card className="border-border/40 bg-card/40 backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.2)]">
         <div className="p-6 border-b border-border/40 flex justify-between items-center bg-background/30">
@@ -351,6 +408,9 @@ export function SessionIntelligence({ trades = [] }: { trades: any[] }) {
           </div>
         </CardContent>
       </Card>
+<<<<<<< HEAD
+>>>>>>> parent of 4428233 (SES inteligence)
+=======
 >>>>>>> parent of 4428233 (SES inteligence)
     </div>
   )
