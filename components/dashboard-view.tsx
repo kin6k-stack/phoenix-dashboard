@@ -1,121 +1,291 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
-import { ShieldAlert, Cpu, Percent, Zap, Wallet, BarChart3, Flame } from "lucide-react"
+import { TrendingUp, TrendingDown, DollarSign, Target, Activity, BarChart3, Zap, Calendar } from "lucide-react"
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts"
 
-export function DashboardView({ trades = [] }: { trades: any[] }) {
-  
-  // High fidelity calculations for immediate visibility checks
-  const compileCommandTelemetry = () => {
-    let totalNet = 0; let grossProfit = 0; let grossLoss = 0;
-    let wins = 0; let feesBurn = 0;
+const equityCurveData = [
+  { date: "Jan", value: 10000 },
+  { date: "Feb", value: 10850 },
+  { date: "Mar", value: 11200 },
+  { date: "Apr", value: 10900 },
+  { date: "May", value: 12400 },
+]
 
-    trades.forEach(t => {
-      const p = Number(t.profit || 0);
-      totalNet += p;
-      feesBurn += Math.abs(Number(t.commission || 0)) + Math.abs(Number(t.swap || 0));
-      if (p >= 0) { grossProfit += p; wins++; } else { grossLoss += Math.abs(p); }
-    });
+const weeklyPnlData = [
+  { week: "W1", pnl: 450 },
+  { week: "W2", pnl: -120 },
+  { week: "W3", pnl: 380 },
+  { week: "W4", pnl: 290 },
+]
 
-    const winRate = trades.length > 0 ? (wins / trades.length) * 100 : 0;
-    
-    // Institutional Value-at-Risk Model estimation parameter
-    const varValue = Math.abs(totalNet * 0.142) + 24.50;
+const winLossData = [
+  { name: "Wins", value: 68, color: "#22c55e" },
+  { name: "Losses", value: 32, color: "#ef4444" },
+]
 
-    return {
-      net: totalNet, winRate, pf: grossLoss > 0 ? grossProfit / grossLoss : grossProfit,
-      varValue, feesBurn, utilizationRate: trades.length > 0 ? Math.min((trades.length * 4.5), 100) : 0
-    };
-  }
+const recentTrades = [
+  { symbol: "AAPL", side: "Long", pnl: 245.50, date: "May 14" },
+  { symbol: "TSLA", side: "Short", pnl: -89.20, date: "May 13" },
+  { symbol: "NVDA", side: "Long", pnl: 412.00, date: "May 12" },
+  { symbol: "SPY", side: "Long", pnl: 156.80, date: "May 11" },
+]
 
-  const hud = compileCommandTelemetry();
-
+export function DashboardView() {
   return (
-    <div className="w-full min-h-screen bg-[#020406] text-slate-100 p-6 font-sans">
-      
-      {/* TOP DIGITbold KPI STATS STRIP CONTAINER */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mb-6">
-        <Card className="bg-[#070b12]/60 border border-slate-900/80 shadow-2xl">
+    <div className="p-6 space-y-6 overflow-auto h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
+          <p className="text-sm text-muted-foreground">Overview of your trading performance</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Calendar className="w-4 h-4" />
+          <span>May 2026</span>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
-            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1"><Wallet className="w-3 h-3" /> Net Capital Yield</span>
-            <p className={`text-xl font-mono font-black mt-1 ${hud.net >= 0 ? "text-green-400" : "text-red-400"}`}>
-              {hud.net >= 0 ? `+$${hud.net.toFixed(2)}` : `-$${Math.abs(hud.net).toFixed(2)}`}
-            </p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Total P&L</p>
+                <p className="text-2xl font-semibold text-green-500">+$2,847.50</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <DollarSign className="w-5 h-5 text-green-500" />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 mt-2 text-xs text-green-500">
+              <TrendingUp className="w-3 h-3" />
+              <span>+12.4% this month</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#070b12]/60 border border-slate-900/80 shadow-2xl">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
-            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1"><Percent className="w-3 h-3" /> Tactical Win Rate</span>
-            <p className="text-xl font-mono font-black text-green-400 mt-1">{hud.winRate.toFixed(1)}%</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Win Rate</p>
+                <p className="text-2xl font-semibold text-foreground">68%</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <Target className="w-5 h-5 text-emerald-500" />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+              <span>34 wins / 16 losses</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#070b12]/60 border border-slate-900/80 shadow-2xl">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
-            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1"><Cpu className="w-3 h-3" /> System Expectancy</span>
-            <p className="text-xl font-mono font-black text-slate-100 mt-1">{hud.pf.toFixed(3)} PF</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Trades</p>
+                <p className="text-2xl font-semibold text-foreground">50</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Activity className="w-5 h-5 text-blue-500" />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+              <span>8 trades this week</span>
+            </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[#070b12]/60 border border-slate-900/80 shadow-2xl">
+        <Card className="bg-card border-border">
           <CardContent className="p-4">
-            <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> Value at Risk (VaR)</span>
-            <p className="text-xl font-mono font-black text-red-400 mt-1">${hud.varValue.toFixed(2)}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Avg R-Multiple</p>
+                <p className="text-2xl font-semibold text-foreground">1.8R</p>
+              </div>
+              <div className="w-10 h-10 rounded-lg bg-purple-500/10 flex items-center justify-center">
+                <Zap className="w-5 h-5 text-purple-500" />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 mt-2 text-xs text-green-500">
+              <TrendingUp className="w-3 h-3" />
+              <span>+0.3R vs last month</span>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* INSTITUTIONAL RISK & CAPITAL UTILIZATION DESK MODULE */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
-        
-        <Card className="bg-[#070b12]/40 border border-slate-900 xl:col-span-2">
-          <CardHeader className="bg-[#000001] py-3.5 px-4 border-b border-slate-900/80 flex flex-row items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-green-400" />
-            <CardTitle className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Margin Utilization and Compliance Bars</CardTitle>
+      {/* Charts Row */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        {/* Equity Curve */}
+        <Card className="lg:col-span-2 bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-green-500" />
+              Equity Curve
+            </CardTitle>
           </CardHeader>
-          <CardContent className="p-5 space-y-4 font-mono text-xs">
-            <div>
-              <div className="flex justify-between text-[11px] font-bold mb-1">
-                <span className="text-slate-400 uppercase">Firm Capital Allocation Capacity:</span>
-                <span className="text-green-400">{hud.utilizationRate.toFixed(1)}% Utilization</span>
-              </div>
-              <Progress value={hud.utilizationRate} className="h-2 bg-[#020406] border border-slate-800 rounded-sm" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-900/60">
-              <div>
-                <span className="text-slate-500 font-bold block text-[10px]">TOTAL EXECUTION COMMISSIONS</span>
-                <p className="text-sm font-black text-slate-300 mt-0.5">${hud.feesBurn.toFixed(2)}</p>
-              </div>
-              <div>
-                <span className="text-slate-500 font-bold block text-[10px]">ACTIVE COMPLIANCE SECTOR</span>
-                <p className="text-sm font-black text-green-400 mt-0.5">WITHIN LIMITS 🟢</p>
-              </div>
+          <CardContent>
+            <div className="h-[200px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={equityCurveData}>
+                  <defs>
+                    <linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                    tickFormatter={(value) => `$${(value / 1000).toFixed(0)}k`}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#22c55e"
+                    strokeWidth={2}
+                    fill="url(#equityGradient)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        {/* VOLUME SECTOR PIE TRACKER */}
-        <Card className="bg-[#070b12]/40 border border-slate-900 xl:col-span-1">
-          <CardHeader className="bg-[#000001] py-3.5 px-4 border-b border-slate-900/80 flex flex-row items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-green-400" />
-            <CardTitle className="text-xs font-mono font-bold tracking-widest text-slate-400 uppercase">Portfolio Asset Deployment</CardTitle>
+        {/* Win/Loss Distribution */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Target className="w-4 h-4 text-emerald-500" />
+              Win/Loss Distribution
+            </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 font-mono text-xs space-y-2.5">
-            <div className="flex items-center justify-between bg-[#000001]/40 p-2.5 border border-slate-900 rounded-md">
-              <span className="text-slate-300 font-bold flex items-center gap-1.5">🥇 XAUUSD (Gold Apex)</span>
-              <span className="text-green-400 font-black">Active Hunt</span>
+          <CardContent>
+            <div className="h-[200px] flex items-center justify-center relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={winLossData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={70}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {winLossData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="absolute flex flex-col items-center">
+                <span className="text-2xl font-semibold text-foreground">68%</span>
+                <span className="text-xs text-muted-foreground">Win Rate</span>
+              </div>
             </div>
-            <div className="flex items-center justify-between bg-[#000001]/40 p-2.5 border border-slate-900 rounded-md">
-              <span className="text-slate-300 font-bold flex items-center gap-1.5">⚡ USTEC (Nasdaq Matrix)</span>
-              <span className="text-green-400 font-black">Active Hunt</span>
+            <div className="flex justify-center gap-6 mt-2">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+                <span className="text-xs text-muted-foreground">Wins (34)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <span className="text-xs text-muted-foreground">Losses (16)</span>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Bottom Row */}
+      <div className="grid lg:grid-cols-2 gap-4">
+        {/* Weekly P&L */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-blue-500" />
+              Weekly P&L
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[180px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyPnlData}>
+                  <XAxis 
+                    dataKey="week" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#6b7280', fontSize: 11 }}
+                    tickFormatter={(value) => `$${value}`}
+                  />
+                  <Bar 
+                    dataKey="pnl" 
+                    radius={[4, 4, 0, 0]}
+                    fill="#22c55e"
+                  >
+                    {weeklyPnlData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.pnl >= 0 ? "#22c55e" : "#ef4444"} 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Trades */}
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Activity className="w-4 h-4 text-purple-500" />
+              Recent Trades
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {recentTrades.map((trade, index) => (
+                <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded flex items-center justify-center text-xs font-medium ${
+                      trade.side === "Long" ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
+                    }`}>
+                      {trade.side === "Long" ? "L" : "S"}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{trade.symbol}</p>
+                      <p className="text-xs text-muted-foreground">{trade.date}</p>
+                    </div>
+                  </div>
+                  <span className={`text-sm font-medium ${trade.pnl >= 0 ? "text-green-500" : "text-red-500"}`}>
+                    {trade.pnl >= 0 ? "+" : ""}${trade.pnl.toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

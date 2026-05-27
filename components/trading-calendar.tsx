@@ -1,124 +1,170 @@
 "use client"
 
-import { useState } from "react"
-import { ChevronLeft, ChevronRight, BarChart3, PieChart, ShieldAlert, Award } from "lucide-react"
+import { useState, useEffect } from "react"
+import { ChevronLeft, ChevronRight, Pencil } from "lucide-react"
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, getDay } from "date-fns"
+import { Button } from "@/components/ui/button"
 
-interface Trade {
-  id: string
-  ticket: string
-  symbol: string
-  type: string
-  profit: number
-  date: string
+interface TradingCalendarProps {
+  selectedDate: Date | null
+  onDateSelect: (date: Date) => void
+  tradeDates?: Date[]
+  totalTrades?: number
+  wins?: number
+  netPnL?: number
+  winRate?: number
+  // 🔥 REGISTER HOOK INTERACTION VARIABLE
+  onMonthYearChange?: (monthYear: { month: number; year: number }) => void
 }
 
-export function TradingCalendar({ trades = [] }: { trades: any[] }) {
-  const [currentDate, setCurrentDate] = useState(new Date())
+export function TradingCalendar({ 
+  selectedDate, 
+  onDateSelect, 
+  tradeDates = [],
+  totalTrades = 0,
+  wins = 0,
+  netPnL = 0,
+  winRate = 0,
+  onMonthYearChange
+}: TradingCalendarProps) {
+  const [currentMonth, setCurrentMonth] = useState(new Date())
   
-  const year = currentDate.getFullYear()
-  const month = currentDate.getMonth()
+  const monthStart = startOfMonth(currentMonth)
+  const monthEnd = endOfMonth(currentMonth)
+  const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  const startDay = getDay(monthStart)
+  
+  const totalSlots = 42;
+  const emptyDaysAtEnd = totalSlots - (startDay + days.length);
+  const weekDays = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"]
 
-  const firstDay = new Date(year, month, 1).getDay()
-  const totalDays = new Date(year, month + 1, 0).getDate()
-
-  const mapDayMetrics = (day: number) => {
-    const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const match = trades.filter(t => t.date === dStr);
-    const net = match.reduce((sum, t) => sum + Number(t.profit), 0);
-    const wins = match.filter(t => t.profit >= 0).length;
-    return { count: match.length, net, wr: match.length > 0 ? (wins / match.length) * 100 : 0 };
+  // 🔥 EVENT FIRE PIPELINE: Updates parent filtering baseline parameters dynamically
+  useEffect(() => {
+    if (onMonthYearChange) {
+      onMonthYearChange({
+        month: currentMonth.getMonth(),
+        year: currentMonth.getFullYear()
+      });
+    }
+  }, [currentMonth, onMonthYearChange]);
+  
+  const hasTrade = (date: Date) => {
+    return tradeDates.some(d => 
+      d.getDate() === date.getDate() && 
+      d.getMonth() === date.getMonth() && 
+      d.getFullYear() === date.getFullYear()
+    )
   }
-
-  // Monthly Cumulative Calculations
-  const calculatedMonthSummary = () => {
-    let monthlyTotal = 0; let totalWins = 0; let totalLosses = 0;
-    let grossProfit = 0; let grossLoss = 0;
-
-    trades.forEach(t => {
-      const p = Number(t.profit);
-      monthlyTotal += p;
-      if (p >= 0) { grossProfit += p; totalWins++; } else { grossLoss += Math.abs(p); totalLosses++; }
-    });
-
-    return {
-      net: monthlyTotal,
-      pf: grossLoss > 0 ? grossProfit / grossLoss : grossProfit,
-      ratio: totalLosses > 0 ? totalWins / totalLosses : totalWins
-    };
-  }
-
-  const summary = calculatedMonthSummary();
 
   return (
-    <div className="w-full min-h-screen bg-[#020406] text-slate-200 p-6 font-sans">
-      
-      {/* HEADER CONTROLS GRID */}
-      <div className="flex items-center justify-between border-b border-slate-900 pb-4 mb-6">
-        <div className="flex items-center gap-4">
-          <h2 className="text-xl font-black font-mono tracking-widest text-green-400">
-            {currentDate.toLocaleString('en-US', { month: 'long' }).toUpperCase()} {year}
+    <div className="w-full h-full flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 hover:bg-muted"
+            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <h2 className="text-lg font-semibold text-foreground">
+            {format(currentMonth, "MMMM yyyy")}
           </h2>
-          <div className="flex bg-[#000001] border border-slate-800 rounded-lg overflow-hidden">
-            <button onClick={() => setCurrentDate(new Date(year, month - 1, 1))} className="p-2 border-r border-slate-800 hover:bg-slate-900 transition-colors cursor-pointer"><ChevronLeft className="w-4 h-4" /></button>
-            <button onClick={() => setCurrentDate(new Date(year, month + 1, 1))} className="p-2 hover:bg-slate-900 transition-colors cursor-pointer"><ChevronRight className="w-4 h-4" /></button>
-          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 hover:bg-muted"
+            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
         </div>
+        
+        <button 
+          onClick={() => onDateSelect(new Date())}
+          className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer bg-transparent border-none p-0"
+        >
+          <Pencil className="h-3 w-3" />
+          <span>click date to journal</span>
+        </button>
+      </div>
 
-        {/* SUMMARY TILES CONTAINER */}
-        <div className="flex gap-4 font-mono text-xs">
-          <div className="bg-[#070b12] px-3 py-1.5 border border-slate-900 rounded-lg">
-            <span className="text-slate-500 font-bold uppercase">Accumulated Monthly PnL:</span>
-            <span className={`font-black ml-1.5 ${summary.net >= 0 ? "text-green-400" : "text-red-400"}`}>
-              {summary.net >= 0 ? `+$${summary.net.toFixed(2)}` : `-$${Math.abs(summary.net).toFixed(2)}`}
-            </span>
-          </div>
-          <div className="bg-[#070b12] px-3 py-1.5 border border-slate-900 rounded-lg">
-            <span className="text-slate-500 font-bold uppercase">Profit Factor:</span>
-            <span className="text-slate-100 font-black ml-1.5">{summary.pf.toFixed(3)}</span>
-          </div>
+      {/* Stats Bar */}
+      <div className="flex gap-6 mb-4 text-sm">
+        <div>
+          <span className="text-muted-foreground">TRADES</span>
+          <span className="ml-2 font-semibold text-foreground">{totalTrades}</span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">WINS</span>
+          <span className="ml-2 font-semibold text-foreground">{wins}</span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">P&L</span>
+          <span className={`ml-2 font-semibold ${netPnL >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            {netPnL >= 0 ? "+" : ""}${netPnL.toFixed(2)}
+          </span>
+        </div>
+        <div>
+          <span className="text-muted-foreground">WIN %</span>
+          <span className="ml-2 font-semibold text-foreground">{winRate}%</span>
         </div>
       </div>
 
-      {/* PRIMARY TARGET CALENDAR MATRIX LAYER GRID */}
-      <div className="border border-slate-900/60 rounded-xl overflow-hidden bg-[#070b12]/20 backdrop-blur-md shadow-2xl">
-        <div className="grid grid-cols-7 bg-[#000001] text-[10px] font-black uppercase tracking-widest text-slate-500 text-center py-3.5 border-b border-slate-900/80">
-          <div>SUN</div><div>MON</div><div>TUE</div><div>WED</div><div>THU</div><div>FRI</div><div>SAT</div>
-        </div>
-
-        <div className="grid grid-cols-7 text-xs">
-          {Array.from({ length: firstDay }).map((_, i) => (
-            <div key={`empty-${i}`} className="h-28 border-b border-r border-slate-900/40 bg-[#020406]/40" />
-          ))}
-
-          {Array.from({ length: totalDays }).map((_, i) => {
-            const day = i + 1;
-            const data = mapDayMetrics(day);
-            
-            let colorWeight = "bg-[#04060b]/20 hover:bg-slate-900/40";
-            if (data.count > 0) {
-              colorWeight = data.net >= 0 
-                ? "bg-green-950/10 border border-green-500/10 hover:bg-green-950/20" 
-                : "bg-red-950/10 border border-red-500/10 hover:bg-red-950/20";
-            }
-
-            return (
-              <div key={`day-${day}`} className={`h-28 p-2.5 border-b border-r border-slate-900/60 flex flex-col justify-between transition-all ${colorWeight}`}>
-                <span className="text-[11px] font-bold font-mono text-slate-500 block">{day}</span>
-                {data.count > 0 && (
-                  <div className="text-right font-mono space-y-0.5">
-                    <span className="text-[9px] text-slate-500 font-semibold block">{data.count} Executions</span>
-                    <span className={`text-[10px] font-bold block ${data.net >= 0 ? "text-green-400" : "text-red-400"}`}>
-                      {data.net >= 0 ? `+$${data.net.toFixed(2)}` : `-$${Math.abs(data.net).toFixed(2)}`}
-                    </span>
-                    <span className="text-[9px] text-slate-400 block">{data.wr.toFixed(0)}% WR</span>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      {/* Weekday Headers */}
+      <div className="grid grid-cols-7 mb-2">
+        {weekDays.map((day) => (
+          <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
+            {day}
+          </div>
+        ))}
       </div>
 
+      {/* Calendar Grid */}
+      <div className="grid grid-cols-7 grid-rows-6 flex-1 border-t border-l border-border bg-card overflow-hidden">
+        {Array.from({ length: startDay }).map((_, i) => (
+          <div key={`empty-start-${i}`} className="border-r border-b border-border bg-muted/10" />
+        ))}
+        
+        {days.map((day) => {
+          const isSelected = selectedDate && 
+            day.getDate() === selectedDate.getDate() &&
+            day.getMonth() === selectedDate.getMonth() &&
+            day.getFullYear() === selectedDate.getFullYear()
+          const hasTradeOnDay = hasTrade(day)
+          
+          return (
+            <button
+              key={day.toISOString()}
+              onClick={() => onDateSelect(day)}
+              className={`
+                border-r border-b border-border p-2 flex flex-col items-center justify-start transition-colors relative
+                hover:bg-muted/50 focus:outline-none
+                ${isSelected ? "bg-primary/20" : ""}
+                ${hasTradeOnDay ? "bg-emerald-500/10" : ""}
+                ${!isSameMonth(day, currentMonth) ? "text-muted-foreground" : "text-foreground"}
+              `}
+            >
+              <span className={`
+                text-sm mt-1 w-7 h-7 flex items-center justify-center rounded-full
+                ${isToday(day) ? "bg-primary text-primary-foreground font-semibold" : ""}
+              `}>
+                {format(day, "d")}
+              </span>
+              
+              {hasTradeOnDay && (
+                 <div className="absolute bottom-2 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.8)]"></div>
+              )}
+            </button>
+          )
+        })}
+
+        {Array.from({ length: emptyDaysAtEnd }).map((_, i) => (
+          <div key={`empty-end-${i}`} className="border-r border-b border-border bg-muted/10" />
+        ))}
+      </div>
     </div>
   )
 }

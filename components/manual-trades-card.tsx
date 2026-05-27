@@ -13,11 +13,11 @@ interface Trade {
 interface ManualTradesCardProps {
   trades: Trade[]
   onAddTrade: () => void
-  onEditTrade: (trade: Trade) => void
   onDeleteTrade: (id: string) => void
 }
 
-export function ManualTradesCard({ trades, onAddTrade, onEditTrade, onDeleteTrade }: ManualTradesCardProps) {
+export function ManualTradesCard({ trades, onAddTrade, onDeleteTrade }: ManualTradesCardProps) {
+  // Show the last 20 elements to keep layout viewport perfect
   const currentLogs = trades.slice(0, 20);
 
   return (
@@ -37,15 +37,9 @@ export function ManualTradesCard({ trades, onAddTrade, onEditTrade, onDeleteTrad
           <p className="text-xs text-muted-foreground italic text-center mt-6">Database currently clear.</p>
         ) : (
           currentLogs.map((trade) => (
-            <div 
-              key={trade.id} 
-              onClick={() => onEditTrade(trade)}
-              className="flex items-center justify-between p-3 rounded-lg bg-background border border-border group hover:border-primary/40 transition-all cursor-pointer"
-            >
+            <div key={trade.id} className="flex items-center justify-between p-3 rounded-lg bg-background border border-border group hover:border-primary/40 transition-all">
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-foreground tracking-tight">
-                  {trade.symbol} <span className="text-muted-foreground font-normal ml-1">| {trade.setup}</span>
-                </span>
+                <span className="text-xs font-bold text-foreground tracking-tight">{trade.symbol}</span>
                 <span className="text-[10px] text-muted-foreground">{new Date(trade.date).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center gap-3">
@@ -53,10 +47,7 @@ export function ManualTradesCard({ trades, onAddTrade, onEditTrade, onDeleteTrad
                   {trade.rMultiple >= 0 ? "+" : ""}${trade.rMultiple.toFixed(2)}
                 </span>
                 <button 
-                  onClick={(e) => {
-                    e.stopPropagation(); // Prevents triggering the edit dialog when clicking delete
-                    onDeleteTrade(trade.id);
-                  }}
+                  onClick={() => onDeleteTrade(trade.id)}
                   className="text-muted-foreground hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 p-0.5 rounded"
                 >
                   <Trash2 size={14} />
