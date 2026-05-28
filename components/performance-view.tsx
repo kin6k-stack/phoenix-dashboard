@@ -111,15 +111,15 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
     <div className="space-y-6">
 
       {/* ── Filter bar ──────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between p-4 bg-[#070b12]/60 backdrop-blur-md rounded-xl border border-slate-800 shadow-sm">
+      <div className="flex items-center justify-between p-4 bg-card/40 backdrop-blur-md rounded-xl border border-border/40 shadow-sm">
         <div className="flex flex-col gap-0.5">
-          <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Data Source Layer</span>
-          <span className="text-[11px] text-slate-400 font-medium italic">Active performance pipeline</span>
+          <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">Data Source Layer</span>
+          <span className="text-[11px] text-foreground font-medium italic">Active performance pipeline</span>
         </div>
-        <div className="flex gap-1 bg-[#03050a] p-1.5 rounded-lg border border-slate-800">
+        <div className="flex gap-1 bg-background/50 p-1.5 rounded-lg border border-border/50">
           {(["ALL", "BOT", "MANUAL"] as const).map(mode => (
             <button key={mode} onClick={() => setFilterMode(mode)}
-              className={`px-4 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-colors ${filterMode === mode ? "bg-green-500/10 text-green-400 border border-green-500/30" : "text-slate-500 hover:text-slate-300 hover:bg-slate-800/40"}`}>
+              className={`px-4 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-colors ${filterMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/60"}`}>
               {mode === "ALL" ? "Combined Matrix" : mode === "BOT" ? "Core Engines" : "Manual Logs"}
             </button>
           ))}
@@ -135,12 +135,12 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
           const lastPnl   = chartData[chartData.length - 1]?.pnl ?? 0
 
           return (
-            <Card key={name} className="border-slate-800 bg-[#070b12]/60 shadow-xl relative overflow-hidden">
+            <Card key={name} className="border-border/40 bg-card/60 shadow-lg relative overflow-hidden">
               {/* Coloured left accent bar — unique per bot */}
               <div className={`absolute top-0 left-0 w-1.5 h-full ${styles.bar}`} />
 
               {/* ── Header ────────────────────────────────────────────────── */}
-              <CardHeader className="pb-4 border-b border-slate-900 bg-[#03050a]">
+              <CardHeader className="pb-4 border-b border-border/30">
                 <CardTitle className="flex items-center justify-between text-sm font-black uppercase tracking-widest">
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded ${styles.soft}`}>
@@ -158,23 +158,23 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
               {/* ── Stats row ─────────────────────────────────────────────── */}
               <CardContent className="pt-5 pb-4 space-y-5">
                 <div className="grid grid-cols-4 gap-3">
-                  <div className="p-3 bg-[#03050a] rounded-lg border border-slate-900/60">
+                  <div className="p-3 bg-background/50 rounded-lg">
                     <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">Net P&L</span>
                     <p className={`text-base font-black ${stats.netPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                       {stats.netPnl >= 0 ? "+" : ""}${stats.netPnl.toFixed(2)}
                     </p>
                   </div>
-                  <div className="p-3 bg-[#03050a] rounded-lg border border-slate-900/60">
+                  <div className="p-3 bg-background/50 rounded-lg">
                     <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">P. Factor</span>
                     <p className="text-base font-black text-foreground">{stats.profitFactor}</p>
                   </div>
-                  <div className="p-3 bg-[#03050a] rounded-lg border border-slate-900/60">
+                  <div className="p-3 bg-background/50 rounded-lg">
                     <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">Win Rate</span>
                     <p className={`text-base font-black ${parseFloat(stats.winRate) >= 50 ? "text-blue-400" : "text-amber-400"}`}>
                       {stats.winRate}%
                     </p>
                   </div>
-                  <div className="p-3 bg-[#03050a] rounded-lg border border-slate-900/60">
+                  <div className="p-3 bg-background/50 rounded-lg">
                     <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">Expectancy</span>
                     <p className={`text-base font-black ${parseFloat(stats.expectancy) >= 0 ? "text-amber-400" : "text-rose-400"}`}>
                       ${stats.expectancy}
@@ -187,8 +187,8 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
                   <div className="space-y-3">
 
                     {/* Equity Curve */}
-                    <div className="rounded-xl border border-slate-800 bg-[#000001]/60 overflow-hidden">
-                      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-900 bg-[#03050a]">
+                    <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
+                      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/20 bg-background/30">
                         <div className="flex items-center gap-2">
                           <TrendingUp className="w-3.5 h-3.5" style={{ color: styles.stroke }} />
                           <span className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
@@ -219,8 +219,8 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
                     </div>
 
                     {/* Drawdown Chart */}
-                    <div className="rounded-xl border border-slate-800 bg-[#000001]/60 overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-900 bg-[#03050a]">
+                    <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
+                      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border/20 bg-background/30">
                         <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
                         <span className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
                           Peak-to-Trough Drawdown
@@ -256,7 +256,7 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
 
       {/* ── Trade ledger dialog ─────────────────────────────────────────────── */}
       <Dialog open={!!selectedBot} onOpenChange={() => setSelectedBot(null)}>
-        <DialogContent className="bg-[#070b12]/95 backdrop-blur-xl border-slate-800 shadow-2xl sm:max-w-[500px]">
+        <DialogContent className="bg-card/95 backdrop-blur-xl border-border/40 shadow-2xl sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="uppercase tracking-widest text-sm font-black text-foreground flex items-center gap-2">
               {selectedBot && (() => { const s = getEngineStyles(selectedBot); return <s.icon className={`h-4 w-4 ${s.text}`} /> })()}
@@ -273,7 +273,7 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
                   const styles = getEngineStyles(t.setup || "Manual Execution")
                   const isBuy  = (t.direction || "BUY").toUpperCase() === "BUY"
                   return (
-                    <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-[#03050a] border border-slate-800 hover:border-slate-700 transition-colors">
+                    <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-background/40 border border-border/30 hover:border-border/60 transition-colors">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-black tracking-widest uppercase text-foreground">{t.symbol}</span>

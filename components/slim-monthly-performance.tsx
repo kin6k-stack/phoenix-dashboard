@@ -20,108 +20,83 @@ export function SlimMonthlyPerformance({
   netPnL = 0,
   fees = 0,
 }: SlimMonthlyPerformanceProps) {
-  // 🔥 FIX 1: Enforce explicit numeric validation mapping to bypass potential string translation errors
   const safeWinRate = Math.min(Math.max(Number(winRate), 0), 100)
   const isProfitable = Number(netPnL) >= 0
 
-  // 🔥 FIX 2: Dynamic theme style mapping to match your core theme layouts seamlessly
   const strokeColorClass = safeWinRate >= 50 ? "text-emerald-500" : "text-rose-500"
-  const strokeGlowStyle = safeWinRate >= 50 
-    ? "drop-shadow([0_0_4px_rgba(16,185,129,0.5)])" 
-    : "drop-shadow([0_0_4px_rgba(244,63,94,0.5)])"
-
-  // Mathematical constant scaling factor for the inner circumference arc metrics bounds (2 * PI * r) where r = 26
-  const circumference = 2 * Math.PI * 26 // Approx 163.36
+  const circumference = 2 * Math.PI * 26
   const strokeDashoffset = circumference - (safeWinRate / 100) * circumference
 
   return (
-    <Card className="border-slate-800 bg-[#070b12]/60">
-      <CardHeader className="pb-3 bg-[#03050a] rounded-t-xl border-b border-slate-900">
-        <CardTitle className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400">
+    <Card className="border-border/40 bg-card/60 shadow-lg">
+      <CardHeader className="pb-3 border-b border-border/30">
+        <CardTitle className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground">
           <Activity className={`h-4 w-4 ${isProfitable ? "text-emerald-500" : "text-rose-500"}`} />
           Monthly Performance
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        
-        {/* Win Rate Circle - Adaptive HUD Theming */}
-        <div className="flex items-center gap-4">
+      <CardContent className="space-y-3 pt-4">
+
+        {/* Win-rate ring */}
+        <div className="flex items-center gap-4 bg-background/50 rounded-lg p-3">
           <div className="relative w-16 h-16 flex-shrink-0">
             <svg className="w-16 h-16 transform -rotate-90">
-              {/* Background Track Frame */}
-              <circle
-                cx="32"
-                cy="32"
-                r="26"
-                stroke="currentColor"
-                strokeWidth="5"
-                fill="none"
-                className="text-muted/30"
-              />
-              {/* Active Progress Filling Path */}
-              <circle
-                cx="32"
-                cy="32"
-                r="26"
-                stroke="currentColor"
-                strokeWidth="5"
-                strokeLinecap="round"
-                fill="none"
-                className={`${strokeColorClass} ${strokeGlowStyle} transition-all duration-500`}
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
-              />
+              <circle cx="32" cy="32" r="26" stroke="currentColor" strokeWidth="5" fill="none" className="text-muted/30" />
+              <circle cx="32" cy="32" r="26" stroke="currentColor" strokeWidth="5" strokeLinecap="round" fill="none"
+                className={`${strokeColorClass} transition-all duration-500`}
+                strokeDasharray={circumference} strokeDashoffset={strokeDashoffset} />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-sm font-black text-foreground tracking-tighter">{safeWinRate}%</span>
             </div>
           </div>
-          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Win Rate Baseline</span>
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Win Rate</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Baseline this month</p>
+          </div>
         </div>
 
-        {/* Stats Grid Layout Context Tracker */}
-        <div className="space-y-2 text-sm pt-1">
-          <div className="flex items-center justify-between">
+        {/* Stat rows */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between bg-background/50 rounded-lg px-3 py-2">
             <div className="flex items-center gap-2">
-              <Activity className="h-3 w-3 text-slate-500" />
-              <span className="text-[9px] text-slate-500 uppercase tracking-widest">Total Executions</span>
+              <Activity className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Executions</span>
             </div>
-            <span className="text-sm font-black font-mono text-slate-200">{Number(trades)}</span>
+            <span className="text-sm font-black text-foreground tabular-nums">{Number(trades)}</span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between bg-background/50 rounded-lg px-3 py-2">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-3 w-3 text-emerald-500" />
-              <span className="text-[9px] text-slate-500 uppercase tracking-widest">Profit Targets Hit</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Targets Hit</span>
             </div>
-            <span className="text-sm font-black font-mono text-emerald-400">{Number(wins)}</span>
+            <span className="text-sm font-black text-emerald-400 tabular-nums">{Number(wins)}</span>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between bg-background/50 rounded-lg px-3 py-2">
             <div className="flex items-center gap-2">
               <TrendingDown className="h-3 w-3 text-rose-500" />
-              <span className="text-[9px] text-slate-500 uppercase tracking-widest">Loss Caps Hit</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Loss Caps Hit</span>
             </div>
-            <span className="text-sm font-black font-mono text-rose-400">{Number(losses)}</span>
+            <span className="text-sm font-black text-rose-400 tabular-nums">{Number(losses)}</span>
           </div>
         </div>
 
-        {/* Financial Settlement Pipeline Overview */}
-        <div className="pt-3 border-t border-slate-800 space-y-2">
-          <div className="flex justify-between items-center">
-            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Net P&L Snapshot</span>
-            <span className={`text-sm font-black font-mono ${isProfitable ? "text-emerald-400" : "text-rose-400"}`}>
+        {/* Net P&L footer */}
+        <div className="pt-2 border-t border-border/30 space-y-2">
+          <div className="flex justify-between items-center bg-background/50 rounded-lg px-3 py-2">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Net P&L</span>
+            <span className={`text-sm font-black tabular-nums ${isProfitable ? "text-emerald-400" : "text-rose-400"}`}>
               {isProfitable ? "+" : ""}${Number(netPnL).toFixed(2)}
             </span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Spread / Fees</span>
-            <span className="text-sm font-black font-mono text-rose-400">
-              -${Math.abs(Number(fees)).toFixed(2)}
-            </span>
+          <div className="flex justify-between items-center bg-background/50 rounded-lg px-3 py-2">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Fees</span>
+            <span className="text-sm font-black text-rose-500 tabular-nums">-${Math.abs(Number(fees)).toFixed(2)}</span>
           </div>
         </div>
-        
+
       </CardContent>
     </Card>
   )

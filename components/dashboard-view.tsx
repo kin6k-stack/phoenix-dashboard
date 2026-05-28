@@ -101,7 +101,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
             color: "text-indigo-400", 
             glow: "shadow-[0_0_15px_rgba(99,102,241,0.1)]",
             delta: tradesDelta,
-            deltaColor: "text-slate-500"
+            deltaColor: "text-muted-foreground" // Task 1.3: Neutral gray, no color coding
           },
           { 
             label: "Avg Execution", 
@@ -113,13 +113,13 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
             deltaColor: avgDelta < 0 ? "text-rose-400" : "text-amber-400"
           }
         ].map((item, i) => (
-          <Card key={i} className={`border-slate-800 bg-[#070b12]/60 backdrop-blur-md ${item.glow} hover:border-slate-700 transition-colors`}>
+          <Card key={i} className={`border-border/40 bg-card/60 shadow-lg backdrop-blur-md ${item.glow} hover:bg-card/70 transition-colors`}>
             <CardContent className="p-5 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-2">
-                <div className="p-1.5 rounded-lg bg-[#03050a] border border-slate-800">
+                <div className="p-1.5 rounded-lg bg-background/50 border border-border/50">
                   <item.icon size={14} className={item.color} />
                 </div>
-                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">{item.label}</p>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{item.label}</p>
               </div>
               <div className="flex items-baseline gap-2">
                 <p className={`text-3xl font-black ${item.color} tracking-tighter drop-shadow-sm`}>{item.val}</p>
@@ -135,14 +135,16 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
 
       {/* Main Charts */}
       <div className="grid lg:grid-cols-3 gap-5">
-        <Card className="lg:col-span-2 p-5 border-slate-800 bg-[#070b12]/60 backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.4)]">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-sm font-black flex items-center gap-2 uppercase tracking-widest text-slate-300">
-              <TrendingUp size={16} className="text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]"/> System Equity Curve
-            </h3>
-            <span className="text-[10px] font-mono font-bold text-slate-500 bg-[#03050a] px-2 py-1 rounded border border-slate-800">Base: $200.00</span>
-          </div>
-          <div className="h-[220px]">
+        <Card className="lg:col-span-2 p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md">
+          <h3 className="text-sm font-black flex items-center gap-2 uppercase tracking-widest text-foreground mb-4">
+            <TrendingUp size={16} className="text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]"/> System Equity Curve
+          </h3>
+          <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/20 bg-background/30">
+              <span className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase">Cumulative P&L</span>
+              <span className="text-[10px] font-mono font-bold text-muted-foreground bg-background/50 px-2 py-0.5 rounded border border-border/50">Base: $200.00</span>
+            </div>
+            <div className="h-[200px] px-2 pt-2 pb-1">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={equityData} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                 <defs>
@@ -162,11 +164,12 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                 <Area type="monotone" dataKey="value" stroke="#34d399" strokeWidth={3} fill="url(#colorValue)" />
               </AreaChart>
             </ResponsiveContainer>
-          </div>
+            </div>{/* /inner padding */}
+          </div>{/* /chart container */}
         </Card>
 
-        <Card className="p-5 border-slate-800 bg-[#070b12]/60 backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.4)] flex flex-col">
-          <h3 className="text-sm font-black mb-2 flex items-center gap-2 uppercase tracking-widest text-slate-300">
+        <Card className="p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md flex flex-col">
+          <h3 className="text-sm font-black mb-2 flex items-center gap-2 uppercase tracking-widest text-foreground">
             <Target size={16} className="text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]"/> Distribution
           </h3>
           <div className="flex-1 min-h-[220px] relative">
@@ -193,8 +196,8 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-black text-slate-200 drop-shadow-md">{trades.length}</span>
-              <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">Signals</span>
+              <span className="text-2xl font-black text-foreground drop-shadow-md">{trades.length}</span>
+              <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Signals</span>
             </div>
           </div>
         </Card>
@@ -202,37 +205,42 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
 
       {/* Bottom Compact Row */}
       <div className="grid lg:grid-cols-2 gap-5">
-        <Card className="p-5 border-slate-800 bg-[#070b12]/60 backdrop-blur-md shadow-[0_0_15px_rgba(0,0,0,0.3)]">
-          <h3 className="text-sm font-black mb-4 flex items-center gap-2 uppercase tracking-widest text-slate-300">
+        <Card className="p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md">
+          <h3 className="text-sm font-black mb-4 flex items-center gap-2 uppercase tracking-widest text-foreground">
             <BarChart3 size={16} className="text-indigo-400 drop-shadow-[0_0_5px_rgba(129,140,248,0.5)]"/> Weekly P&L
           </h3>
-          <div className="h-[160px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#666', fontWeight: 'bold'}} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#666', fontWeight: 'bold'}} />
-                <Tooltip 
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, "P&L"]}
-                  cursor={{fill: '#333', opacity: 0.2}} 
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#fff' }} 
-                />
-                <Bar dataKey="pnl" fill="#818cf8" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
+            <div className="flex items-center px-4 py-2 border-b border-border/20 bg-background/30">
+              <span className="text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase">P&L per week</span>
+            </div>
+            <div className="h-[130px] px-2 pt-2 pb-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#666', fontWeight: 'bold'}} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#666', fontWeight: 'bold'}} />
+                  <Tooltip
+                    formatter={(value: number) => [`$${value.toFixed(2)}`, "P&L"]}
+                    cursor={{fill: '#333', opacity: 0.2}}
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#fff' }}
+                  />
+                  <Bar dataKey="pnl" fill="#818cf8" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </Card>
 
-        <Card className="p-5 border-slate-800 bg-[#070b12]/60 backdrop-blur-md shadow-[0_0_15px_rgba(0,0,0,0.3)] flex flex-col">
-          <h3 className="text-sm font-black mb-4 flex items-center gap-2 uppercase tracking-widest text-slate-300">
+        <Card className="p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md flex flex-col">
+          <h3 className="text-sm font-black mb-4 flex items-center gap-2 uppercase tracking-widest text-foreground">
             <Activity size={16} className="text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.5)]"/> Recent Activity
           </h3>
           <div className="flex-1 overflow-auto pr-2 space-y-2.5 custom-scrollbar max-h-[160px]">
-            {trades.length === 0 ? <p className="text-xs text-slate-500 italic mt-4 text-center">No recent signals.</p> : trades.slice(0, 5).map((t, i) => (
-              <div key={i} className="flex justify-between items-center p-2.5 rounded-lg bg-[#03050a] border border-slate-800 hover:border-slate-700 transition-colors">
+            {trades.length === 0 ? <p className="text-xs text-muted-foreground italic mt-4 text-center">No recent signals.</p> : trades.slice(0, 5).map((t, i) => (
+              <div key={i} className="flex justify-between items-center p-2.5 rounded-lg bg-background/40 border border-border/30 hover:border-border/60 transition-colors">
                 <div className="flex flex-col">
-                  <span className="text-[11px] font-black tracking-widest text-slate-200">{t.symbol}</span>
-                  <span className="text-[9px] text-slate-500 uppercase font-bold">{t.setup}</span>
+                  <span className="text-[11px] font-black tracking-widest">{t.symbol}</span>
+                  <span className="text-[9px] text-muted-foreground uppercase font-bold">{t.setup}</span>
                 </div>
                 <span className={`text-[13px] font-black tabular-nums ${t.rMultiple >= 0 ? "text-emerald-400 drop-shadow-[0_0_4px_rgba(52,211,153,0.3)]" : "text-rose-400 drop-shadow-[0_0_4px_rgba(251,113,133,0.3)]"}`}>
                   {t.rMultiple >= 0 ? "+" : ""}${Number(t.rMultiple).toFixed(2)}
