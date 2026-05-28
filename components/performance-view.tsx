@@ -90,18 +90,18 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
   const [selectedBot,  setSelectedBot]  = useState<string | null>(null)
 
   // Build engine → trades map.  Always include Manual Entry.
-  const engines: Record<string, Trade[]> = { "Manual Entry": [] }
+  const engines: Record<string, Trade[]> = { "Manual Execution": [] }
   trades.forEach(t => {
-    const name = t.setup || "Manual Entry"
+    const name = t.setup || "Manual Execution"
     if (!engines[name]) engines[name] = []
     if (t.setup) engines[name].push(t)
-    else         engines["Manual Entry"].push(t)
+    else         engines["Manual Execution"].push(t)
   })
 
   const filteredEngines = Object.entries(engines).filter(([name]) => {
     const n = name.toUpperCase()
-    if (filterMode === "BOT")    return n !== "MANUAL ENTRY"
-    if (filterMode === "MANUAL") return n === "MANUAL ENTRY"
+    if (filterMode === "BOT")    return !n.includes("MANUAL")
+    if (filterMode === "MANUAL") return n.includes("MANUAL")
     return true
   })
 
@@ -270,7 +270,7 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
               [...botTrades]
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                 .map((t, i) => {
-                  const styles = getEngineStyles(t.setup || "Manual Entry")
+                  const styles = getEngineStyles(t.setup || "Manual Execution")
                   const isBuy  = (t.direction || "BUY").toUpperCase() === "BUY"
                   return (
                     <div key={i} className="flex justify-between items-center p-3 rounded-lg bg-background/40 border border-border/30 hover:border-border/60 transition-colors">
