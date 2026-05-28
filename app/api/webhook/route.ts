@@ -1,59 +1,80 @@
 import { NextResponse } from 'next/server';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
+
+// Prevent initializing duplicate Firebase instances across serverless edge cold starts
+const firebaseAdminConfig = {
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+  // Automatically sanitize newline characters from Vercel's env config dashboard
+  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+};
+
+if (!getApps().length) {
+  initializeApp({
+    credential: cert(firebaseAdminConfig),
+  });
+}
+
+const db = getFirestore();
 
 export async function POST(request: Request) {
-    try {
-        const data = await request.json();
+  try {
+    // 1. Security Gatekeeper Check
+    const apiKey = request.headers.get('x-api-key');
+    const secureKey = process.env.BOT_API_KEY || "Kin6kizan4@";
 
-        // 1. Security Check
-        if (data.apiKey !== process.env.BOT_API_KEY) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
-
-        // 2. Format the payload securely
-        const profitValue = parseFloat(data.profit) || 0;
-        const typeString = data.type === 0 ? "BUY" : "SELL";
-
-        // 3. REST Payload Definition for Firestore REST API
-        // This maps the data directly into Firestore's native document format
-        const firestorePayload = {
-            fields: {
-                symbol: { stringValue: data.symbol || "UNKNOWN" },
-                profit: { doubleValue: profitValue },
-                type: { stringValue: typeString },
-                bot: { stringValue: data.bot || "MT5 EA" },
-                timestamp: { timestampValue: new Date().toISOString() },
-                source: { stringValue: "MT5 REST Engine" }
-            }
-        };
-
-        // 4. Fire direct HTTPS POST to the Firestore endpoint
-        // Bypasses the client library, eliminating gRPC stream hangs
-        const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "tradingecosystem-f6a4c";
-        const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/trades`;
-
-        const response = await fetch(firestoreUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(firestorePayload)
-        });
-
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error("Firestore REST API returned error:", errText);
-            // Return a 200 code to MT5 so the terminal doesn't crash or freeze
-            return NextResponse.json({ success: false, warning: "REST write fallback activated" }, { status: 200 });
-        }
-
-        const resData = await response.json();
-        console.log("Firestore REST Write Successful. Doc ID:", resData.name.split('/').pop());
-
-        return NextResponse.json({ success: true }, { status: 200 });
-
-    } catch (error) {
-        console.error("WEBHOOK CATCH ERROR:", error);
-        // Direct safety response to keep the MT5 terminal processing ticks smoothly
-        return NextResponse.json({ error: 'Payload received, processing delayed' }, { status: 200 });
+    if (!apiKey || apiKey !== secureKey) {
+      console.warn(`🛑 [SECURITY ALERT] Unauthorized telemetry attempt rejected from IP.`);
+      return NextResponse.json({ error: 'Unauthorized gateway handshake denied.' }, { status: 401 });
     }
+
+    // 2. Parse Payload Stream
+    const body = await request.json();
+    const { ticket, symbol, profit, side, bot, status, timestamp } = body;
+
+    // Rigid structural validation barrier
+    if (!ticket || !symbol || !bot || !status) {
+      return NextResponse.json({ error: 'Malformed telemetry payload layout rejected.' }, { status: 400 });
+    }
+
+    console.log(`📡 [INCOMING PIPELINE] Processing ${bot} | Ticket #${ticket} | Status: ${status}`);
+
+    // 3. Structural Routing Matrix (Unifying Trade Lifecycles)
+    const tradeRef = db.collection('trades').doc(String(ticket));
+
+    if (status === "OPENED") {
+      // Create or overwrite entry state
+      await tradeRef.set({
+        ticket: String(ticket),
+        symbol: String(symbol),
+        openSide: Number(side), // 0 = BUY, 1 = SELL (Standard MT5 convention)
+        botName: String(bot),
+        status: "OPENED",
+        openProfit: 0.00,
+        netProfit: 0.00,
+        openTimestamp: String(timestamp),
+        closedTimestamp: null,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    } 
+    else if (status === "CLOSED") {
+      // Update state dynamically to protect lookbacks and populate performance tiles
+      await tradeRef.set({
+        ticket: String(ticket),
+        symbol: String(symbol),
+        botName: String(bot),
+        status: "CLOSED",
+        netProfit: Number(profit), // Includes commission + swap modifications handled by MT5 engine
+        closedTimestamp: String(timestamp),
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+    }
+
+    return NextResponse.json({ success: true, message: `Ticket ${ticket} successfully synced.` }, { status: 200 });
+
+  } catch (error: any) {
+    console.error('❌ [CRITICAL PIPELINE EXCEPTION]:', error);
+    return NextResponse.json({ error: 'Internal serverless data pipeline break.', details: error.message }, { status: 500 });
+  }
 }
