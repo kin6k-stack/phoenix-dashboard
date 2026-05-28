@@ -1,10 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore"
+import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
 import { db } from "../lib/firebase" 
-
-// --- Re-instating Your Custom Component Workspace Mapping Core ---
 import { Sidebar } from "@/components/sidebar"
 import { TradingCalendar } from "@/components/trading-calendar"
 import { SlimMonthlyPerformance } from "@/components/slim-monthly-performance"
@@ -18,7 +16,6 @@ import { DashboardView } from "@/components/dashboard-view"
 import { SignalHistoryView } from "@/components/signal-history" 
 import { EconomicCalendar } from "@/components/economic-calendar"
 
-// Comprehensive Trade signature supporting both manual ledger logs and algo stream packets
 interface Trade {
   id: string
   date: string
@@ -27,16 +24,15 @@ interface Trade {
   rMultiple: number
   direction: string
   notes: string
-  screenshot?: string
-  // Automated Live Telemetry Properties
+  screenshot?: string 
   ticket?: string
   botName?: string
   status?: 'OPENED' | 'CLOSED'
   netProfit?: number
   openSide?: number
-  openTimestamp?: string;
-  closedTimestamp?: string;
-  updatedAt?: string;
+  openTimestamp?: string
+  closedTimestamp?: string
+  updatedAt?: string
 }
 
 export default function TradingDashboard() {
@@ -48,7 +44,6 @@ export default function TradingDashboard() {
 
   // Safe Real-time onSnapshot Synchronization Pipeline
   useEffect(() => {
-    // Queries the historical timeline block descending order
     const tradesQuery = query(collection(db, "trades"), orderBy("updatedAt", "desc"));
     
     const unsubscribe = onSnapshot(tradesQuery, (snapshot) => {
@@ -56,8 +51,7 @@ export default function TradingDashboard() {
         const data = doc.data();
         return {
           id: doc.id,
-          // Support manual historical date fallbacks if openTimestamp is undefined
-          date: data.openTimestamp || data.date || new Date().toISOString().split('T')[0],
+          date: data.date || (data.openTimestamp ? data.openTimestamp.split(' ')[0] : new Date().toISOString().split('T')[0]),
           symbol: data.symbol || "",
           setup: data.setup || data.botName || "Manual Execution",
           rMultiple: Number(data.rMultiple || 0),
@@ -75,7 +69,39 @@ export default function TradingDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // --- RESTORED ROUTING WINDOW CONTEXT CONTROL ---
+  // CRUD Operations Handlers
+  const handleAddTrade = async (tradeData: Omit<Trade, "id">) => {
+    try {
+      await addDoc(collection(db, "trades"), {
+        ...tradeData,
+        updatedAt: new Date().toISOString(),
+      })
+    } catch (error) {
+      console.error("Error adding trade: ", error)
+    }
+  }
+
+  const handleUpdateTrade = async (id: string, tradeData: Partial<Trade>) => {
+    try {
+      const tradeRef = doc(db, "trades", id)
+      await updateDoc(tradeRef, {
+        ...tradeData,
+        updatedAt: new Date().toISOString(),
+      })
+    } catch (error) {
+      console.error("Error updating trade: ", error)
+    }
+  }
+
+  const handleDeleteTrade = async (id: string) => {
+    try {
+      const tradeRef = doc(db, "trades", id)
+      await deleteDoc(tradeRef)
+    } catch (error) {
+      console.error("Error deleting trade: ", error)
+    }
+  }
+
   const renderContent = () => {
     switch (activeNavItem) {
       case "dashboard":
@@ -104,6 +130,7 @@ export default function TradingDashboard() {
                   setEditingTrade(trade);
                   setIsAddTradeOpen(true);
                 }}
+                onDeleteTrade={handleDeleteTrade}
               />
             </div>
           </div>
@@ -133,24 +160,16 @@ export default function TradingDashboard() {
         )
         
       default: 
-        return (
-          <div className="flex-1 p-4 md:p-8 overflow-auto text-muted-foreground text-sm italic font-mono">
-            Section coming soon.
-          </div>
-        )
+        return <div className="flex-1 p-4 md:p-8 overflow-auto text-muted-foreground text-sm italic font-mono">Section coming soon.</div>
     }
   }
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#030712] via-[#090c11] to-black overflow-hidden font-sans">
-      {/* Retains your Sidebar navigation layout component block explicitly */}
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} />
-      
       <div className="flex-1 flex flex-col min-w-0 pt-14 md:pt-0 overflow-hidden">
         {renderContent()}
       </div>
-
-      {/* Unified modal panel interface drawer wrapper block */}
       <AddTradeDialog 
         open={isAddTradeOpen}
         onOpenChange={(open: boolean) => { 
@@ -159,6 +178,7 @@ export default function TradingDashboard() {
         }}
         selectedDate={selectedDate}
         editingTrade={editingTrade}
+        onSave={editingTrade ? (data) => handleUpdateTrade(editingTrade.id, data) : handleAddTrade}
       />
     </div>
   )
