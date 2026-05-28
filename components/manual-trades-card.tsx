@@ -21,43 +21,43 @@ export function ManualTradesCard({ trades, onAddTrade, onEditTrade, onDeleteTrad
   const currentLogs = trades.slice(0, 20);
 
   return (
-    <div className="bg-card border border-border rounded-xl p-5 flex flex-col shadow-sm max-h-[380px]">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Historical Logs</h3>
-        <button 
+    <div className="bg-[#070b12]/60 border border-slate-800 rounded-xl flex flex-col shadow-xl max-h-[380px] overflow-hidden">
+      <div className="flex items-center justify-between p-4 bg-[#03050a] border-b border-slate-900">
+        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Historical Logs</h3>
+        <button
           onClick={onAddTrade}
-          className="bg-primary/10 hover:bg-primary/20 text-primary p-1.5 rounded-md transition-colors"
+          className="bg-green-500/10 hover:bg-green-500/20 text-green-400 border border-green-500/30 p-1.5 rounded-md transition-colors"
         >
           <Plus size={16} />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
         {currentLogs.length === 0 ? (
-          <p className="text-xs text-muted-foreground italic text-center mt-6">Database currently clear.</p>
+          <p className="text-[10px] text-slate-600 italic font-mono text-center mt-6">Database currently clear.</p>
         ) : (
           currentLogs.map((trade) => (
-            <div 
-              key={trade.id} 
+            <div
+              key={trade.id}
               onClick={() => onEditTrade(trade)}
-              className="flex items-center justify-between p-3 rounded-lg bg-background border border-border group hover:border-primary/40 transition-all cursor-pointer"
+              className="flex items-center justify-between p-3 rounded-lg bg-[#03050a] border border-slate-800 group hover:border-slate-600 transition-all cursor-pointer"
             >
               <div className="flex flex-col">
-                <span className="text-xs font-bold text-foreground tracking-tight">
-                  {trade.symbol} <span className="text-muted-foreground font-normal ml-1">| {trade.setup}</span>
+                <span className="text-[11px] font-black text-slate-200 tracking-widest">
+                  {trade.symbol} <span className="text-slate-500 font-normal ml-1">| {trade.setup}</span>
                 </span>
-                <span className="text-[10px] text-muted-foreground">{new Date(trade.date).toLocaleDateString()}</span>
+                <span className="text-[9px] text-slate-600 font-mono">{new Date(trade.date).toLocaleDateString()}</span>
               </div>
               <div className="flex items-center gap-3">
-                <span className={`text-sm font-bold tracking-tight ${trade.rMultiple >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
+                <span className={`text-sm font-black font-mono tabular-nums ${trade.rMultiple >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                   {trade.rMultiple >= 0 ? "+" : ""}${trade.rMultiple.toFixed(2)}
                 </span>
-                <button 
+                <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevents triggering the edit dialog when clicking delete
+                    e.stopPropagation();
                     onDeleteTrade(trade.id);
                   }}
-                  className="text-muted-foreground hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 p-0.5 rounded"
+                  className="text-slate-600 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100 p-0.5 rounded"
                 >
                   <Trash2 size={14} />
                 </button>

@@ -1,65 +1,59 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import { collection, addDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
-export async function POST(request: Request) {
-    try {
-        const data = await request.json();
+const API_KEY = process.env.WEBHOOK_API_KEY ?? 'Kin6kizan4@'
 
-        // ──────────────────────────────────────────────────────────────────
-        // 1. API Key authentication  (matches the MQL5 bots' payload format)
-        //    Bots send: { "apiKey": "...", "symbol": "...", "profit": ..., "type": 0/1, "bot": "..." }
-        // ──────────────────────────────────────────────────────────────────
-        if (data.apiKey !== process.env.BOT_API_KEY) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-        }
+export async function POST(request: NextRequest) {
+  const apiKey = request.headers.get('x-api-key')
+  if (apiKey !== API_KEY) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
-        // ──────────────────────────────────────────────────────────────────
-        // 2. Normalize the incoming payload
-        // ──────────────────────────────────────────────────────────────────
-        const profitValue = parseFloat(data.profit) || 0;
-        const typeString  = data.type === 0 ? "BUY" : "SELL";
-        const botName     = data.bot || "Manual Execution";
-        const symbol      = data.symbol || "UNKNOWN";
+  let body: {
+    ticket?: string | number
+    symbol?: string
+    profit?: number
+    side?: number
+    bot?: string
+    status?: string
+    timestamp?: string
+  }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+  }
 
-        // ──────────────────────────────────────────────────────────────────
-        // 3. Write to Firestore via the REST API
-        //    This is the ORIGINAL approach that bypasses gRPC stream hangs
-        //    and does NOT require a Firebase Admin Service Account.
-        // ──────────────────────────────────────────────────────────────────
-        const firestorePayload = {
-            fields: {
-                symbol:    { stringValue:    symbol },
-                profit:    { doubleValue:    profitValue },
-                type:      { stringValue:    typeString },
-                bot:       { stringValue:    botName },
-                timestamp: { timestampValue: new Date().toISOString() },
-                source:    { stringValue:    "MT5 REST Engine" },
-            },
-        };
+  const { ticket, symbol, profit, side, bot, status, timestamp } = body
 
-        const projectId  = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "tradingecosystem-f6a4c";
-        const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/trades`;
+  // Skip entry events — they carry zero profit and would pollute the ledger
+  if (status === 'OPENED') {
+    return NextResponse.json({ ok: true, skipped: 'entry event' }, { status: 200 })
+  }
 
-        const response = await fetch(firestoreUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(firestorePayload),
-        });
+  if (!symbol) {
+    return NextResponse.json({ error: 'Missing required field: symbol' }, { status: 400 })
+  }
 
-        if (!response.ok) {
-            const errText = await response.text();
-            console.error("Firestore REST API error:", errText);
-            // Still return 200 so MT5 terminal doesn't hang or crash
-            return NextResponse.json({ success: false, warning: "REST write fallback activated" }, { status: 200 });
-        }
+  // MT5 DEAL_TYPE: 0 = BUY, 1 = SELL
+  const direction = Number(side) === 0 ? 'BUY' : 'SELL'
 
-        const resData = await response.json();
-        console.log("✅ Firestore Write OK — Doc:", resData.name?.split('/').pop());
+  try {
+    await addDoc(collection(db, 'trades'), {
+      ticket: String(ticket ?? ''),
+      symbol: String(symbol).toUpperCase(),
+      profit: Number(profit ?? 0),
+      direction,
+      bot: String(bot ?? 'Unknown'),
+      timestamp: timestamp ? new Date(timestamp) : new Date(),
+      notes: `Webhook auto-log · Ticket ${ticket ?? 'N/A'}`,
+      screenshot: '',
+    })
 
-        return NextResponse.json({ success: true }, { status: 200 });
-
-    } catch (error) {
-        console.error("WEBHOOK CATCH ERROR:", error);
-        // Safety: always return 200 to keep MT5 terminal stable
-        return NextResponse.json({ error: 'Payload received, processing delayed' }, { status: 200 });
-    }
+    return NextResponse.json({ ok: true }, { status: 201 })
+  } catch (err) {
+    console.error('[webhook] Firestore write failed:', err)
+    return NextResponse.json({ error: 'Database write failed' }, { status: 500 })
+  }
 }

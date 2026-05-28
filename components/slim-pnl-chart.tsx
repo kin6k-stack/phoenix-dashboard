@@ -47,9 +47,9 @@ export function SlimPnLChart({ trades = [] }: SlimPnLChartProps) {
   const fallbackWaveData = waveData.length > 0 ? waveData : [{ index: 0, pnl: 0, symbol: "Base", date: "Start" }];
 
   return (
-    <Card className="border-border bg-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+    <Card className="border-slate-800 bg-[#070b12]/60">
+      <CardHeader className="pb-2 bg-[#03050a] rounded-t-xl border-b border-slate-900">
+        <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
           {dailyTrades.length > 0 ? "Net Daily P&L Tracker" : "Net Total P&L Tracker"}
         </CardTitle>
       </CardHeader>
