@@ -2,30 +2,38 @@ import { NextResponse } from 'next/server';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
-// Prevent initializing duplicate Firebase instances across serverless edge cold starts
-const firebaseAdminConfig = {
-  projectId: process.env.FIREBASE_PROJECT_ID,
-  clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-  // Automatically sanitize newline characters from Vercel's env config dashboard
-  privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-};
+// Explicitly instruct Next.js compiler to bypass static pre-generation optimizations for this telemetry node
+export const dynamic = 'force-dynamic';
 
-if (!getApps().length) {
-  initializeApp({
-    credential: cert(firebaseAdminConfig),
-  });
+function initFirebaseAdmin() {
+  if (getApps().length === 0) {
+    // High-Availability Fallback: Check both private and public environment variables to eliminate naming discrepancies
+    const projectId = process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
+
+    if (!projectId || !clientEmail || !privateKey) {
+      throw new Error('CRITICAL CONFIG ERROR: Firebase Admin environment variables are missing or incorrectly configured in the Vercel console.');
+    }
+
+    initializeApp({
+      credential: cert({ projectId, clientEmail, privateKey }),
+    });
+  }
+  return getFirestore();
 }
-
-const db = getFirestore();
 
 export async function POST(request: Request) {
   try {
+    // Lazy-initialize connection precisely inside execution space to shield Next.js static build checks
+    const db = initFirebaseAdmin();
+
     // 1. Security Gatekeeper Check
     const apiKey = request.headers.get('x-api-key');
     const secureKey = process.env.BOT_API_KEY || "Kin6kizan4@";
 
     if (!apiKey || apiKey !== secureKey) {
-      console.warn(`🛑 [SECURITY ALERT] Unauthorized telemetry attempt rejected from IP.`);
+      console.warn(`🛑 [SECURITY ALERT] Unauthorized telemetry attempt rejected.`);
       return NextResponse.json({ error: 'Unauthorized gateway handshake denied.' }, { status: 401 });
     }
 
@@ -44,7 +52,6 @@ export async function POST(request: Request) {
     const tradeRef = db.collection('trades').doc(String(ticket));
 
     if (status === "OPENED") {
-      // Create or overwrite entry state
       await tradeRef.set({
         ticket: String(ticket),
         symbol: String(symbol),
@@ -59,7 +66,6 @@ export async function POST(request: Request) {
       }, { merge: true });
     } 
     else if (status === "CLOSED") {
-      // Update state dynamically to protect lookbacks and populate performance tiles
       await tradeRef.set({
         ticket: String(ticket),
         symbol: String(symbol),
