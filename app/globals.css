@@ -1,0 +1,178 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── Phoenix Trading Dashboard — Design System ──────────────────────────────
+   Reference: tradex-ten.vercel.app
+   Primary accent : #5fc77a  → oklch(0.72 0.14 143)
+   Background     : #0d0f14  → oklch(0.10 0.008 265)
+   Surface        : #141720  → oklch(0.13 0.010 265)
+   Input          : #1a1f2e  → oklch(0.17 0.015 265)
+   Border         : #1e2232  → oklch(0.20 0.015 265)
+─────────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --background:            oklch(0.10 0.008 265);
+  --foreground:            oklch(0.93 0.004 250);
+
+  --card:                  oklch(0.13 0.010 265);
+  --card-foreground:       oklch(0.93 0.004 250);
+
+  --popover:               oklch(0.13 0.010 265);
+  --popover-foreground:    oklch(0.93 0.004 250);
+
+  /* Phoenix Green — #5fc77a */
+  --primary:               oklch(0.72 0.14 143);
+  --primary-foreground:    oklch(0.10 0.008 265);
+
+  --secondary:             oklch(0.20 0.015 265);
+  --secondary-foreground:  oklch(0.93 0.004 250);
+
+  --muted:                 oklch(0.17 0.012 265);
+  --muted-foreground:      oklch(0.52 0.012 250);
+
+  --accent:                oklch(0.72 0.14 143);
+  --accent-foreground:     oklch(0.10 0.008 265);
+
+  --destructive:           oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.95 0 0);
+
+  --border:                oklch(0.20 0.015 265);
+  --input:                 oklch(0.17 0.015 265);
+  --ring:                  oklch(0.72 0.14 143);
+
+  /* Charts */
+  --chart-1:               oklch(0.72 0.14 143);    /* green  */
+  --chart-2:               oklch(0.62 0.22 25);     /* red    */
+  --chart-3:               oklch(0.68 0.14 250);    /* blue   */
+  --chart-4:               oklch(0.78 0.14 85);     /* amber  */
+  --chart-5:               oklch(0.68 0.18 300);    /* violet */
+
+  /* Radius */
+  --radius: 0.5rem;
+
+  /* Sidebar */
+  --sidebar:                    oklch(0.11 0.009 265);
+  --sidebar-foreground:         oklch(0.93 0.004 250);
+  --sidebar-primary:            oklch(0.72 0.14 143);
+  --sidebar-primary-foreground: oklch(0.10 0.008 265);
+  --sidebar-accent:             oklch(0.17 0.012 265);
+  --sidebar-accent-foreground:  oklch(0.93 0.004 250);
+  --sidebar-border:             oklch(0.20 0.015 265);
+  --sidebar-ring:               oklch(0.72 0.14 143);
+
+  /* Status */
+  --success:             oklch(0.72 0.14 143);
+  --success-foreground:  oklch(0.10 0.008 265);
+  --warning:             oklch(0.78 0.14 85);
+  --warning-foreground:  oklch(0.10 0.008 265);
+
+  /* Raw color tokens for arbitrary use */
+  --phoenix-green:         #5fc77a;
+  --phoenix-green-dim:     rgba(95, 199, 122, 0.10);
+  --phoenix-green-border:  rgba(95, 199, 122, 0.22);
+  --phoenix-red-dim:       rgba(239, 68, 68, 0.10);
+  --phoenix-bg:            #0d0f14;
+  --phoenix-surface:       #141720;
+  --phoenix-surface-2:     #1a1f2e;
+  --phoenix-border:        #1e2232;
+}
+
+/* ── Tailwind v4 color mapping ─────────────────────────────────────────────── */
+@theme inline {
+  --color-background:              var(--background);
+  --color-foreground:              var(--foreground);
+  --color-card:                    var(--card);
+  --color-card-foreground:         var(--card-foreground);
+  --color-popover:                 var(--popover);
+  --color-popover-foreground:      var(--popover-foreground);
+  --color-primary:                 var(--primary);
+  --color-primary-foreground:      var(--primary-foreground);
+  --color-secondary:               var(--secondary);
+  --color-secondary-foreground:    var(--secondary-foreground);
+  --color-muted:                   var(--muted);
+  --color-muted-foreground:        var(--muted-foreground);
+  --color-accent:                  var(--accent);
+  --color-accent-foreground:       var(--accent-foreground);
+  --color-destructive:             var(--destructive);
+  --color-destructive-foreground:  var(--destructive-foreground);
+  --color-border:                  var(--border);
+  --color-input:                   var(--input);
+  --color-ring:                    var(--ring);
+  --color-chart-1:                 var(--chart-1);
+  --color-chart-2:                 var(--chart-2);
+  --color-chart-3:                 var(--chart-3);
+  --color-chart-4:                 var(--chart-4);
+  --color-chart-5:                 var(--chart-5);
+  --color-success:                 var(--success);
+  --color-success-foreground:      var(--success-foreground);
+  --color-warning:                 var(--warning);
+  --color-warning-foreground:      var(--warning-foreground);
+  --color-sidebar:                 var(--sidebar);
+  --color-sidebar-foreground:      var(--sidebar-foreground);
+  --color-sidebar-primary:         var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent:          var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border:          var(--sidebar-border);
+  --color-sidebar-ring:            var(--sidebar-ring);
+  --radius-sm:  calc(var(--radius) - 4px);
+  --radius-md:  calc(var(--radius) - 2px);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) + 4px);
+}
+
+/* ── Base ──────────────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  /* Scrollbar */
+  ::-webkit-scrollbar               { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track         { background: transparent; }
+  ::-webkit-scrollbar-thumb         { background: oklch(0.25 0.015 265); border-radius: 2px; }
+  ::-webkit-scrollbar-thumb:hover   { background: oklch(0.35 0.015 265); }
+}
+
+/* ── Login page floating particles ─────────────────────────────────────────── */
+@keyframes float-particle {
+  0%   { transform: translateY(0px)   scale(1);    opacity: 0.3; }
+  50%  { transform: translateY(-18px) scale(1.15); opacity: 0.7; }
+  100% { transform: translateY(0px)   scale(1);    opacity: 0.3; }
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: var(--phoenix-green);
+  animation: float-particle linear infinite;
+  pointer-events: none;
+}
+
+/* ── Sidebar transition ─────────────────────────────────────────────────────── */
+.sidebar-transition {
+  transition: width 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+/* ── Conviction arc (market bias) ───────────────────────────────────────────── */
+@keyframes dash-fill {
+  from { stroke-dashoffset: 220; }
+  to   { stroke-dashoffset: var(--target-offset); }
+}
+.conviction-arc {
+  animation: dash-fill 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ── Freshness bar pulse ────────────────────────────────────────────────────── */
+@keyframes shrink-bar {
+  from { width: 100%; }
+  to   { width: 0%; }
+}
+.freshness-bar {
+  animation: shrink-bar var(--freshness-duration, 300s) linear forwards;
+}
