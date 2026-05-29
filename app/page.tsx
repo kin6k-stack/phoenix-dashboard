@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
-import { PnLHeader } from "@/components/pnl-header"
-import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "@/components/sidebar"
@@ -20,6 +18,8 @@ import { DashboardView } from "@/components/dashboard-view"
 import { SignalHistoryView } from "@/components/signal-history"
 import { EconomicCalendar } from "@/components/economic-calendar"
 import { MarketBiasView } from "@/components/market-bias-view"
+import { PnLHeader } from "@/components/pnl-header"
+import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
 
 interface Trade {
   id: string; date: string; symbol: string; setup: string
@@ -37,14 +37,14 @@ function normalizeBotName(raw: string | undefined | null): string {
   return raw.trim()
 }
 
-// ── Page-level layout shell ────────────────────────────────────────────────────
+// ── Page-level layout shell — mobile-friendly padding ─────────────────────
 function PageShell({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
-    <div className="flex-1 p-4 md:p-8 overflow-auto">
+    <div className="flex-1 p-3 sm:p-4 md:p-8 overflow-auto">
       <div className="max-w-6xl mx-auto space-y-4">
-        <div className="flex flex-col gap-1 mb-6">
-          <h1 className="text-xl md:text-2xl font-black text-foreground uppercase tracking-widest">{title}</h1>
-          <p className="text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-widest">{sub}</p>
+        <div className="flex flex-col gap-1 mb-4 sm:mb-6">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-black text-foreground uppercase tracking-widest">{title}</h1>
+          <p className="text-[9px] sm:text-[10px] md:text-xs text-muted-foreground font-medium uppercase tracking-widest">{sub}</p>
         </div>
         {children}
       </div>
@@ -153,54 +153,63 @@ export default function TradingDashboard() {
   const renderContent = () => {
     switch (activeNavItem) {
       case "dashboard":
-        return <div className="flex-1 overflow-auto"><DashboardView trades={trades} /></div>
+        return (
+          <div className="flex-1 overflow-auto">
+            <DashboardView trades={trades} />
+          </div>
+        )
 
+      // ─────────────────────────────────────────────────────────────────
+      // PNL CALENDAR — FIXED LAYOUT
+      // Was: nested flex caused YearlyPerformance to overlap NetDailyP&L
+      // Now: clean vertical stack with proper sizing
+      // ─────────────────────────────────────────────────────────────────
       case "pnl-calendar":
         return (
-          <div className="flex flex-col flex-1 overflow-y-auto h-full w-full">
-            {/* Header */}
-            <div className="px-4 md:px-8 pt-4">
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4">
+
+              {/* Header */}
               <PnLHeader
                 totalTrades={totalTrades}
                 onLogTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
               />
-            </div>
 
-            {/* Main layout: calendar (left) + slim panels (right) */}
-            <div className="flex flex-col lg:flex-row flex-1 min-h-0 px-4 md:px-8">
-              <div className="flex-1 lg:pr-4">
-                <div className="bg-card/90 rounded-xl border border-border/40 p-4 md:p-6 shadow-2xl">
-                  <TradingCalendar
-                    selectedDate={selectedDate}
-                    onDateSelect={setSelectedDate}
-                    tradeDates={tradeDates}
-                    trades={filteredTrades}
-                    totalTrades={totalTrades}
-                    wins={wins}
-                    netPnL={netPnL}
-                    winRate={winRate}
-                    onMonthYearChange={setCurrentMonthYear}
-                  />
+              {/* Calendar + slim panels — stacks on mobile, side-by-side on lg+ */}
+              <div className="flex flex-col lg:flex-row gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="bg-card/90 rounded-xl border border-border/40 p-3 sm:p-4 md:p-6 shadow-2xl">
+                    <TradingCalendar
+                      selectedDate={selectedDate}
+                      onDateSelect={setSelectedDate}
+                      tradeDates={tradeDates}
+                      trades={filteredTrades}
+                      totalTrades={totalTrades}
+                      wins={wins}
+                      netPnL={netPnL}
+                      winRate={winRate}
+                      onMonthYearChange={setCurrentMonthYear}
+                    />
+                  </div>
+                </div>
+
+                <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
+                  <SlimMonthlyPerformance
+                    winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
+                    netPnL={netPnL} fees={0} />
+                  <SlimPnLChart trades={filteredTrades} />
+                  <SlimJournal
+                    entriesThisMonth={filteredTrades.length}
+                    screenshots={filteredTrades.filter(t => t.screenshot).length} />
+                  <ManualTradesCard
+                    trades={manualTradesList}
+                    onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
+                    onEditTrade={t => { setEditingTrade(t); setIsAddTradeOpen(true) }}
+                    onDeleteTrade={handleDeleteTrade} />
                 </div>
               </div>
-              <div className="w-full lg:w-80 mt-4 lg:mt-0 space-y-4">
-                <SlimMonthlyPerformance
-                  winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
-                  netPnL={netPnL} fees={0} />
-                <SlimPnLChart trades={filteredTrades} />
-                <SlimJournal
-                  entriesThisMonth={filteredTrades.length}
-                  screenshots={filteredTrades.filter(t => t.screenshot).length} />
-                <ManualTradesCard
-                  trades={manualTradesList}
-                  onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
-                  onEditTrade={t => { setEditingTrade(t); setIsAddTradeOpen(true) }}
-                  onDeleteTrade={handleDeleteTrade} />
-              </div>
-            </div>
 
-            {/* Yearly performance — full width bottom */}
-            <div className="px-4 md:px-8 pb-6 pt-4">
+              {/* Yearly performance — full width, NO overlap */}
               <YearlyPerformanceTable trades={trades} />
             </div>
           </div>
@@ -230,7 +239,7 @@ export default function TradingDashboard() {
       case "candle-analysis":
         return (
           <PageShell title="Candle Analysis" sub="Click any candle on the TradingView chart for context">
-            <div className="rounded-xl overflow-hidden border border-border/40" style={{ height: "calc(100vh - 180px)", minHeight: 500 }}>
+            <div className="rounded-xl overflow-hidden border border-border/40" style={{ height: "calc(100vh - 220px)", minHeight: 400 }}>
               <iframe
                 src="https://www.tradingview.com/widgetembed/?hidesidetoolbar=0&symbol=TVC:GOLD&interval=60&theme=dark&style=1&locale=en&allow_symbol_change=1&save_image=0&calendar=0&backgroundColor=%230d0f14&gridColor=rgba(255%2C255%2C255%2C0.03)"
                 style={{ width: "100%", height: "100%", border: "none" }}
@@ -265,7 +274,9 @@ export default function TradingDashboard() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden" style={{ background: "#0d0f14" }}>
+    // Mobile uses flex-col so sidebar (fixed top bar) renders above content
+    // Desktop uses flex-row with sidebar on left
+    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden" style={{ background: "#0d0f14" }}>
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} trades={trades} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {renderContent()}

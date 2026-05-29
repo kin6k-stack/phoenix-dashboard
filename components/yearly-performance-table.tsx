@@ -15,7 +15,6 @@ export function YearlyPerformanceTable({ trades = [] }: { trades: Trade[] }) {
   const currentYear = new Date().getFullYear()
   const [activeYear, setActiveYear] = useState(currentYear)
 
-  // ── Aggregate P&L per [year][month] ──────────────────────────────────
   const matrix = useMemo(() => {
     const m: Record<number, number[]> = {}
     for (const t of trades) {
@@ -28,12 +27,9 @@ export function YearlyPerformanceTable({ trades = [] }: { trades: Trade[] }) {
     return m
   }, [trades])
 
-  // ── Always show current year + the 3 before it ──────────────────────
   const yearsToShow = [currentYear - 1, currentYear].filter((y, i, arr) => arr.indexOf(y) === i)
-  // Year tabs always show last 4 years
   const yearTabs = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear]
 
-  // Format cell value
   const fmt = (n: number) => {
     if (n === 0) return "—"
     const sign = n < 0 ? "-" : "+"
@@ -48,20 +44,19 @@ export function YearlyPerformanceTable({ trades = [] }: { trades: Trade[] }) {
   return (
     <div className="bg-card/60 border border-border/40 rounded-xl shadow-lg overflow-hidden">
 
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/30">
+      {/* Header — wraps on mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-3 sm:px-4 py-3 border-b border-border/30 bg-background/30">
         <div className="flex items-center gap-2">
           <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
           <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">Yearly Performance</h3>
         </div>
 
-        {/* Year tabs */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 overflow-x-auto -mx-1 px-1">
           {yearTabs.map(y => (
             <button
               key={y}
               onClick={() => setActiveYear(y)}
-              className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all
+              className={`px-2.5 py-1.5 rounded text-[11px] font-bold transition-all min-h-[32px] flex-shrink-0
                 ${activeYear === y
                   ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
                   : "text-muted-foreground hover:text-foreground border border-transparent"
@@ -72,12 +67,12 @@ export function YearlyPerformanceTable({ trades = [] }: { trades: Trade[] }) {
         </div>
       </div>
 
-      {/* Table */}
+      {/* Table — scrolls horizontally on small screens */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left">
+        <table className="w-full text-left min-w-[700px]">
           <thead>
             <tr className="border-b border-border/20 text-[9px] uppercase tracking-widest text-muted-foreground">
-              <th className="px-4 py-2.5 font-bold w-16">Year</th>
+              <th className="px-3 sm:px-4 py-2.5 font-bold w-16 sticky left-0 bg-card/60 backdrop-blur-sm">Year</th>
               {MONTHS.map(m => (
                 <th key={m} className="px-2 py-2.5 font-bold text-center">{m}</th>
               ))}
@@ -90,7 +85,7 @@ export function YearlyPerformanceTable({ trades = [] }: { trades: Trade[] }) {
               const ytd = ytdFor(yr)
               return (
                 <tr key={yr} className="border-b border-border/10 hover:bg-white/[0.02] transition-colors">
-                  <td className="px-4 py-3 font-black text-sm text-foreground">{yr}</td>
+                  <td className="px-3 sm:px-4 py-3 font-black text-sm text-foreground sticky left-0 bg-card/60 backdrop-blur-sm">{yr}</td>
                   {row.map((val, i) => {
                     const isCurrent = yr === currentYear && i === new Date().getMonth()
                     return (
@@ -116,6 +111,11 @@ export function YearlyPerformanceTable({ trades = [] }: { trades: Trade[] }) {
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile scroll hint */}
+      <div className="sm:hidden px-3 py-1.5 border-t border-border/20 text-center">
+        <p className="text-[9px] text-muted-foreground/60 italic">← swipe to view all months →</p>
       </div>
     </div>
   )
