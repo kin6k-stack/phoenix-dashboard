@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
+import { PnLHeader } from "@/components/pnl-header"
+import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "@/components/sidebar"
@@ -155,25 +157,51 @@ export default function TradingDashboard() {
 
       case "pnl-calendar":
         return (
-          <div className="flex flex-col lg:flex-row flex-1 overflow-y-auto lg:overflow-hidden h-full w-full">
-            <div className="flex-1 p-4 md:p-8 overflow-visible lg:overflow-auto">
-              <div className="bg-card/90 rounded-xl border border-border/40 p-4 md:p-6 h-full shadow-2xl">
-                <TradingCalendar
-                  selectedDate={selectedDate} onDateSelect={setSelectedDate}
-                  tradeDates={tradeDates} trades={filteredTrades}
-                  totalTrades={totalTrades} wins={wins} netPnL={netPnL} winRate={winRate}
-                  onMonthYearChange={setCurrentMonthYear}
-                />
+          <div className="flex flex-col flex-1 overflow-y-auto h-full w-full">
+            {/* Header */}
+            <div className="px-4 md:px-8 pt-4">
+              <PnLHeader
+                totalTrades={totalTrades}
+                onLogTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
+              />
+            </div>
+
+            {/* Main layout: calendar (left) + slim panels (right) */}
+            <div className="flex flex-col lg:flex-row flex-1 min-h-0 px-4 md:px-8">
+              <div className="flex-1 lg:pr-4">
+                <div className="bg-card/90 rounded-xl border border-border/40 p-4 md:p-6 shadow-2xl">
+                  <TradingCalendar
+                    selectedDate={selectedDate}
+                    onDateSelect={setSelectedDate}
+                    tradeDates={tradeDates}
+                    trades={filteredTrades}
+                    totalTrades={totalTrades}
+                    wins={wins}
+                    netPnL={netPnL}
+                    winRate={winRate}
+                    onMonthYearChange={setCurrentMonthYear}
+                  />
+                </div>
+              </div>
+              <div className="w-full lg:w-80 mt-4 lg:mt-0 space-y-4">
+                <SlimMonthlyPerformance
+                  winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
+                  netPnL={netPnL} fees={0} />
+                <SlimPnLChart trades={filteredTrades} />
+                <SlimJournal
+                  entriesThisMonth={filteredTrades.length}
+                  screenshots={filteredTrades.filter(t => t.screenshot).length} />
+                <ManualTradesCard
+                  trades={manualTradesList}
+                  onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
+                  onEditTrade={t => { setEditingTrade(t); setIsAddTradeOpen(true) }}
+                  onDeleteTrade={handleDeleteTrade} />
               </div>
             </div>
-            <div className="w-full lg:w-80 border-t lg:border-t-0 lg:border-l border-border/40 p-4 overflow-auto space-y-4 bg-card/20">
-              <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />
-              <SlimPnLChart trades={filteredTrades} />
-              <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
-              <ManualTradesCard trades={manualTradesList}
-                onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
-                onEditTrade={t => { setEditingTrade(t); setIsAddTradeOpen(true) }}
-                onDeleteTrade={handleDeleteTrade} />
+
+            {/* Yearly performance — full width bottom */}
+            <div className="px-4 md:px-8 pb-6 pt-4">
+              <YearlyPerformanceTable trades={trades} />
             </div>
           </div>
         )

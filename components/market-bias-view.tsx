@@ -1,395 +1,442 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { RefreshCw, Wifi, Shield, TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp, AlertTriangle } from "lucide-react"
+import {
+  RefreshCw, Radio, Shield, Target, AlertTriangle,
+  Zap, TrendingUp, TrendingDown, ChevronRight, Activity,
+} from "lucide-react"
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface AgentResult { signal: string; strength: number; weight: number; reasoning?: string }
-interface BiasResult {
-  verdict: string; conviction: number; consensus: number
-  agents: { trend: AgentResult; priceAction: AgentResult; news: AgentResult; contrarian: AgentResult }
-  marketPhase: string; paSetup: string; macroRegime: string
-  supportingFactors: string[]; invalidationConditions: string[]
-  riskGrade: string; maxRisk: string; volatilityScore: number; sessionScore: number
-  warnings: string[]; keyLevels: { equilibrium: number; "52wHigh": number; "52wLow": number }
-  rsi: number; volatilityPct: string; summary: string
+// ── Types matching /api/agents/run response ───────────────────────────────
+interface AgentVerdict { verdict: "BULLISH" | "BEARISH" | "NEUTRAL"; pct: number; reasoning: string }
+interface TradePlan {
+  direction: "long" | "short"
+  entry: number; stopLoss: number; tp1: number; tp2: number; rrRatio: number
+}
+interface RiskGate {
+  grade: "A" | "B" | "C" | "D"
+  status: "CLEAR" | "CAUTION" | "BLOCKED"
+  maxRiskPercent: number
+  reasoning?: string
+}
+interface AgentRunResult {
+  id: string; timestamp: string
+  symbol: string; timeframe: string
+  finalBias: "bullish" | "bearish" | "no-trade"
+  confidence: number
+  consensusScore: number
+  strategyMatch: string
+  noTradeReason: string | null
+  priceAtSignal: number
+  tradePlan: TradePlan | null
+  agents: { trend: AgentVerdict; priceAction: AgentVerdict; news: AgentVerdict; contrarian: AgentVerdict }
+  riskGate: RiskGate
+  marketPhase: string
+  macroRegime: string
+  supports: string[]
+  invalidationConditions: string[]
+  executionSummary: string
+  cached?: boolean
+  cachedAt?: string
+  _debug?: { mode: string; model?: string; error?: string }
 }
 
-const ASSETS = [
-  { id: "XAUUSD", label: "XAU/USD", sub: "Gold Spot"    },
-  { id: "USTEC",  label: "USTEC",   sub: "NQ100 Proxy"  },
+const INSTRUMENTS = [
+  { symbol: "XAUUSD", label: "XAU/USD",  name: "Gold Spot"   },
+  { symbol: "USTEC",  label: "USTEC",    name: "Nasdaq 100"  },
+  { symbol: "EURUSD", label: "EUR/USD",  name: "DXY Proxy"   },
+  { symbol: "GBPUSD", label: "GBP/USD",  name: "Cable"       },
+  { symbol: "BTCUSD", label: "BTC/USD",  name: "Bitcoin"     },
 ]
+const TIMEFRAMES = ["M15", "H1", "H4", "D1"] as const
 
-function getSession() {
-  const h = new Date().getUTCHours()
-  if (h >= 22 || h < 8)  return "Asian"
-  if (h >= 8  && h < 13) return "London"
-  if (h >= 13 && h < 16) return "Overlap"
-  return "New York"
-}
+// ── Sub-components ──────────────────────────────────────────────────────
 
-function getKillZone() {
-  const h = new Date().getUTCHours()
-  if (h >= 7  && h < 10) return "London Kill Zone"
-  if (h >= 12 && h < 14) return "NY AM Kill Zone"
-  if (h >= 17 && h < 18) return "NY Lunch"
-  if (h >= 18 && h < 21) return "NY PM Kill Zone"
-  if (h >= 20 || h < 2)  return "Asian Kill Zone"
-  return null
-}
-
-function AgentBar({ value, signal }: { value: number; signal: string }) {
-  const color = signal === "BULLISH" ? "#5fc77a" : signal === "BEARISH" ? "#ef4444" : "#64748b"
+function AgentRow({ name, weight, verdict, pct, reasoning }:
+  { name: string; weight: string; verdict: string; pct: number; reasoning: string }) {
+  const color =
+    verdict === "BULLISH" ? "text-emerald-400" :
+    verdict === "BEARISH" ? "text-rose-400"    :
+    "text-muted-foreground"
+  const barBg =
+    verdict === "BULLISH" ? "bg-emerald-500" :
+    verdict === "BEARISH" ? "bg-rose-500"    :
+    "bg-muted"
   return (
-    <div className="flex items-center gap-2 flex-1">
-      <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#1e2232" }}>
-        <div className="h-full rounded-full transition-all duration-700"
-          style={{ width: `${value}%`, background: color }} />
+    <div>
+      <div className="flex items-center gap-3 mb-1">
+        <span className="text-[10px] text-muted-foreground font-bold w-24 shrink-0 uppercase tracking-wider">{name}</span>
+        <span className={`text-[10px] font-black tracking-widest w-14 shrink-0 ${color}`}>{verdict}</span>
+        <div className="flex-1 h-1 bg-background/60 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full transition-all duration-700 ${barBg}`} style={{ width: `${pct}%` }} />
+        </div>
+        <span className="text-[10px] font-mono text-muted-foreground w-8 text-right tabular-nums">{pct}%</span>
+        <span className="text-[9px] text-muted-foreground/50 w-10 text-right tabular-nums">{weight}</span>
       </div>
+      {reasoning && <p className="text-[10px] text-muted-foreground/70 ml-24 pl-3 leading-relaxed">{reasoning}</p>}
     </div>
   )
 }
 
-function SignalIcon({ signal, className = "" }: { signal: string; className?: string }) {
-  if (signal === "BULLISH") return <TrendingUp  className={className} style={{ color: "#5fc77a" }} />
-  if (signal === "BEARISH") return <TrendingDown className={className} style={{ color: "#ef4444" }} />
-  return <Minus className={className} style={{ color: "#64748b" }} />
-}
-
-function ConvictionArc({ value }: { value: number }) {
-  const r = 48; const circ = 2 * Math.PI * r * 0.75
-  const offset = circ * (1 - Math.min(value, 100) / 100)
-  const color  = value >= 65 ? "#5fc77a" : value >= 40 ? "#f59e0b" : "#ef4444"
+function ConvictionGauge({ value }: { value: number }) {
+  const radius = 36
+  const circumference = 2 * Math.PI * radius
+  const offset = circumference - (value / 100) * circumference
+  const color = value >= 70 ? "#10b981" : value >= 40 ? "#f59e0b" : "#ef4444"
   return (
-    <svg width="120" height="90" viewBox="0 0 120 90">
-      <path d="M 12 80 A 48 48 0 1 1 108 80" fill="none" stroke="#1e2232" strokeWidth="8" strokeLinecap="round" />
-      <path d="M 12 80 A 48 48 0 1 1 108 80" fill="none" stroke={color} strokeWidth="8" strokeLinecap="round"
-        strokeDasharray={circ} strokeDashoffset={offset}
-        style={{ transition: "stroke-dashoffset 1s cubic-bezier(.4,0,.2,1)" }} />
-      <text x="60" y="68" textAnchor="middle" fill="white" fontSize="22" fontWeight="900" fontFamily="monospace">{value}</text>
-      <text x="60" y="82" textAnchor="middle" fill="#64748b" fontSize="9" fontWeight="600">% CONVICTION</text>
-    </svg>
+    <div className="flex flex-col items-center gap-1">
+      <div className="relative w-24 h-24">
+        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+          <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+          <circle
+            cx="50" cy="50" r={radius} fill="none" stroke={color} strokeWidth="6" strokeLinecap="round"
+            strokeDasharray={circumference} strokeDashoffset={offset}
+            style={{ transition: "stroke-dashoffset 0.6s ease" }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-2xl font-black tabular-nums" style={{ color }}>{value}</span>
+          <span className="text-[9px] text-muted-foreground uppercase tracking-wider">%</span>
+        </div>
+      </div>
+      <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">CONVICTION</span>
+    </div>
   )
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+function Skeleton() {
+  return (
+    <div className="bg-card/40 border border-border/40 rounded-xl p-5 animate-pulse space-y-3">
+      <div className="h-3 bg-background/60 rounded w-1/3" />
+      <div className="h-10 bg-background/60 rounded w-2/3" />
+      <div className="h-3 bg-background/60 rounded w-full" />
+      <div className="h-3 bg-background/60 rounded w-4/5" />
+    </div>
+  )
+}
+
+// ── Main ────────────────────────────────────────────────────────────────
 export function MarketBiasView() {
-  const [asset,     setAsset]     = useState("XAUUSD")
-  const [bias,      setBias]      = useState<BiasResult | null>(null)
-  const [mktData,   setMktData]   = useState<any>(null)
-  const [loading,   setLoading]   = useState(false)
-  const [fetchedAt, setFetchedAt] = useState<Date | null>(null)
-  const [elapsed,   setElapsed]   = useState(0)
-  const [expanded,  setExpanded]  = useState<string | null>(null)
+  const [activeSymbol, setActiveSymbol] = useState("XAUUSD")
+  const [timeframe,    setTimeframe]    = useState<typeof TIMEFRAMES[number]>("H1")
+  const [data,         setData]         = useState<AgentRunResult | null>(null)
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState<string | null>(null)
 
-  const refresh = useCallback(async () => {
+  // ── Fetch agent result ─────────────────────────────────────────────────
+  const fetchAgent = useCallback(async (forceRefresh = false) => {
     setLoading(true)
+    setError(null)
     try {
-      const mdRes = await fetch(`/api/market-data?symbol=${asset}`)
-      const md    = await mdRes.json()
-      setMktData(md)
-
-      const biasRes = await fetch("/api/market-bias", {
+      const res = await fetch("/api/agents/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ marketData: md, session: getSession(), killZone: getKillZone() }),
+        body: JSON.stringify({ symbol: activeSymbol, timeframe, forceRefresh }),
       })
-      const data = await biasRes.json()
-      setBias(data)
-      setFetchedAt(new Date())
-      setElapsed(0)
-    } catch (e) { console.error(e) }
-    finally { setLoading(false) }
-  }, [asset])
+      if (!res.ok) throw new Error(`API error ${res.status}`)
+      const json: AgentRunResult = await res.json()
+      setData(json)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Unknown error")
+    } finally {
+      setLoading(false)
+    }
+  }, [activeSymbol, timeframe])
 
-  useEffect(() => { refresh() }, [refresh])
-
-  // Elapsed timer + auto-refresh every 5 min
+  // Initial fetch + 5min auto-refresh
   useEffect(() => {
-    const t = setInterval(() => {
-      setElapsed(p => {
-        if (p >= 300) { refresh(); return 0 }
-        return p + 1
-      })
-    }, 1000)
+    fetchAgent(false)
+    const t = setInterval(() => fetchAgent(false), 5 * 60_000)
     return () => clearInterval(t)
-  }, [refresh])
+  }, [fetchAgent])
 
-  const freshPct   = Math.max(0, 100 - (elapsed / 300) * 100)
-  const elapsedStr = elapsed < 60 ? `${elapsed}s ago`
-    : elapsed < 3600 ? `${Math.floor(elapsed / 60)}m ago` : "stale"
-
-  const verdictColor =
-    bias?.verdict === "BUY"  ? "#5fc77a" :
-    bias?.verdict === "SELL" ? "#ef4444" : "#94a3b8"
-
-  const agentRows = bias ? [
-    { key: "trend",       label: "Trend Agent",    ...bias.agents.trend },
-    { key: "priceAction", label: "Price Action",   ...bias.agents.priceAction },
-    { key: "news",        label: "News Agent",     ...bias.agents.news },
-    { key: "contrarian",  label: "Contrarian",     ...bias.agents.contrarian },
-  ] : []
+  // ── Derived display state ──────────────────────────────────────────────
+  const bias        = data?.finalBias
+  const isLong      = bias === "bullish"
+  const isShort     = bias === "bearish"
+  const isNoTrade   = bias === "no-trade"
+  const barPos      = data ? Math.round(((data.consensusScore + 100) / 200) * 100) : 50
+  const usingMock   = data?._debug?.mode === "mock"
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-4">
 
-      {/* ── Asset Tabs ──────────────────────────────────────────────────────── */}
-      <div className="flex gap-2 flex-wrap">
-        {ASSETS.map(a => (
-          <button key={a.id} onClick={() => setAsset(a.id)}
-            className="rounded-xl px-4 py-3 text-left transition-all"
-            style={{
-              background: asset === a.id ? "rgba(95,199,122,0.1)" : "#141720",
-              border: `1px solid ${asset === a.id ? "rgba(95,199,122,0.35)" : "#1e2232"}`,
-            }}>
-            <p className={`text-sm font-black ${asset === a.id ? "text-[#5fc77a]" : "text-slate-300"}`}>{a.label}</p>
-            <p className="text-[10px] text-slate-600 mt-0.5">{a.sub}</p>
-            {mktData && asset === a.id && (
-              <p className="text-[11px] font-mono font-bold mt-1"
-                style={{ color: mktData.currentPrice > mktData.pdc ? "#5fc77a" : "#ef4444" }}>
-                {((( mktData.currentPrice - mktData.pdc) / mktData.pdc) * 100).toFixed(2)}%
-              </p>
-            )}
+      {/* ── Header: instrument tabs + status + refresh ─────────────────── */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Instrument tabs */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {INSTRUMENTS.map(inst => (
+            <button
+              key={inst.symbol}
+              onClick={() => setActiveSymbol(inst.symbol)}
+              className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all
+                ${activeSymbol === inst.symbol
+                  ? "bg-emerald-500/[0.08] border-emerald-500/30 text-foreground"
+                  : "bg-card/40 border-border/40 text-muted-foreground hover:text-foreground"
+                }`}>
+              <div className="text-left">
+                <div className="font-black">{inst.label}</div>
+                <div className="text-[9px] text-muted-foreground mt-0.5 font-normal">{inst.name}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="ml-auto flex items-center gap-2">
+          {/* Live / Cached / Mock badge */}
+          {data && (
+            usingMock ? (
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-black bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                <Radio size={11} /> DEMO MODE
+              </span>
+            ) : data.cached ? (
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-black bg-sky-500/10 text-sky-400 border border-sky-500/30">
+                <Radio size={11} /> CACHED
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded text-[10px] font-black bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+                </span>
+                LIVE
+              </span>
+            )
+          )}
+          <button
+            onClick={() => fetchAgent(true)}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-50">
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            REFRESH
+          </button>
+        </div>
+      </div>
+
+      {/* ── Timeframe row ─────────────────────────────────────────────── */}
+      <div className="flex items-center bg-background/40 border border-border/40 rounded-lg p-0.5 w-fit">
+        {TIMEFRAMES.map(tf => (
+          <button
+            key={tf}
+            onClick={() => setTimeframe(tf)}
+            className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all
+              ${timeframe === tf ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+            {tf}
           </button>
         ))}
       </div>
 
-      {/* ── Freshness bar ────────────────────────────────────────────────────── */}
-      <div className="rounded-xl p-3 flex items-center gap-3" style={{ background: "#141720", border: "1px solid #1e2232" }}>
-        <RefreshCw className={`w-4 h-4 flex-shrink-0 ${loading ? "animate-spin text-[#5fc77a]" : "text-slate-500"}`} />
-        <div className="flex-1">
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-bold text-[#5fc77a]">
-              {loading ? "Analyzing…" : `Analysis ${elapsedStr}`}
-            </span>
-            <span className="text-[10px] text-slate-600">
-              {fetchedAt ? `Live · Generated ${fetchedAt.toLocaleTimeString()}` : "Fetching…"}
-            </span>
-          </div>
-          <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: "#1e2232" }}>
-            <div className="h-full rounded-full transition-none" style={{ width: `${freshPct}%`, background: "#5fc77a" }} />
-          </div>
-          <div className="flex justify-between mt-0.5">
-            <span className="text-[9px] text-slate-600">Fresh</span>
-            <span className="text-[9px] text-slate-600">Refreshes every 5 min</span>
-            <span className="text-[9px] text-slate-600">Stale</span>
-          </div>
-        </div>
-        <button onClick={refresh} disabled={loading}
-          className="px-3 py-1.5 rounded-lg text-[11px] font-black text-[#5fc77a] flex items-center gap-1.5 transition-all hover:bg-[#5fc77a]/10"
-          style={{ border: "1px solid rgba(95,199,122,0.25)" }}>
-          <RefreshCw className="w-3 h-3" /> REFRESH
-        </button>
-      </div>
-
-      {/* ── Master Verdict ────────────────────────────────────────────────── */}
-      {bias && (
-        <div className="rounded-xl p-6" style={{ background: "#141720", border: "1px solid #1e2232" }}>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              {/* Verdict badge */}
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4"
-                style={{ background: "rgba(255,255,255,0.04)", border: "1px solid #1e2232" }}>
-                <div className="w-1.5 h-1.5 rounded-full" style={{ background: verdictColor }} />
-                <span className="text-xs font-bold text-slate-400">{bias.verdict}</span>
-              </div>
-
-              {/* Big verdict text */}
-              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 mb-1">Master Verdict</p>
-              <h2 className="text-5xl font-black tracking-tight mb-3" style={{ color: verdictColor }}>
-                {bias.verdict}
-              </h2>
-              <p className="text-sm text-amber-400 font-medium max-w-md">{bias.summary}</p>
-              <p className="text-xs text-slate-500 mt-1">{bias.paSetup}</p>
-
-              {/* Consensus bar */}
-              <div className="mt-5">
-                <div className="flex justify-between text-[10px] font-bold text-slate-600 mb-1.5">
-                  <span>BEARISH</span>
-                  <span className="text-slate-400">Consensus {bias.consensus > 0 ? "+" : ""}{bias.consensus}</span>
-                  <span>BULLISH</span>
-                </div>
-                <div className="w-full h-1.5 rounded-full relative overflow-hidden" style={{ background: "#1e2232" }}>
-                  <div className="absolute top-0 h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${Math.abs(bias.consensus / 2)}%`,
-                      left: bias.consensus < 0 ? `${50 - Math.abs(bias.consensus / 2)}%` : "50%",
-                      background: bias.consensus > 0 ? "#5fc77a" : "#ef4444",
-                    }} />
-                  <div className="absolute top-0 left-1/2 w-px h-full" style={{ background: "#2a3042" }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Conviction arc */}
-            <div className="ml-6 flex-shrink-0 text-center">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-2">Conviction</p>
-              <ConvictionArc value={bias.conviction} />
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mt-1">
-                MULTI-AGENT · {asset} · H1
-              </p>
-            </div>
-          </div>
+      {/* ── Error banner ──────────────────────────────────────────────── */}
+      {error && (
+        <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-bold">
+          Agent error: {error}
         </div>
       )}
 
-      {/* ── Three columns ─────────────────────────────────────────────────── */}
-      {bias && mktData && (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      {/* ── Master verdict card ───────────────────────────────────────── */}
+      {loading && !data ? (
+        <Skeleton />
+      ) : data ? (
+        <div className={`rounded-xl p-5 border shadow-lg
+          ${isLong  ? "bg-emerald-500/[0.04] border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.08)]" :
+            isShort ? "bg-rose-500/[0.04] border-rose-500/20 shadow-[0_0_30px_rgba(239,68,68,0.08)]" :
+                      "bg-card/40 border-border/40"}`}>
 
-          {/* Market Snapshot */}
-          <div className="rounded-xl p-5 space-y-2" style={{ background: "#141720", border: "1px solid #1e2232" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-[#5fc77a]" />
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400">Market Snapshot</h3>
-            </div>
-            {[
-              { label: "Price",    val: mktData.currentPrice?.toFixed(2), color: "text-slate-200" },
-              { label: "Change",   val: `${((( mktData.currentPrice - mktData.pdc) / mktData.pdc) * 100).toFixed(2)}%`,
-                color: mktData.currentPrice > mktData.pdc ? "text-[#5fc77a]" : "text-red-400" },
-              { label: "Session",  val: getSession(),  color: "text-slate-300" },
-              { label: "RSI",      val: String(bias.rsi), color: bias.rsi > 70 ? "text-red-400" : bias.rsi < 30 ? "text-[#5fc77a]" : "text-amber-400" },
-              { label: "Volatility", val: bias.volatilityPct, color: "text-slate-300" },
-            ].map(row => (
-              <div key={row.label} className="flex justify-between items-center py-1.5"
-                style={{ borderBottom: "1px solid #1e2232" }}>
-                <span className="text-xs text-slate-500">{row.label}</span>
-                <span className={`text-xs font-bold font-mono ${row.color}`}>{row.val}</span>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] text-muted-foreground uppercase tracking-widest mb-2 font-bold">
+                MULTI-AGENT · {activeSymbol} · {timeframe} · Claude Sonnet 4.6
               </div>
-            ))}
 
-            <div className="pt-1">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1.5">Key Levels</p>
-              {[
-                { label: "Equilibrium (POC)", val: mktData.poc?.toFixed(2) },
-                { label: "Prev Week High",    val: mktData.pwh?.toFixed(2), color: "text-[#5fc77a]" },
-                { label: "Prev Week Low",     val: mktData.pwl?.toFixed(2), color: "text-red-400" },
-              ].map(row => (
-                <div key={row.label} className="flex justify-between py-1">
-                  <span className="text-[11px] text-slate-500">{row.label}</span>
-                  <span className={`text-[11px] font-bold font-mono ${row.color || "text-slate-300"}`}>{row.val}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Agent Consensus */}
-          <div className="rounded-xl p-5" style={{ background: "#141720", border: "1px solid #1e2232" }}>
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-4 h-4 text-indigo-400" />
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400">Agent Consensus</h3>
-            </div>
-            <div className="space-y-3">
-              {agentRows.map(agent => {
-                const sigColor = agent.signal === "BULLISH" ? "#5fc77a" : agent.signal === "BEARISH" ? "#ef4444" : "#64748b"
-                return (
-                  <div key={agent.key}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs text-slate-300 w-24 flex-shrink-0">{agent.label}</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                        style={{ color: sigColor, background: `${sigColor}15` }}>
-                        {agent.signal}
-                      </span>
-                      <AgentBar value={agent.strength} signal={agent.signal} />
-                      <span className="text-[10px] font-mono text-slate-400 w-8 text-right">{agent.strength}%</span>
-                      <span className="text-[10px] text-slate-600 w-8 text-right">×{agent.weight}</span>
-                    </div>
-                    {agent.reasoning && (
-                      <p className="text-[10px] text-slate-600 pl-1 leading-relaxed">{agent.reasoning}</p>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            {bias.marketPhase && (
-              <div className="mt-4 pt-3" style={{ borderTop: "1px solid #1e2232" }}>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-1">Market Phase</p>
-                <p className="text-sm font-black text-slate-200">{bias.marketPhase}</p>
-                {bias.macroRegime && (
-                  <>
-                    <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mt-2 mb-1">Macro Regime</p>
-                    <p className="text-sm font-black text-slate-200">{bias.macroRegime}</p>
-                  </>
+              {/* Bias badge */}
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                {isLong && (
+                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-sm font-black text-emerald-400">
+                    <TrendingUp size={14} /> BULLISH
+                  </span>
                 )}
+                {isShort && (
+                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-sm font-black text-rose-400">
+                    <TrendingDown size={14} /> BEARISH
+                  </span>
+                )}
+                {isNoTrade && (
+                  <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/20 border border-border/40 text-sm font-black text-muted-foreground">
+                    <Activity size={14} /> NO TRADE
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground">{data.confidence}% confidence</span>
               </div>
-            )}
-          </div>
 
-          {/* Risk Gate */}
-          <div className="rounded-xl p-5" style={{ background: "#141720", border: "1px solid #1e2232" }}>
-            <div className="flex items-center gap-2 mb-4">
-              <Shield className="w-4 h-4 text-amber-400" />
-              <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400">Risk Gate</h3>
-            </div>
-            <div className="space-y-2.5">
-              {[
-                { label: "Grade",      val: bias.riskGrade, color: { A: "text-[#5fc77a]", B: "text-blue-400", C: "text-amber-400", D: "text-red-400" }[bias.riskGrade] || "text-slate-300" },
-                { label: "Status",     val: "VALID",         color: "text-[#5fc77a]" },
-                { label: "Max Risk",   val: bias.maxRisk,    color: "text-slate-200" },
-                { label: "Volatility", val: `${bias.volatilityScore}/100`, color: "text-slate-300" },
-                { label: "Session",    val: `${bias.sessionScore}/100`,    color: "text-slate-300" },
-              ].map(row => (
-                <div key={row.label} className="flex justify-between py-1.5"
-                  style={{ borderBottom: "1px solid #1e2232" }}>
-                  <span className="text-xs text-slate-500">{row.label}</span>
-                  <span className={`text-sm font-black ${row.color}`}>{row.val}</span>
-                </div>
-              ))}
+              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">MASTER VERDICT</p>
+              <h2 className="text-4xl md:text-5xl font-black text-foreground tracking-tight leading-none mb-3">
+                {isNoTrade ? "NO TRADE" : bias?.toUpperCase()}
+              </h2>
 
-              {bias.warnings.length > 0 && (
-                <div className="mt-3 pt-2" style={{ borderTop: "1px solid #1e2232" }}>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-2">Warnings</p>
-                  {bias.warnings.map((w, i) => (
-                    <div key={i} className="flex gap-2 mb-1.5">
-                      <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-[11px] text-slate-400 leading-relaxed">{w}</p>
+              {data.noTradeReason && (
+                <p className="text-xs text-amber-400 mb-2 leading-relaxed">{data.noTradeReason}</p>
+              )}
+              <p className="text-xs text-muted-foreground italic">{data.strategyMatch}</p>
+
+              {/* Trade plan grid */}
+              {data.tradePlan && (
+                <div className="mt-4 p-3 rounded-lg bg-emerald-500/[0.05] border border-emerald-500/20 grid grid-cols-3 gap-3">
+                  {[
+                    { label: "ENTRY", value: data.tradePlan.entry.toLocaleString(),     color: "text-foreground" },
+                    { label: "SL",    value: data.tradePlan.stopLoss.toLocaleString(),  color: "text-rose-400" },
+                    { label: "R:R",   value: `1:${data.tradePlan.rrRatio}`,             color: "text-emerald-400" },
+                    { label: "TP1",   value: data.tradePlan.tp1.toLocaleString(),       color: "text-emerald-400" },
+                    { label: "TP2",   value: data.tradePlan.tp2.toLocaleString(),       color: "text-emerald-400" },
+                    { label: "DIR",   value: data.tradePlan.direction.toUpperCase(),    color: data.tradePlan.direction === "long" ? "text-emerald-400" : "text-rose-400" },
+                  ].map(f => (
+                    <div key={f.label}>
+                      <p className="text-[9px] text-muted-foreground uppercase tracking-widest mb-0.5">{f.label}</p>
+                      <p className={`text-sm font-black tabular-nums ${f.color}`}>{f.value}</p>
                     </div>
                   ))}
                 </div>
               )}
+
+              {/* Consensus bar */}
+              <div className="mt-4">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5 font-bold uppercase tracking-wider">
+                  <span className="text-rose-400/70">◀ BEARISH</span>
+                  <span>
+                    Consensus{" "}
+                    <span className={data.consensusScore > 0 ? "text-emerald-400" : data.consensusScore < 0 ? "text-rose-400" : "text-muted-foreground"}>
+                      {data.consensusScore > 0 ? "+" : ""}{Math.round(data.consensusScore)}
+                    </span>
+                  </span>
+                  <span className="text-emerald-400/70">BULLISH ▶</span>
+                </div>
+                <div className="h-1.5 bg-background/60 rounded-full relative">
+                  <div
+                    className={`absolute h-full w-2.5 rounded-full transition-all duration-700 ${data.consensusScore > 0 ? "bg-emerald-500" : "bg-rose-500"}`}
+                    style={{ left: `${Math.max(2, Math.min(95, barPos))}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0">
+              <ConvictionGauge value={data.confidence} />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Agent consensus ───────────────────────────────────────────── */}
+      {data && (
+        <div className="bg-card/40 border border-border/40 rounded-xl p-4 shadow-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <Target className="h-4 w-4 text-sky-400" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Agent Consensus</h3>
+          </div>
+          <div className="space-y-3">
+            <AgentRow name="Trend"        weight="×0.25" verdict={data.agents.trend.verdict}        pct={data.agents.trend.pct}        reasoning={data.agents.trend.reasoning} />
+            <AgentRow name="Price Action" weight="×0.30" verdict={data.agents.priceAction.verdict}  pct={data.agents.priceAction.pct}  reasoning={data.agents.priceAction.reasoning} />
+            <AgentRow name="News"         weight="×0.15" verdict={data.agents.news.verdict}         pct={data.agents.news.pct}         reasoning={data.agents.news.reasoning} />
+            <AgentRow name="Contrarian"   weight="×0.10" verdict={data.agents.contrarian.verdict}   pct={data.agents.contrarian.pct}   reasoning={data.agents.contrarian.reasoning} />
+          </div>
+
+          <div className="mt-4 pt-3 border-t border-border/30 grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-0.5">MARKET PHASE</p>
+              <p className="text-xs font-bold text-foreground">{data.marketPhase}</p>
+            </div>
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-0.5">MACRO REGIME</p>
+              <p className="text-xs font-bold text-foreground">{data.macroRegime}</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Supporting Factors + Invalidation ─────────────────────────────── */}
-      {bias && (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-          <div className="rounded-xl p-5" style={{ background: "#141720", border: "1px solid #1e2232" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <TrendingUp className="w-4 h-4 text-[#5fc77a]" />
-              <h3 className="text-sm font-black text-slate-200">Supporting Factors</h3>
-            </div>
-            <ul className="space-y-2">
-              {bias.supportingFactors.map((f, i) => (
-                <li key={i} className="flex items-start gap-2.5">
-                  <span className="text-[#5fc77a] font-bold mt-0.5 flex-shrink-0">›</span>
-                  <span className="text-sm text-slate-400 leading-relaxed">{f}</span>
-                </li>
-              ))}
-            </ul>
+      {/* ── Risk Gate ─────────────────────────────────────────────────── */}
+      {data && (
+        <div className="bg-card/40 border border-border/40 rounded-xl p-4 shadow-lg">
+          <div className="flex items-center gap-2 mb-4">
+            <Shield className="h-4 w-4 text-sky-400" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Risk Gate</h3>
+            <span className={`ml-auto px-2 py-0.5 rounded text-[10px] font-black tracking-widest
+              ${data.riskGate.status === "CLEAR"   ? "bg-emerald-500/10 text-emerald-400" :
+                data.riskGate.status === "CAUTION" ? "bg-amber-500/10 text-amber-400"     :
+                                                     "bg-rose-500/10 text-rose-400"}`}>
+              {data.riskGate.status}
+            </span>
           </div>
-          <div className="rounded-xl p-5" style={{ background: "#141720", border: "1px solid #1e2232" }}>
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-4 h-4 text-red-400" />
-              <h3 className="text-sm font-black text-slate-200">Invalidation Conditions</h3>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-1.5">Grade</p>
+              <span className={`inline-flex w-8 h-8 rounded items-center justify-center text-sm font-black border
+                ${data.riskGate.grade === "A" ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" :
+                  data.riskGate.grade === "B" ? "bg-sky-500/10 border-sky-500/30 text-sky-400"             :
+                  data.riskGate.grade === "C" ? "bg-amber-500/10 border-amber-500/30 text-amber-400"       :
+                                                "bg-rose-500/10 border-rose-500/30 text-rose-400"}`}>
+                {data.riskGate.grade}
+              </span>
             </div>
-            <ul className="space-y-2">
-              {bias.invalidationConditions.map((c, i) => (
-                <li key={i} className="flex items-start gap-2.5">
-                  <span className="text-red-400 font-bold mt-0.5 flex-shrink-0">›</span>
-                  <span className="text-sm text-slate-400 leading-relaxed">{c}</span>
-                </li>
-              ))}
-            </ul>
+            <div>
+              <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold mb-1.5">Max Risk</p>
+              <p className="text-sm font-black font-mono text-foreground tabular-nums">{data.riskGate.maxRiskPercent}%</p>
+            </div>
           </div>
+          {data.riskGate.reasoning && (
+            <p className="mt-3 text-xs text-muted-foreground leading-relaxed">{data.riskGate.reasoning}</p>
+          )}
         </div>
       )}
 
-      {!bias && !loading && (
-        <div className="h-32 flex items-center justify-center text-slate-500 text-sm italic">
-          Click Refresh to run market analysis
+      {/* ── Supports / Invalidations ──────────────────────────────────── */}
+      {data && (data.supports.length > 0 || data.invalidationConditions.length > 0) && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {data.supports.length > 0 && (
+            <div className="bg-card/40 border border-border/40 rounded-xl p-4 shadow-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="h-3.5 w-3.5 text-emerald-400" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Supporting Factors</h3>
+              </div>
+              <ul className="space-y-2">
+                {data.supports.map((s, i) => (
+                  <li key={i} className="flex gap-2 text-xs text-foreground/80 leading-relaxed">
+                    <ChevronRight size={14} className="text-emerald-500 mt-0.5 shrink-0" />
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {data.invalidationConditions.length > 0 && (
+            <div className="bg-card/40 border border-border/40 rounded-xl p-4 shadow-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Invalidation Conditions</h3>
+              </div>
+              <ul className="space-y-2">
+                {data.invalidationConditions.map((s, i) => (
+                  <li key={i} className="flex gap-2 text-xs text-foreground/80 leading-relaxed">
+                    <ChevronRight size={14} className="text-rose-500 mt-0.5 shrink-0" />
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Execution summary ──────────────────────────────────────────── */}
+      {data?.executionSummary && (
+        <div className={`rounded-xl p-4 border shadow-lg
+          ${data.tradePlan ? "bg-emerald-500/[0.04] border-emerald-500/20" : "bg-card/40 border-border/40"}`}>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-2">EXECUTION SUMMARY</p>
+          <p className="text-sm text-foreground leading-relaxed">{data.executionSummary}</p>
+        </div>
+      )}
+
+      {/* ── Debug info (dev/QA) ────────────────────────────────────────── */}
+      {data?._debug && (
+        <div className="text-[10px] text-muted-foreground/40 font-mono text-right">
+          {data._debug.mode} {data._debug.model && `· ${data._debug.model}`}{data._debug.error && ` · ${data._debug.error.slice(0,80)}`}
         </div>
       )}
     </div>
