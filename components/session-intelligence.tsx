@@ -57,10 +57,12 @@ const TRANSITIONS = [
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getSessionKey(date: Date): SessionKey {
   const h = date.getUTCHours()
-  if (h >= 0  && h < 8)  return "ASIAN"
+  // Asian session wraps midnight: 22:00 UTC → 08:00 UTC
+  // (Tokyo opens ~23:00 UTC, Sydney ~22:00 UTC, NY closes 22:00 UTC)
+  if (h >= 22 || h < 8)  return "ASIAN"
   if (h >= 8  && h < 13) return "LONDON"
   if (h >= 13 && h < 16) return "OVERLAP"
-  return "NY"
+  return "NY"  // 16:00–22:00 UTC
 }
 
 function getActiveKillZone(h: number) {
@@ -115,7 +117,10 @@ function useLiveClock() {
 // ─── TradingView Chart ────────────────────────────────────────────────────────
 function TVChart({ symbol, interval }: { symbol: string; interval: string }) {
   const ref = useRef<HTMLDivElement>(null)
-  const tvSymbol = symbol === "XAUUSD" ? "OANDA:XAUUSD" : "CME_MINI:NQ1!"
+  // TVC:GOLD    = TradingView free spot gold — no broker connection required
+  // NASDAQ:NDX  = NASDAQ 100 index — free on all TradingView accounts, no subscription needed
+  //               (CME_MINI:NQ1! requires a CME data add-on which triggers the "only on TV" popup)
+  const tvSymbol = symbol === "XAUUSD" ? "TVC:GOLD" : "NASDAQ:NDX"
 
   useEffect(() => {
     if (!ref.current) return
