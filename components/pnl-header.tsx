@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Activity, BarChart3, RefreshCw, DollarSign, Plus } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Activity, BarChart3, RefreshCw, DollarSign, Plus, ChevronDown, Check } from "lucide-react"
 
 interface PnLHeaderProps {
   totalTrades?:   number
@@ -12,6 +12,13 @@ interface PnLHeaderProps {
   onViewChange?:  (v: "calendar" | "analytics") => void
 }
 
+const EXCHANGE_OPTIONS = [
+  "All Exchanges",
+  "MT5 — Phoenix Account",
+  "MT5 — Sentinel Account",
+  "Manual",
+]
+
 export function PnLHeader({
   totalTrades = 0,
   onLogTrade,
@@ -21,17 +28,34 @@ export function PnLHeader({
   onViewChange,
 }: PnLHeaderProps) {
   const [exchange, setExchange] = useState("All Exchanges")
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const hasTrades = totalTrades > 0
+
+  // Close dropdown on outside click + Escape
+  useEffect(() => {
+    if (!dropdownOpen) return
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setDropdownOpen(false)
+    }
+    document.addEventListener("mousedown", handleClick)
+    document.addEventListener("keydown", handleKey)
+    return () => {
+      document.removeEventListener("mousedown", handleClick)
+      document.removeEventListener("keydown", handleKey)
+    }
+  }, [dropdownOpen])
 
   return (
     <div className="space-y-3 mb-4">
 
-      {/* ── Top row: title + view tabs + actions ─────────────────────────────
-         - Mobile: stacks vertically; title first, then tabs, then actions wrap
-         - Desktop: single horizontal row */}
       <div className="flex flex-col lg:flex-row lg:items-center gap-3">
 
-        {/* Title */}
         <div className="flex-shrink-0">
           <h1 className="text-lg sm:text-xl md:text-2xl font-black text-foreground uppercase tracking-widest">PnL Calendar</h1>
           <p className="text-[9px] sm:text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5">
@@ -39,7 +63,6 @@ export function PnLHeader({
           </p>
         </div>
 
-        {/* Calendar / Analytics segmented control */}
         {onViewChange && (
           <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5 w-fit">
             {([
@@ -62,18 +85,46 @@ export function PnLHeader({
           </div>
         )}
 
-        {/* Right-side actions — wrap on mobile */}
         <div className="lg:ml-auto flex flex-wrap items-center gap-2">
-          <select
-            value={exchange}
-            onChange={e => setExchange(e.target.value)}
-            className="bg-background/50 border border-border/40 rounded-lg px-2 sm:px-3 py-2 text-[11px] sm:text-xs font-bold text-foreground hover:bg-white/[0.03] transition-colors cursor-pointer outline-none min-h-[36px] flex-1 sm:flex-none"
-          >
-            <option>All Exchanges</option>
-            <option>MT5 — Phoenix Account</option>
-            <option>MT5 — Sentinel Account</option>
-            <option>Manual</option>
-          </select>
+
+          {/* ── CUSTOM DROPDOWN ─────────────────────────────────────────
+              Replaces native <select> which was rendering white-on-white
+              on desktop. Dark themed, readable, keyboard-accessible. */}
+          <div ref={dropdownRef} className="relative flex-1 sm:flex-none min-w-[140px] sm:min-w-[180px]">
+            <button
+              onClick={() => setDropdownOpen(o => !o)}
+              className="w-full flex items-center justify-between gap-2 bg-background/50 border border-border/40 rounded-lg px-3 py-2 text-[11px] sm:text-xs font-bold text-foreground hover:bg-white/[0.03] transition-colors min-h-[36px]"
+              aria-haspopup="listbox"
+              aria-expanded={dropdownOpen}>
+              <span className="truncate">{exchange}</span>
+              <ChevronDown size={13} className={`flex-shrink-0 transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {dropdownOpen && (
+              <div
+                role="listbox"
+                className="absolute top-full left-0 right-0 mt-1 rounded-lg border shadow-2xl overflow-hidden z-50"
+                style={{ background: "#141720", borderColor: "#1e2232" }}>
+                {EXCHANGE_OPTIONS.map(opt => {
+                  const isSelected = opt === exchange
+                  return (
+                    <button
+                      key={opt}
+                      role="option"
+                      aria-selected={isSelected}
+                      onClick={() => { setExchange(opt); setDropdownOpen(false) }}
+                      className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-bold transition-colors min-h-[40px]
+                        ${isSelected
+                          ? "bg-emerald-500/10 text-emerald-400"
+                          : "text-slate-300 hover:bg-white/[0.04]"}`}>
+                      <span className="truncate">{opt}</span>
+                      {isSelected && <Check size={13} className="flex-shrink-0 text-emerald-400" />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
 
           {onSync && (
             <button
@@ -90,13 +141,11 @@ export function PnLHeader({
             onClick={onLogTrade}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] sm:text-xs font-black bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors min-h-[36px]">
             <DollarSign size={13} />
-            <span className="hidden xs:inline sm:inline">Log Trade</span>
-            <span className="xs:hidden sm:hidden">Log</span>
+            <span>Log Trade</span>
           </button>
         </div>
       </div>
 
-      {/* ── Empty-state banner ───────────────────────────────────────── */}
       {!hasTrades && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/20">
           <div className="flex items-center gap-3">

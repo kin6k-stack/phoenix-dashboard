@@ -4,8 +4,8 @@ import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth-context"
 import {
   LayoutDashboard, Calendar, BarChart3, History, Clock,
-  Globe, Target, CandlestickChart, ChevronLeft, ChevronRight,
-  LogOut, Wifi, TrendingUp, Menu, X,
+  Globe, Target, CandlestickChart, ChevronLeft,
+  LogOut, Wifi, TrendingUp, Menu, X, PanelLeftOpen,
 } from "lucide-react"
 
 interface NavItem {
@@ -62,11 +62,10 @@ function getSessionLabel(): { label: string; abbr: string } {
 
 export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) {
   const { signOut } = useAuth()
-  const [collapsed, setCollapsed] = useState(false)        // desktop collapsed state
-  const [mobileOpen, setMobileOpen] = useState(false)      // mobile drawer state
+  const [collapsed, setCollapsed] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const [session, setSession] = useState(getSessionLabel())
 
-  // ── Persist desktop collapse state ───────────────────────────────────
   useEffect(() => {
     const saved = localStorage.getItem("phx_sidebar_collapsed")
     if (saved === "true") setCollapsed(true)
@@ -78,13 +77,11 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
     localStorage.setItem("phx_sidebar_collapsed", String(next))
   }
 
-  // ── Live session clock ───────────────────────────────────────────────
   useEffect(() => {
     const t = setInterval(() => setSession(getSessionLabel()), 60_000)
     return () => clearInterval(t)
   }, [])
 
-  // ── Close mobile drawer when nav item clicked or on Escape ───────────
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileOpen(false) }
     window.addEventListener("keydown", onKey)
@@ -96,7 +93,6 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
     setMobileOpen(false)
   }
 
-  // ── 7-day stats for bottom panel ─────────────────────────────────────
   const sevenDaysAgo = Date.now() - 7 * 86_400_000
   const recentTrades = trades.filter(t => new Date(t.date).getTime() > sevenDaysAgo)
   const wins         = recentTrades.filter(t => t.rMultiple > 0).length
@@ -109,57 +105,57 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
     open: "bg-amber-500/10 text-amber-400 text-[9px] font-black tracking-wider",
   }
 
-  // Desktop width (mobile is fixed full-overlay)
   const desktopW = collapsed ? 56 : 240
 
-  // ── Renders the full sidebar contents (shared between desktop + mobile drawer) ──
   const renderSidebarContent = (isMobile: boolean) => (
     <>
-      {/* Logo + collapse/close toggle */}
+      {/* ── Header bar ──────────────────────────────────────────────────
+         Mobile: logo + X close
+         Desktop collapsed: clickable PanelLeftOpen icon (replaces floating chevron)
+         Desktop expanded: logo + collapse arrow */}
       <div
         className="flex items-center justify-between px-3.5 py-4 border-b"
         style={{ borderColor: "#1e2232", minHeight: 56 }}>
-        {(!collapsed || isMobile) && (
-          <div className="flex items-center gap-2.5 overflow-hidden">
-            <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center"
-              style={{ background: "linear-gradient(135deg,#5fc77a,#3da85a)" }}>
-              <TrendingUp className="w-3.5 h-3.5 text-[#0d0f14]" />
-            </div>
-            <span className="text-white text-[13px] font-black tracking-widest uppercase whitespace-nowrap">
-              Phoenix
-            </span>
-          </div>
-        )}
-        {collapsed && !isMobile && (
-          <div className="w-7 h-7 mx-auto rounded-lg flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg,#5fc77a,#3da85a)" }}>
-            <TrendingUp className="w-3.5 h-3.5 text-[#0d0f14]" />
-          </div>
-        )}
 
-        {isMobile ? (
-          <button onClick={() => setMobileOpen(false)}
-            className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-white/5 transition-colors ml-1">
-            <X className="w-5 h-5" />
+        {/* Collapsed desktop: single full-width expand button */}
+        {collapsed && !isMobile ? (
+          <button
+            onClick={toggleCollapse}
+            className="w-full flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-white/5 transition-colors group"
+            aria-label="Expand sidebar"
+            title="Expand sidebar">
+            <PanelLeftOpen className="w-4 h-4 transition-transform group-hover:scale-110" />
           </button>
-        ) : !collapsed && (
-          <button onClick={toggleCollapse}
-            className="p-1 rounded-md text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors ml-1">
-            <ChevronLeft className="w-4 h-4" />
-          </button>
+        ) : (
+          <>
+            <div className="flex items-center gap-2.5 overflow-hidden">
+              <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg,#5fc77a,#3da85a)" }}>
+                <TrendingUp className="w-3.5 h-3.5 text-[#0d0f14]" />
+              </div>
+              <span className="text-white text-[13px] font-black tracking-widest uppercase whitespace-nowrap">
+                Phoenix
+              </span>
+            </div>
+
+            {isMobile ? (
+              <button onClick={() => setMobileOpen(false)}
+                className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-white/5 transition-colors ml-1"
+                aria-label="Close menu">
+                <X className="w-5 h-5" />
+              </button>
+            ) : (
+              <button onClick={toggleCollapse}
+                className="p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors ml-1"
+                aria-label="Collapse sidebar"
+                title="Collapse sidebar">
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            )}
+          </>
         )}
       </div>
 
-      {/* Expand button when desktop collapsed */}
-      {collapsed && !isMobile && (
-        <button onClick={toggleCollapse}
-          className="absolute -right-3 top-14 z-10 w-6 h-6 rounded-full flex items-center justify-center border shadow-lg"
-          style={{ background: "#141720", borderColor: "#1e2232" }}>
-          <ChevronRight className="w-3 h-3 text-slate-400" />
-        </button>
-      )}
-
-      {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-4">
         {SECTIONS.map(section => (
           <div key={section.label}>
@@ -181,6 +177,7 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
                 <button
                   key={item.id}
                   onClick={() => handleItemClick(item.id)}
+                  title={!showText ? item.label : undefined}
                   className="w-full flex items-center gap-2.5 transition-all group min-h-[40px]"
                   style={{
                     padding: showText ? "8px 12px" : "8px 0",
@@ -211,7 +208,6 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
         ))}
       </nav>
 
-      {/* Bottom stats + session */}
       <div className="border-t" style={{ borderColor: "#1e2232" }}>
         {(!collapsed || isMobile) && (
           <div className="p-3 space-y-2">
@@ -245,6 +241,7 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
         )}
 
         <button onClick={signOut}
+          title={!(!collapsed || isMobile) ? "Sign Out" : undefined}
           className="w-full flex items-center gap-2.5 p-3 text-slate-600 hover:text-red-400 hover:bg-red-400/5 transition-colors min-h-[44px]"
           style={{ justifyContent: (!collapsed || isMobile) ? "flex-start" : "center", paddingLeft: (!collapsed || isMobile) ? "16px" : undefined }}>
           <LogOut className="w-4 h-4 flex-shrink-0" />
@@ -264,7 +261,6 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
 
   return (
     <>
-      {/* ── Mobile top bar (hamburger trigger) — visible <md only ──────── */}
       <div
         className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-3 py-2.5 border-b backdrop-blur-md"
         style={{ background: "rgba(13,16,23,0.92)", borderColor: "#1e2232" }}>
@@ -288,17 +284,14 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
         </div>
       </div>
 
-      {/* Spacer to push content below fixed top bar on mobile */}
       <div className="md:hidden h-12 flex-shrink-0" />
 
-      {/* ── Desktop sidebar — visible md+ ─────────────────────────────── */}
       <aside
-        className="hidden md:flex sidebar-transition relative flex-shrink-0 h-screen flex-col border-r"
+        className="hidden md:flex relative flex-shrink-0 h-screen flex-col border-r transition-all duration-300"
         style={{ width: desktopW, background: "#0d1017", borderColor: "#1e2232" }}>
         {renderSidebarContent(false)}
       </aside>
 
-      {/* ── Mobile drawer + backdrop — visible <md only ───────────────── */}
       {mobileOpen && (
         <>
           <div

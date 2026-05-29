@@ -37,7 +37,6 @@ function normalizeBotName(raw: string | undefined | null): string {
   return raw.trim()
 }
 
-// ── Page-level layout shell — mobile-friendly padding ─────────────────────
 function PageShell({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
     <div className="flex-1 p-3 sm:p-4 md:p-8 overflow-auto">
@@ -66,12 +65,10 @@ export default function TradingDashboard() {
     year:  new Date().getFullYear(),
   })
 
-  // ── Auth guard ───────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!authLoading && !user) router.push("/login")
   }, [user, authLoading, router])
 
-  // ── Firebase live listener ───────────────────────────────────────────────────
   useEffect(() => {
     if (!user) return
     const q = query(collection(db, "trades"), orderBy("timestamp", "desc"))
@@ -136,7 +133,6 @@ export default function TradingDashboard() {
   const tradeDates  = trades.map(t => new Date(t.date))
   const manualTradesList = filteredTrades.filter(t => t.setup.toUpperCase().includes("MANUAL"))
 
-  // ── Loading + auth states ────────────────────────────────────────────────────
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#0d0f14" }}>
@@ -149,7 +145,6 @@ export default function TradingDashboard() {
   }
   if (!user) return null
 
-  // ── Content router ───────────────────────────────────────────────────────────
   const renderContent = () => {
     switch (activeNavItem) {
       case "dashboard":
@@ -160,25 +155,30 @@ export default function TradingDashboard() {
         )
 
       // ─────────────────────────────────────────────────────────────────
-      // PNL CALENDAR — FIXED LAYOUT
-      // Was: nested flex caused YearlyPerformance to overlap NetDailyP&L
-      // Now: clean vertical stack with proper sizing
+      // PNL CALENDAR — GAP BUG FIXED
+      // Was: lg:flex-row stretched the calendar column to match the
+      //   taller slim-panel column → big empty space under calendar
+      //   before YearlyPerformance.
+      // Now: lg:items-start prevents column stretching; calendar wrapper
+      //   has h-fit so it sizes to its own content; YearlyPerformance
+      //   sits directly below without forced gap.
       // ─────────────────────────────────────────────────────────────────
       case "pnl-calendar":
         return (
           <div className="flex-1 overflow-y-auto">
             <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4">
 
-              {/* Header */}
               <PnLHeader
                 totalTrades={totalTrades}
                 onLogTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
               />
 
-              {/* Calendar + slim panels — stacks on mobile, side-by-side on lg+ */}
-              <div className="flex flex-col lg:flex-row gap-4">
+              {/* lg:items-start prevents column-stretch.
+                  lg:gap-4 keeps spacing. min-w-0 prevents calendar
+                  shrinking issues on small viewports. */}
+              <div className="flex flex-col lg:flex-row lg:items-start gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="bg-card/90 rounded-xl border border-border/40 p-3 sm:p-4 md:p-6 shadow-2xl">
+                  <div className="bg-card/90 rounded-xl border border-border/40 p-3 sm:p-4 md:p-6 shadow-2xl h-fit">
                     <TradingCalendar
                       selectedDate={selectedDate}
                       onDateSelect={setSelectedDate}
@@ -209,7 +209,7 @@ export default function TradingDashboard() {
                 </div>
               </div>
 
-              {/* Yearly performance — full width, NO overlap */}
+              {/* Yearly Performance — full width, sits right below calendar/sidebar block */}
               <YearlyPerformanceTable trades={trades} />
             </div>
           </div>
@@ -274,8 +274,6 @@ export default function TradingDashboard() {
   }
 
   return (
-    // Mobile uses flex-col so sidebar (fixed top bar) renders above content
-    // Desktop uses flex-row with sidebar on left
     <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden" style={{ background: "#0d0f14" }}>
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} trades={trades} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
