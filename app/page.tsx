@@ -157,10 +157,12 @@ export default function TradingDashboard() {
         )
 
       // ═══════════════════════════════════════════════════════════════
-      // PNL CALENDAR — Rebuilt to match TradeX structure 1:1
-      // Replaces all previous flex-based layouts.
-      // Uses CSS GRID like TradeX: `grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4`
-      // Grid items don't stretch by default → no more gap bug.
+      // PNL CALENDAR — Gap eliminated via scrollable side column
+      //
+      // The right column now has a max-height matching the viewport
+      // and overflows internally with auto-scroll. The grid row's height
+      // is anchored to the calendar (~600px) instead of the panels stack.
+      // Yearly Performance now sits directly below the calendar height.
       // ═══════════════════════════════════════════════════════════════
       case "pnl-calendar":
         return (
@@ -176,8 +178,15 @@ export default function TradingDashboard() {
 
               {pnlView === "calendar" ? (
                 <>
-                  {/* TradeX-exact grid structure */}
-                  <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
+                  {/*
+                    On xl+: grid with auto-rows-min so calendar row sizes to calendar.
+                    Right column gets a max-height equal to a viewport-relative value
+                    and overflow-y-auto so it scrolls within itself.
+                    On smaller screens: stacks normally, no max-height (panels show fully).
+                  */}
+                  <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 xl:auto-rows-min">
+
+                    {/* LEFT — calendar */}
                     <div className="min-w-0">
                       <TradingCalendar
                         selectedDate={selectedDate}
@@ -192,7 +201,13 @@ export default function TradingDashboard() {
                       />
                     </div>
 
-                    <div className="space-y-4">
+                    {/*
+                      RIGHT — slim panels, scrollable on xl+
+                      Max-height: 600px (~calendar height). pr-1 leaves room for scrollbar.
+                      Custom-scrollbar class assumes you have it in globals.css; if not
+                      it just uses default scrollbar styling (still works).
+                    */}
+                    <div className="space-y-3 xl:max-h-[640px] xl:overflow-y-auto xl:pr-1 custom-scrollbar">
                       <SlimMonthlyPerformance
                         winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
                         netPnL={netPnL} fees={0} />
