@@ -149,7 +149,7 @@ function TVChart({ symbol, interval }: { symbol: string; interval: string }) {
       theme: "dark",
       style: "1",
       locale: "en",
-      backgroundColor: "#000001",
+      backgroundColor: "hsl(0 0% 0%)",
       gridColor: "rgba(255,255,255,0.03)",
       hide_top_toolbar: false,
       hide_legend: false,
@@ -269,25 +269,25 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
   const p = fmt  // price formatter alias
 
   return (
-    <div className="w-full space-y-5 text-slate-100 font-sans">
+    <div className="w-full space-y-5 text-foreground font-sans">
 
       {/* ══ SECTION 1: Header ══════════════════════════════════════════════════ */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 bg-[#070b12]/70 border border-slate-800 rounded-xl backdrop-blur-md">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4 bg-card/70 border border-border rounded-xl backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-green-500/10 border border-green-500/20">
-            <Cpu className="w-5 h-5 text-green-400 animate-pulse" />
+          <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+            <Cpu className="w-5 h-5 text-primary animate-pulse" />
           </div>
           <div>
-            <p className="text-sm font-black tracking-widest uppercase text-green-400">Session Intelligence HUD</p>
-            <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+            <p className="text-sm font-black tracking-widest uppercase text-primary">Session Intelligence HUD</p>
+            <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
               UTC {now.toISOString().slice(11, 19)} · {now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
             </p>
           </div>
         </div>
-        <div className="flex flex-wrap gap-1.5 bg-[#03050a] p-1.5 rounded-lg border border-slate-800">
+        <div className="flex flex-wrap gap-1.5 bg-secondary p-1.5 rounded-lg border border-border">
           {(["ALL", "XAUUSD", "USTEC", "EURUSD", "GBPUSD", "BTCUSD"] as const).map(a => (
             <button key={a} onClick={() => setAssetFilter(a)}
-              className={`px-2.5 py-1.5 text-[10px] font-mono font-bold tracking-widest rounded-md transition-all ${assetFilter === a ? "bg-green-500/10 text-green-400 border border-green-500/30" : "text-slate-500 hover:text-slate-300"}`}>
+              className={`px-2.5 py-1.5 text-[10px] font-mono font-bold tracking-widest rounded-md transition-all ${assetFilter === a ? "bg-primary/10 text-primary border border-primary/30" : "text-muted-foreground hover:text-foreground"}`}>
               {a === "ALL" ? "ALL" :
                a === "XAUUSD" ? "🥇 XAU" :
                a === "USTEC" ? "⚡ USTEC" :
@@ -310,11 +310,11 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
 
           return (
             <Card
-              className={`bg-[#070b12]/60 border border-slate-800 shadow-xl transition-opacity ${showWeekendBadge ? "opacity-60" : ""}`}
+              className={`bg-card/60 border border-border shadow-xl transition-opacity ${showWeekendBadge ? "opacity-60" : ""}`}
               style={{ borderColor: SESSIONS[currentSession].color + "55", boxShadow: `0 0 24px ${SESSIONS[currentSession].glow}` }}>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Active Market</span>
+                  <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Active Market</span>
                   {showWeekendBadge ? (
                     <span className="text-[8px] font-black px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-400 border-amber-500/40">
                       WEEKEND
@@ -345,8 +345,8 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 bg-black/20 rounded-lg px-2 py-1.5 border border-white/5">
-                    <Clock className="w-3 h-3 text-slate-600" />
-                    <span className="text-[10px] font-bold text-slate-600 font-mono">No Kill Zone Active</span>
+                    <Clock className="w-3 h-3 text-muted-foreground/70" />
+                    <span className="text-[10px] font-bold text-muted-foreground/70 font-mono">No Kill Zone Active</span>
                   </div>
                 )}
               </CardContent>
@@ -355,42 +355,42 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
         })()}
 
         {/* Countdown timer */}
-        <Card className="bg-[#070b12]/60 border border-slate-800 shadow-xl">
+        <Card className="bg-card/60 border border-border shadow-xl">
           <CardContent className="p-4 space-y-3">
-            <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Next Transition</span>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{countdown.name}</p>
+            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Next Transition</span>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{countdown.name}</p>
             <div className="flex items-baseline gap-1 font-mono">
               {[countdown.hh, countdown.mm, countdown.ss].map((val, i) => (
                 <span key={i} className="flex items-center gap-0.5">
-                  <span className="text-2xl font-black text-slate-100">{val}</span>
-                  {i < 2 && <span className="text-slate-600 text-lg font-black">:</span>}
+                  <span className="text-2xl font-black text-foreground">{val}</span>
+                  {i < 2 && <span className="text-muted-foreground/70 text-lg font-black">:</span>}
                 </span>
               ))}
             </div>
-            <p className="text-[9px] text-slate-600 font-mono">HH : MM : SS</p>
+            <p className="text-[9px] text-muted-foreground/70 font-mono">HH : MM : SS</p>
           </CardContent>
         </Card>
 
         {/* Session Initial Balance */}
-        <Card className="bg-[#070b12]/60 border border-slate-800 shadow-xl">
+        <Card className="bg-card/60 border border-border shadow-xl">
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Session Range (IB)</span>
-              <span className="text-[9px] font-bold text-slate-600 font-mono">{marketAsset}</span>
+              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Session Range (IB)</span>
+              <span className="text-[9px] font-bold text-muted-foreground/70 font-mono">{marketAsset}</span>
             </div>
             {marketData && !marketData.error ? (
               <>
                 <div className="flex justify-between items-center">
-                  <div><p className="text-[9px] text-slate-500">Today H</p><p className="text-base font-black font-mono text-emerald-400">{p(marketData.todayHigh)}</p></div>
-                  <div className="text-center"><p className="text-[9px] text-slate-500">Range</p><p className="text-base font-black font-mono text-amber-400">{p(marketData.todayHigh - marketData.todayLow)}</p></div>
-                  <div className="text-right"><p className="text-[9px] text-slate-500">Today L</p><p className="text-base font-black font-mono text-rose-400">{p(marketData.todayLow)}</p></div>
+                  <div><p className="text-[9px] text-muted-foreground">Today H</p><p className="text-base font-black font-mono text-emerald-400">{p(marketData.todayHigh)}</p></div>
+                  <div className="text-center"><p className="text-[9px] text-muted-foreground">Range</p><p className="text-base font-black font-mono text-amber-400">{p(marketData.todayHigh - marketData.todayLow)}</p></div>
+                  <div className="text-right"><p className="text-[9px] text-muted-foreground">Today L</p><p className="text-base font-black font-mono text-rose-400">{p(marketData.todayLow)}</p></div>
                 </div>
-                <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden">
+                <div className="w-full h-1.5 bg-card rounded-full overflow-hidden">
                   <div className="h-1.5 rounded-full bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400" style={{ width: "100%" }} />
                 </div>
               </>
             ) : (
-              <p className="text-[10px] text-slate-600 italic">{mdLoading ? "Loading..." : "No data"}</p>
+              <p className="text-[10px] text-muted-foreground/70 italic">{mdLoading ? "Loading..." : "No data"}</p>
             )}
           </CardContent>
         </Card>
@@ -403,9 +403,9 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
           const stats = calcStats(sessionTrades[key])
           const isActive = key === currentSession
           return (
-            <Card key={key} className="bg-[#070b12]/60 border shadow-xl backdrop-blur-md transition-all"
+            <Card key={key} className="bg-card/60 border shadow-xl backdrop-blur-md transition-all"
               style={{ borderColor: isActive ? sess.color + "80" : "#1e293b", boxShadow: isActive ? `0 0 18px ${sess.glow}` : undefined }}>
-              <CardHeader className="bg-[#000001] py-2.5 px-3 border-b border-slate-900 flex flex-row items-center justify-between">
+              <CardHeader className="bg-background py-2.5 px-3 border-b border-border flex flex-row items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Clock className="w-3 h-3" style={{ color: sess.color }} />
                   <span className="text-[10px] font-black font-mono tracking-widest uppercase" style={{ color: sess.color }}>{sess.label}</span>
@@ -416,15 +416,15 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
                 )}
               </CardHeader>
               <CardContent className="p-3 space-y-2">
-                <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase">Net P&L</span>
+                <div className="flex justify-between"><span className="text-[9px] text-muted-foreground uppercase">Net P&L</span>
                   <span className={`text-sm font-black font-mono ${stats.netPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                     {stats.netPnl >= 0 ? "+" : ""}${stats.netPnl.toFixed(2)}
                   </span>
                 </div>
-                <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase">Win Rate</span><span className="text-sm font-black font-mono text-slate-200">{stats.winRate}%</span></div>
-                <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase">P. Factor</span><span className="text-xs font-black font-mono text-amber-400">{stats.profitFactor}</span></div>
-                <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase">Signals</span><span className="text-xs font-black font-mono text-slate-300">{stats.wins}W/{stats.losses}L</span></div>
-                <div className="w-full bg-slate-900 rounded-full h-1 mt-1">
+                <div className="flex justify-between"><span className="text-[9px] text-muted-foreground uppercase">Win Rate</span><span className="text-sm font-black font-mono text-foreground">{stats.winRate}%</span></div>
+                <div className="flex justify-between"><span className="text-[9px] text-muted-foreground uppercase">P. Factor</span><span className="text-xs font-black font-mono text-amber-400">{stats.profitFactor}</span></div>
+                <div className="flex justify-between"><span className="text-[9px] text-muted-foreground uppercase">Signals</span><span className="text-xs font-black font-mono text-foreground">{stats.wins}W/{stats.losses}L</span></div>
+                <div className="w-full bg-card rounded-full h-1 mt-1">
                   <div className="h-1 rounded-full transition-all" style={{ width: stats.total > 0 ? `${(stats.wins / stats.total) * 100}%` : "0%", backgroundColor: sess.color }} />
                 </div>
               </CardContent>
@@ -437,15 +437,15 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
       <div>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Crosshair className="w-4 h-4 text-green-400" />
-            <span className="text-xs font-black tracking-widest uppercase text-slate-300">Structural & Liquidity References</span>
+            <Crosshair className="w-4 h-4 text-primary" />
+            <span className="text-xs font-black tracking-widest uppercase text-foreground">Structural & Liquidity References</span>
           </div>
           <div className="flex items-center gap-2">
             {/* Market asset toggle for levels section */}
-            <div className="flex flex-wrap gap-1 bg-[#03050a] p-1 rounded-lg border border-slate-800">
+            <div className="flex flex-wrap gap-1 bg-secondary p-1 rounded-lg border border-border">
               {(["XAUUSD", "USTEC", "EURUSD", "GBPUSD", "BTCUSD"] as const).map(a => (
                 <button key={a} onClick={() => setMarketAsset(a)}
-                  className={`px-2 py-1 text-[9px] font-mono font-bold tracking-widest rounded transition-all ${marketAsset === a ? "bg-green-500/10 text-green-400 border border-green-500/20" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`px-2 py-1 text-[9px] font-mono font-bold tracking-widest rounded transition-all ${marketAsset === a ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"}`}>
                   {a === "XAUUSD" ? "🥇 XAU" :
                    a === "USTEC" ? "⚡ USTEC" :
                    a === "EURUSD" ? "💶 EUR" :
@@ -455,8 +455,8 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
               ))}
             </div>
             <button onClick={fetchMarketData} disabled={mdLoading}
-              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-all disabled:opacity-50">
-              <RefreshCw className={`w-3 h-3 text-slate-400 ${mdLoading ? "animate-spin" : ""}`} />
+              className="p-1.5 rounded-lg bg-muted hover:bg-muted border border-muted transition-all disabled:opacity-50">
+              <RefreshCw className={`w-3 h-3 text-muted-foreground ${mdLoading ? "animate-spin" : ""}`} />
             </button>
           </div>
         </div>
@@ -466,17 +466,17 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
             Market data unavailable. Check your network or try refreshing.
           </div>
         ) : !marketData ? (
-          <div className="p-4 rounded-xl border border-slate-800 bg-[#070b12]/40 text-slate-500 text-xs font-mono animate-pulse">
+          <div className="p-4 rounded-xl border border-border bg-card/40 text-muted-foreground text-xs font-mono animate-pulse">
             Fetching live structural levels for {marketAsset}...
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
             {/* Previous Day/Week Levels */}
-            <Card className="bg-[#070b12]/60 border border-slate-800 shadow-xl">
-              <CardHeader className="bg-[#000001] py-2.5 px-4 border-b border-slate-900 flex flex-row items-center gap-2">
+            <Card className="bg-card/60 border border-border shadow-xl">
+              <CardHeader className="bg-background py-2.5 px-4 border-b border-border flex flex-row items-center gap-2">
                 <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
-                <CardTitle className="text-[10px] font-mono font-black tracking-widest text-slate-400 uppercase">Prev Day / Week Levels</CardTitle>
+                <CardTitle className="text-[10px] font-mono font-black tracking-widest text-muted-foreground uppercase">Prev Day / Week Levels</CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-2.5">
                 {[
@@ -486,8 +486,8 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
                   { label: "PWH (Prev Week High)",  val: p(marketData.pwh), color: "text-emerald-300" },
                   { label: "PWL (Prev Week Low)",   val: p(marketData.pwl), color: "text-rose-300"    },
                 ].map(({ label, val, color }) => (
-                  <div key={label} className="flex justify-between items-center py-1 border-b border-slate-900/50 last:border-0">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">{label}</span>
+                  <div key={label} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">{label}</span>
                     <span className={`text-sm font-black font-mono ${color}`}>{val}</span>
                   </div>
                 ))}
@@ -495,29 +495,29 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
             </Card>
 
             {/* Equal Highs/Lows + FVG */}
-            <Card className="bg-[#070b12]/60 border border-slate-800 shadow-xl">
-              <CardHeader className="bg-[#000001] py-2.5 px-4 border-b border-slate-900 flex flex-row items-center gap-2">
+            <Card className="bg-card/60 border border-border shadow-xl">
+              <CardHeader className="bg-background py-2.5 px-4 border-b border-border flex flex-row items-center gap-2">
                 <Target className="w-3.5 h-3.5 text-amber-400" />
-                <CardTitle className="text-[10px] font-mono font-black tracking-widest text-slate-400 uppercase">EQH / EQL / Liquidity</CardTitle>
+                <CardTitle className="text-[10px] font-mono font-black tracking-widest text-muted-foreground uppercase">EQH / EQL / Liquidity</CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-2.5">
                 {marketData.eqhs.length === 0 && marketData.eqls.length === 0 ? (
-                  <p className="text-[10px] text-slate-600 italic">No equal levels detected in current window.</p>
+                  <p className="text-[10px] text-muted-foreground/70 italic">No equal levels detected in current window.</p>
                 ) : null}
                 {marketData.eqhs.map((lvl, i) => (
-                  <div key={`eqh-${i}`} className="flex justify-between items-center py-1 border-b border-slate-900/50">
+                  <div key={`eqh-${i}`} className="flex justify-between items-center py-1 border-b border-border/50">
                     <div className="flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">EQH {i + 1} (Sell-Side)</span>
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">EQH {i + 1} (Sell-Side)</span>
                     </div>
                     <span className="text-sm font-black font-mono text-emerald-400">{p(lvl)}</span>
                   </div>
                 ))}
                 {marketData.eqls.map((lvl, i) => (
-                  <div key={`eql-${i}`} className="flex justify-between items-center py-1 border-b border-slate-900/50 last:border-0">
+                  <div key={`eql-${i}`} className="flex justify-between items-center py-1 border-b border-border/50 last:border-0">
                     <div className="flex items-center gap-1.5">
                       <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
-                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">EQL {i + 1} (Buy-Side)</span>
+                      <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">EQL {i + 1} (Buy-Side)</span>
                     </div>
                     <span className="text-sm font-black font-mono text-rose-400">{p(lvl)}</span>
                   </div>
@@ -526,14 +526,14 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
             </Card>
 
             {/* Fair Value Gaps */}
-            <Card className="bg-[#070b12]/60 border border-slate-800 shadow-xl">
-              <CardHeader className="bg-[#000001] py-2.5 px-4 border-b border-slate-900 flex flex-row items-center gap-2">
+            <Card className="bg-card/60 border border-border shadow-xl">
+              <CardHeader className="bg-background py-2.5 px-4 border-b border-border flex flex-row items-center gap-2">
                 <Zap className="w-3.5 h-3.5 text-violet-400" />
-                <CardTitle className="text-[10px] font-mono font-black tracking-widest text-slate-400 uppercase">Fair Value Gaps (FVG)</CardTitle>
+                <CardTitle className="text-[10px] font-mono font-black tracking-widest text-muted-foreground uppercase">Fair Value Gaps (FVG)</CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-2.5">
                 {marketData.fvgs.length === 0 ? (
-                  <p className="text-[10px] text-slate-600 italic">No FVGs detected in current window.</p>
+                  <p className="text-[10px] text-muted-foreground/70 italic">No FVGs detected in current window.</p>
                 ) : (
                   marketData.fvgs.map((fvg, i) => (
                     <div key={i} className="p-2 rounded-lg border space-y-1"
@@ -545,11 +545,11 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
                             {fvg.direction === 'bull' ? 'Bullish FVG' : 'Bearish FVG'}
                           </span>
                         </div>
-                        <span className="text-[9px] text-slate-600 font-mono">{fvg.date}</span>
+                        <span className="text-[9px] text-muted-foreground/70 font-mono">{fvg.date}</span>
                       </div>
                       <div className="flex justify-between text-[10px] font-mono">
-                        <span className="text-slate-400">Top: <span className="text-slate-200 font-bold">{p(fvg.top)}</span></span>
-                        <span className="text-slate-400">Bot: <span className="text-slate-200 font-bold">{p(fvg.bottom)}</span></span>
+                        <span className="text-muted-foreground">Top: <span className="text-foreground font-bold">{p(fvg.top)}</span></span>
+                        <span className="text-muted-foreground">Bot: <span className="text-foreground font-bold">{p(fvg.bottom)}</span></span>
                       </div>
                     </div>
                   ))
@@ -565,23 +565,23 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-indigo-400" />
-            <span className="text-xs font-black tracking-widest uppercase text-slate-300">Live Chart Analysis</span>
+            <span className="text-xs font-black tracking-widest uppercase text-foreground">Live Chart Analysis</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {/* Intraday / Swing toggle */}
-            <div className="flex gap-1 bg-[#03050a] p-1 rounded-lg border border-slate-800">
+            <div className="flex gap-1 bg-secondary p-1 rounded-lg border border-border">
               {(["INTRADAY", "SWING"] as const).map(m => (
                 <button key={m} onClick={() => setTraderMode(m)}
-                  className={`px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-md transition-all ${traderMode === m ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`px-3 py-1 text-[10px] font-black tracking-widest uppercase rounded-md transition-all ${traderMode === m ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/30" : "text-muted-foreground hover:text-foreground"}`}>
                   {m}
                 </button>
               ))}
             </div>
             {/* Interval picker */}
-            <div className="flex gap-1 bg-[#03050a] p-1 rounded-lg border border-slate-800">
+            <div className="flex gap-1 bg-secondary p-1 rounded-lg border border-border">
               {(traderMode === "INTRADAY" ? ["5","15","30"] : ["60","240","D"]).map(iv => (
                 <button key={iv} onClick={() => setInterval(iv)}
-                  className={`px-3 py-1 text-[10px] font-mono font-black rounded-md transition-all ${interval === iv ? "bg-green-500/10 text-green-400 border border-green-500/20" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`px-3 py-1 text-[10px] font-mono font-black rounded-md transition-all ${interval === iv ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"}`}>
                   {iv === "60" ? "1H" : iv === "240" ? "4H" : iv === "D" ? "1D" : `${iv}M`}
                 </button>
               ))}
@@ -589,10 +589,10 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-800 overflow-hidden bg-[#000001]" style={{ height: 460 }}>
+        <div className="rounded-xl border border-border overflow-hidden bg-background" style={{ height: 460 }}>
           <TVChart symbol={marketAsset} interval={interval} />
         </div>
-        <p className="text-[9px] text-slate-700 font-mono mt-1.5 text-right">
+        <p className="text-[9px] text-muted-foreground/50 font-mono mt-1.5 text-right">
           Powered by TradingView · {marketAsset} · {interval === "60" ? "1H" : interval === "240" ? "4H" : interval === "D" ? "Daily" : `${interval}M`} chart (UTC)
         </p>
       </div>
@@ -602,7 +602,7 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
         <div>
           <div className="flex items-center gap-2 mb-3">
             <BarChart3 className="w-4 h-4 text-cyan-400" />
-            <span className="text-xs font-black tracking-widest uppercase text-slate-300">Volume Profile — Market Magnets</span>
+            <span className="text-xs font-black tracking-widest uppercase text-foreground">Volume Profile — Market Magnets</span>
           </div>
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
             {[
@@ -611,12 +611,12 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
               { label: "VAH",                    sub: "Value Area High (70%)",        val: p(marketData.vah),   color: "text-emerald-400", desc: "Upper boundary of the 70% volume value area." },
               { label: "VAL",                    sub: "Value Area Low (70%)",         val: p(marketData.val),   color: "text-rose-400",    desc: "Lower boundary of the 70% volume value area." },
             ].map(({ label, sub, val, color, desc }) => (
-              <Card key={label} className="bg-[#070b12]/60 border border-slate-800 shadow-xl">
+              <Card key={label} className="bg-card/60 border border-border shadow-xl">
                 <CardContent className="p-4">
-                  <p className="text-[9px] text-slate-500 uppercase tracking-widest font-bold">{label}</p>
-                  <p className="text-[10px] text-slate-600 font-mono mb-1.5">{sub}</p>
+                  <p className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">{label}</p>
+                  <p className="text-[10px] text-muted-foreground/70 font-mono mb-1.5">{sub}</p>
                   <p className={`text-xl font-black font-mono ${color}`}>{val}</p>
-                  <p className="text-[9px] text-slate-600 mt-1.5 leading-relaxed">{desc}</p>
+                  <p className="text-[9px] text-muted-foreground/70 mt-1.5 leading-relaxed">{desc}</p>
                 </CardContent>
               </Card>
             ))}
@@ -628,15 +628,15 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Shield className="w-4 h-4 text-rose-400" />
-          <span className="text-xs font-black tracking-widest uppercase text-slate-300">Psychology & Risk Command Center</span>
+          <span className="text-xs font-black tracking-widest uppercase text-foreground">Psychology & Risk Command Center</span>
         </div>
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
           {/* R/R Calculator */}
-          <Card className="bg-[#070b12]/60 border border-slate-800 shadow-xl">
-            <CardHeader className="bg-[#000001] py-2.5 px-4 border-b border-slate-900 flex flex-row items-center gap-2">
+          <Card className="bg-card/60 border border-border shadow-xl">
+            <CardHeader className="bg-background py-2.5 px-4 border-b border-border flex flex-row items-center gap-2">
               <Calculator className="w-3.5 h-3.5 text-blue-400" />
-              <CardTitle className="text-[10px] font-mono font-black tracking-widest text-slate-400 uppercase">R:R Calculator</CardTitle>
+              <CardTitle className="text-[10px] font-mono font-black tracking-widest text-muted-foreground uppercase">R:R Calculator</CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-3">
               {[
@@ -645,22 +645,22 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
                 { label: "Take Profit",  val: rrTP,     set: setRRTP,    placeholder: "e.g. 3400.00" },
               ].map(({ label, val, set, placeholder }) => (
                 <div key={label}>
-                  <label className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block mb-1">{label}</label>
+                  <label className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">{label}</label>
                   <input type="number" value={val} onChange={e => set(e.target.value)} placeholder={placeholder}
-                    className="w-full bg-[#03050a] border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono text-slate-200 placeholder-slate-700 focus:outline-none focus:border-green-500/40 focus:ring-1 focus:ring-green-500/20" />
+                    className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-xs font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20" />
                 </div>
               ))}
               {rrCalc ? (
-                <div className="mt-2 p-3 rounded-lg bg-black/30 border border-slate-800 space-y-1.5">
-                  <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase">Risk</span><span className="text-sm font-black font-mono text-rose-400">{rrCalc.risk} pts</span></div>
-                  <div className="flex justify-between"><span className="text-[9px] text-slate-500 uppercase">Reward</span><span className="text-sm font-black font-mono text-emerald-400">{rrCalc.reward} pts</span></div>
-                  <div className="flex justify-between border-t border-slate-800 pt-1.5">
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">R:R Ratio</span>
+                <div className="mt-2 p-3 rounded-lg bg-black/30 border border-border space-y-1.5">
+                  <div className="flex justify-between"><span className="text-[9px] text-muted-foreground uppercase">Risk</span><span className="text-sm font-black font-mono text-rose-400">{rrCalc.risk} pts</span></div>
+                  <div className="flex justify-between"><span className="text-[9px] text-muted-foreground uppercase">Reward</span><span className="text-sm font-black font-mono text-emerald-400">{rrCalc.reward} pts</span></div>
+                  <div className="flex justify-between border-t border-border pt-1.5">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">R:R Ratio</span>
                     <span className={`text-lg font-black font-mono ${rrCalc.color}`}>1 : {rrCalc.ratio}</span>
                   </div>
                 </div>
               ) : (
-                <div className="p-3 rounded-lg bg-black/20 border border-slate-800/50 text-center text-[10px] text-slate-600 font-mono italic">
+                <div className="p-3 rounded-lg bg-black/20 border border-border/50 text-center text-[10px] text-muted-foreground/70 font-mono italic">
                   Enter levels above to calculate
                 </div>
               )}
@@ -668,25 +668,25 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
           </Card>
 
           {/* ATR Stop Distances */}
-          <Card className="bg-[#070b12]/60 border border-slate-800 shadow-xl">
-            <CardHeader className="bg-[#000001] py-2.5 px-4 border-b border-slate-900 flex flex-row items-center gap-2">
+          <Card className="bg-card/60 border border-border shadow-xl">
+            <CardHeader className="bg-background py-2.5 px-4 border-b border-border flex flex-row items-center gap-2">
               <Activity className="w-3.5 h-3.5 text-amber-400" />
-              <CardTitle className="text-[10px] font-mono font-black tracking-widest text-slate-400 uppercase">ATR Stop Distances</CardTitle>
+              <CardTitle className="text-[10px] font-mono font-black tracking-widest text-muted-foreground uppercase">ATR Stop Distances</CardTitle>
             </CardHeader>
             <CardContent className="p-4">
               {atrStops ? (
                 <div className="space-y-2.5">
-                  <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-                    <span className="text-[9px] text-slate-500 uppercase tracking-wider">ATR (14-day)</span>
+                  <div className="flex justify-between items-center pb-2 border-b border-border">
+                    <span className="text-[9px] text-muted-foreground uppercase tracking-wider">ATR (14-day)</span>
                     <span className="text-base font-black font-mono text-cyan-400">{p(marketData!.atr)} pts</span>
                   </div>
                   {atrStops.map(s => (
-                    <div key={s.mult} className={`p-2.5 rounded-lg border ${s.mult === 2.2 ? "border-green-500/30 bg-green-500/5" : "border-slate-800 bg-black/20"}`}>
+                    <div key={s.mult} className={`p-2.5 rounded-lg border ${s.mult === 2.2 ? "border-primary/30 bg-green-500/5" : "border-border bg-black/20"}`}>
                       <div className="flex justify-between items-center mb-1">
-                        <span className={`text-[10px] font-black font-mono ${s.mult === 2.2 ? "text-green-400" : "text-slate-400"}`}>
+                        <span className={`text-[10px] font-black font-mono ${s.mult === 2.2 ? "text-primary" : "text-muted-foreground"}`}>
                           {s.mult}× ATR {s.mult === 2.2 ? "← Locked Base" : ""}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-300">{s.dist} pts</span>
+                        <span className="text-[10px] font-mono text-foreground">{s.dist} pts</span>
                       </div>
                       <div className="flex justify-between text-[9px] font-mono">
                         <span className="text-emerald-400">⬆ {s.above}</span>
@@ -696,18 +696,18 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
                   ))}
                 </div>
               ) : (
-                <p className="text-[10px] text-slate-600 italic text-center py-4">Load market data to see ATR stops</p>
+                <p className="text-[10px] text-muted-foreground/70 italic text-center py-4">Load market data to see ATR stops</p>
               )}
             </CardContent>
           </Card>
 
           {/* Rule Checklist */}
-          <Card className="bg-[#070b12]/60 border shadow-xl transition-all"
+          <Card className="bg-card/60 border shadow-xl transition-all"
             style={{ borderColor: allGreen ? "rgba(52,211,153,0.3)" : "rgba(30,41,59,1)", boxShadow: allGreen ? "0 0 20px rgba(52,211,153,0.08)" : undefined }}>
-            <CardHeader className="bg-[#000001] py-2.5 px-4 border-b border-slate-900 flex flex-row items-center justify-between">
+            <CardHeader className="bg-background py-2.5 px-4 border-b border-border flex flex-row items-center justify-between">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className={`w-3.5 h-3.5 ${allGreen ? "text-emerald-400" : "text-slate-500"}`} />
-                <CardTitle className="text-[10px] font-mono font-black tracking-widest text-slate-400 uppercase">Trade Readiness Checklist</CardTitle>
+                <CheckCircle2 className={`w-3.5 h-3.5 ${allGreen ? "text-emerald-400" : "text-muted-foreground"}`} />
+                <CardTitle className="text-[10px] font-mono font-black tracking-widest text-muted-foreground uppercase">Trade Readiness Checklist</CardTitle>
               </div>
               <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border font-mono ${allGreen ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-rose-400 border-rose-500/30 bg-rose-500/10"}`}>
                 {allGreen ? "✓ GO" : "✗ HOLD"}
@@ -717,18 +717,18 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
               {allChecks.map(c => (
                 <div key={c.key}
                   onClick={() => !c.auto && toggleCheck(c.key as keyof typeof checks)}
-                  className={`flex items-center justify-between p-2 rounded-lg border transition-all ${!c.auto ? "cursor-pointer hover:border-slate-700" : ""} ${c.value ? "border-emerald-900/40 bg-emerald-900/8" : "border-rose-900/40 bg-rose-900/8"}`}>
+                  className={`flex items-center justify-between p-2 rounded-lg border transition-all ${!c.auto ? "cursor-pointer hover:border-muted" : ""} ${c.value ? "border-emerald-900/40 bg-emerald-900/8" : "border-rose-900/40 bg-rose-900/8"}`}>
                   <div className="flex items-center gap-2">
                     {c.value
                       ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
                       : <XCircle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />}
                     <div>
-                      <p className="text-[10px] font-bold text-slate-300">{c.label}</p>
-                      <p className="text-[9px] text-slate-600 font-mono">{c.note}</p>
+                      <p className="text-[10px] font-bold text-foreground">{c.label}</p>
+                      <p className="text-[9px] text-muted-foreground/70 font-mono">{c.note}</p>
                     </div>
                   </div>
                   {!c.auto && (
-                    <span className="text-[8px] font-bold text-slate-600 uppercase tracking-wider">tap</span>
+                    <span className="text-[8px] font-bold text-muted-foreground/70 uppercase tracking-wider">tap</span>
                   )}
                 </div>
               ))}
@@ -738,17 +738,17 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
       </div>
 
       {/* ══ SECTION 8: JEAFX Bias Notes ════════════════════════════════════════ */}
-      <Card className="bg-[#070b12]/40 border border-slate-800 shadow-2xl">
-        <CardHeader className="bg-[#000001] py-3 px-4 border-b border-slate-900">
+      <Card className="bg-card/40 border border-border shadow-2xl">
+        <CardHeader className="bg-background py-3 px-4 border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Flame className="w-4 h-4 text-amber-500" />
-              <CardTitle className="text-[11px] font-mono font-bold tracking-widest text-slate-400 uppercase">JEAFX Institutional Bias Journal</CardTitle>
+              <CardTitle className="text-[11px] font-mono font-bold tracking-widest text-muted-foreground uppercase">JEAFX Institutional Bias Journal</CardTitle>
             </div>
-            <div className="flex flex-wrap gap-1 bg-[#03050a] p-1 rounded-lg border border-slate-800">
+            <div className="flex flex-wrap gap-1 bg-secondary p-1 rounded-lg border border-border">
               {(["XAUUSD", "USTEC", "EURUSD", "GBPUSD", "BTCUSD"] as const).map(a => (
                 <button key={a} onClick={() => setNotesAsset(a)}
-                  className={`px-2 py-0.5 text-[9px] font-mono font-bold tracking-widest rounded transition-all ${notesAsset === a ? "bg-green-500/10 text-green-400 border border-green-500/20" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`px-2 py-0.5 text-[9px] font-mono font-bold tracking-widest rounded transition-all ${notesAsset === a ? "bg-primary/10 text-primary border border-primary/20" : "text-muted-foreground hover:text-foreground"}`}>
                   {a}
                 </button>
               ))}
@@ -756,15 +756,15 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
           </div>
         </CardHeader>
         <CardContent className="p-4">
-          <p className="text-[10px] text-slate-500 mb-3 leading-relaxed">
-            Log your supply/demand zones, order block bias, and structural targets for <span className="text-slate-300 font-bold">{notesAsset}</span>. Saved locally per asset.
+          <p className="text-[10px] text-muted-foreground mb-3 leading-relaxed">
+            Log your supply/demand zones, order block bias, and structural targets for <span className="text-foreground font-bold">{notesAsset}</span>. Saved locally per asset.
           </p>
           <textarea value={notes} onChange={e => saveNotes(e.target.value)}
             placeholder={`Enter structural notes for ${notesAsset}...\n\nE.g:\n· PDH: 3345.2 → resistance target above\n· OB Demand: 3290–3310 (4H bullish OB)\n· Bias: Bullish above AVWAP ${marketData ? p(marketData.avwap) : "—"}`}
-            className="w-full min-h-[140px] bg-[#03050a] border border-slate-800 rounded-lg p-4 text-[11px] font-mono text-slate-300 placeholder-slate-700 focus:outline-none focus:border-green-500/40 focus:ring-1 focus:ring-green-500/20 transition-all resize-none" />
+            className="w-full min-h-[140px] bg-secondary border border-border rounded-lg p-4 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all resize-none" />
           <div className="flex items-center gap-1.5 mt-2">
             <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-[9px] font-mono text-slate-700">Auto-saved · {notesAsset} workspace</span>
+            <span className="text-[9px] font-mono text-muted-foreground/50">Auto-saved · {notesAsset} workspace</span>
           </div>
         </CardContent>
       </Card>

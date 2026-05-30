@@ -13,6 +13,7 @@ import {
   type Candle, classifyCandle, calculateRSI, rsiContext,
   trendContext, macroRegime, getSessionAtTime, getKillZoneAtTime, levelProximity,
 } from "@/lib/candle-analysis"
+import { useTheme } from "@/lib/use-theme"
 
 interface MarketLevels {
   pdh?: number; pdl?: number; pdc?: number
@@ -51,6 +52,9 @@ export function CandleAnalysisView() {
   const [loading,       setLoading]       = useState(true)
   const [error,         setError]         = useState<string | null>(null)
   const [selectedIdx,   setSelectedIdx]   = useState<number | null>(null)
+
+  // Read theme so we can re-skin the chart when the user switches themes
+  const { theme } = useTheme()
 
   const symbolMeta = SYMBOLS.find(s => s.id === symbol) ?? SYMBOLS[0]
   const decimals = symbolMeta.decimals
@@ -92,38 +96,58 @@ export function CandleAnalysisView() {
   const rsiSeries = useMemo(() => calculateRSI(candles, 14), [candles])
 
   // ── Initialize chart once ───────────────────────────────
+  // Helper: read live HSL values from CSS variables on <html>
+  // and return them as 'hsl(...)' strings the chart can consume.
+  const getThemeColors = useCallback(() => {
+    if (typeof window === "undefined") {
+      return {
+        bg: "#000000", text: "#94a3b8", grid: "rgba(148,163,184,0.05)",
+        border: "rgba(148,163,184,0.1)", accent: "#16a34a",
+      }
+    }
+    const style = getComputedStyle(document.documentElement)
+    const read = (v: string) => style.getPropertyValue(v).trim()
+    return {
+      bg:     `hsl(${read("--background")})`,
+      text:   `hsl(${read("--muted-foreground")})`,
+      grid:   `hsl(${read("--border")} / 0.5)`,
+      border: `hsl(${read("--border")})`,
+      accent: `hsl(${read("--primary")})`,
+    }
+  }, [])
+
   useEffect(() => {
     if (!chartContainerRef.current || chartRef.current) return
-
     const container = chartContainerRef.current
+    const c = getThemeColors()
     const chart = createChart(container, {
       width: container.clientWidth,
       height: container.clientHeight,
       layout: {
-        background: { type: ColorType.Solid, color: "#000001" },
-        textColor: "#94a3b8",
-        fontFamily: "ui-sans-serif, system-ui, -apple-system",
+        background: { type: ColorType.Solid, color: c.bg },
+        textColor: c.text,
+        fontFamily: "var(--font-sans)",
       },
       grid: {
-        vertLines: { color: "rgba(148, 163, 184, 0.05)" },
-        horzLines: { color: "rgba(148, 163, 184, 0.05)" },
+        vertLines: { color: c.grid },
+        horzLines: { color: c.grid },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: "#5fc77a", style: 3, width: 1, labelBackgroundColor: "#5fc77a" },
-        horzLine: { color: "#5fc77a", style: 3, width: 1, labelBackgroundColor: "#5fc77a" },
+        vertLine: { color: c.accent, style: 3, width: 1, labelBackgroundColor: c.accent },
+        horzLine: { color: c.accent, style: 3, width: 1, labelBackgroundColor: c.accent },
       },
-      rightPriceScale:  { borderColor: "rgba(148, 163, 184, 0.1)", scaleMargins: { top: 0.1, bottom: 0.1 } },
-      timeScale:        { borderColor: "rgba(148, 163, 184, 0.1)", timeVisible: true, secondsVisible: false },
+      rightPriceScale:  { borderColor: c.border, scaleMargins: { top: 0.1, bottom: 0.1 } },
+      timeScale:        { borderColor: c.border, timeVisible: true, secondsVisible: false },
     })
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor:        "#10b981",
-      downColor:      "#f43f5e",
+      upColor:         "#10b981",
+      downColor:       "#f43f5e",
       borderUpColor:   "#10b981",
       borderDownColor: "#f43f5e",
-      wickUpColor:    "#10b981",
-      wickDownColor:  "#f43f5e",
+      wickUpColor:     "#10b981",
+      wickDownColor:   "#f43f5e",
     })
 
     chartRef.current = chart
@@ -161,6 +185,28 @@ export function CandleAnalysisView() {
   // ref to keep candle times accessible in the click handler closure
   const candleTimeRef = useRef<number[]>([])
   useEffect(() => { candleTimeRef.current = candles.map(c => c.time) }, [candles])
+
+  // Re-apply theme colors to chart when theme changes
+  useEffect(() => {
+    if (!chartRef.current) return
+    const c = getThemeColors()
+    chartRef.current.applyOptions({
+      layout: {
+        background: { type: ColorType.Solid, color: c.bg },
+        textColor: c.text,
+      },
+      grid: {
+        vertLines: { color: c.grid },
+        horzLines: { color: c.grid },
+      },
+      crosshair: {
+        vertLine: { color: c.accent, labelBackgroundColor: c.accent },
+        horzLine: { color: c.accent, labelBackgroundColor: c.accent },
+      },
+      rightPriceScale: { borderColor: c.border },
+      timeScale:       { borderColor: c.border },
+    })
+  }, [theme, getThemeColors])
 
   // ── Push candles to the chart whenever data changes ─────
   useEffect(() => {

@@ -350,13 +350,13 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
                   <stop offset="95%"  stopColor="#5fc77a" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e2232" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
               <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#64748b" }} />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#64748b" }}
                 tickFormatter={v => `$${v.toFixed(0)}`} />
               <Tooltip
                 formatter={(v: number) => [fmtCurrency(v), "Equity"]}
-                contentStyle={{ backgroundColor: "#141720", borderColor: "#1e2232", borderRadius: 8, color: "#f8fafc" }}
+                contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }}
                 labelStyle={{ color: "#94a3b8", fontSize: 11 }}
               />
               <Area type="monotone" dataKey="value" stroke="#5fc77a" strokeWidth={2.5} fill="url(#analyticsEquityFill)" />

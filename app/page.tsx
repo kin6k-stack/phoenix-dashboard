@@ -22,6 +22,7 @@ import { PnLHeader } from "@/components/pnl-header"
 import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
 import { PnLAnalyticsView } from "@/components/pnl-analytics-view"
 import { CandleAnalysisView } from "@/components/candle-analysis-view"
+import { SettingsPanel } from "@/components/settings-panel"
 
 interface Trade {
   id: string; date: string; symbol: string; setup: string
@@ -63,6 +64,7 @@ export default function TradingDashboard() {
   const [trades,            setTrades]            = useState<Trade[]>([])
   const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
   const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")
+  const [settingsOpen,      setSettingsOpen]      = useState(false)
   const [currentMonthYear,  setCurrentMonthYear]  = useState({
     month: new Date().getMonth(),
     year:  new Date().getFullYear(),
@@ -74,14 +76,20 @@ export default function TradingDashboard() {
 
   // ── Listen for custom nav events from child components ──
   // (CandleAnalysisView dispatches `phoenix:nav` when its
-  //  "View Economic Events" link is clicked)
+  //  "View Economic Events" link is clicked.
+  //  Sidebar dispatches `phoenix:settings` to open the panel.)
   useEffect(() => {
-    const handler = (e: Event) => {
+    const navHandler = (e: Event) => {
       const ev = e as CustomEvent<string>
       if (typeof ev.detail === "string") setActiveNavItem(ev.detail)
     }
-    window.addEventListener("phoenix:nav", handler)
-    return () => window.removeEventListener("phoenix:nav", handler)
+    const settingsHandler = () => setSettingsOpen(true)
+    window.addEventListener("phoenix:nav", navHandler)
+    window.addEventListener("phoenix:settings", settingsHandler)
+    return () => {
+      window.removeEventListener("phoenix:nav", navHandler)
+      window.removeEventListener("phoenix:settings", settingsHandler)
+    }
   }, [])
 
   useEffect(() => {
@@ -150,10 +158,10 @@ export default function TradingDashboard() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0d0f14" }}>
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-8 h-8 rounded-full border-2 border-[#5fc77a] border-t-transparent animate-spin" />
-          <p className="text-xs font-mono text-slate-500 tracking-widest uppercase">Authenticating…</p>
+          <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          <p className="text-xs font-mono text-muted-foreground tracking-widest uppercase">Authenticating…</p>
         </div>
       </div>
     )
@@ -278,7 +286,7 @@ export default function TradingDashboard() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden" style={{ background: "#0d0f14" }}>
+    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-background">
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} trades={trades} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {renderContent()}
@@ -288,6 +296,7 @@ export default function TradingDashboard() {
         onOpenChange={(open: boolean) => { setIsAddTradeOpen(open); if (!open) { setSelectedDate(null); setEditingTrade(null) } }}
         onSubmit={handleSaveTrade} initialDate={selectedDate} existingTrade={editingTrade} trades={trades}
       />
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
   )
 }

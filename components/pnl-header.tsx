@@ -100,7 +100,7 @@ export function PnLHeader({
               <div
                 role="listbox"
                 className="absolute top-full left-0 right-0 mt-1 rounded-lg border shadow-2xl overflow-hidden z-50"
-                style={{ background: "#141720", borderColor: "#1e2232" }}>
+                style={{ background: "hsl(var(--card))", borderColor: "hsl(var(--border))" }}>
                 {EXCHANGE_OPTIONS.map(opt => {
                   const isSelected = opt === exchange
                   return (
@@ -112,7 +112,7 @@ export function PnLHeader({
                       className={`w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left text-xs font-bold transition-colors min-h-[40px]
                         ${isSelected
                           ? "bg-emerald-500/10 text-emerald-400"
-                          : "text-slate-300 hover:bg-white/[0.04]"}`}>
+                          : "text-foreground hover:bg-white/[0.04]"}`}>
                       <span className="truncate">{opt}</span>
                       {isSelected && <Check size={13} className="flex-shrink-0 text-emerald-400" />}
                     </button>

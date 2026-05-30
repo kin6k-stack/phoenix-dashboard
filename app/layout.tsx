@@ -1,27 +1,53 @@
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import { Providers } from '@/components/providers'
-import './globals.css'
-
-const geist     = Geist({ subsets: ["latin"],      variable: "--font-geist" })
-const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
+import type { Metadata } from "next"
+import { GeistSans } from "geist/font/sans"
+import { GeistMono } from "geist/font/mono"
+import "./globals.css"
+import { AuthProvider } from "@/lib/auth-context"
 
 export const metadata: Metadata = {
-  title: 'Phoenix Trading Dashboard',
-  description: 'Institutional-grade trading analytics. Live MT5 bot sync, session intelligence, AI market bias.',
-  icons: {
-    icon: '/icon.svg',
-    apple: '/apple-icon.png',
-  },
+  title: "Phoenix Trading Ecosystem",
+  description: "Institutional-grade algorithmic trading dashboard",
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// This script runs synchronously in <head> BEFORE React hydrates.
+// It reads localStorage and applies the saved theme/density/animation
+// settings to <html> so the page never flashes the wrong theme.
+const themeInitScript = `
+(function() {
+  try {
+    var saved = localStorage.getItem('phoenix_settings');
+    var settings = saved ? JSON.parse(saved) : {};
+    var theme = settings.theme || 'oled';
+    var density = settings.density || 'default';
+    var animations = settings.animations !== false;
+    var html = document.documentElement;
+    html.setAttribute('data-theme', theme);
+    html.setAttribute('data-density', density);
+    if (!animations) html.classList.add('no-animations');
+  } catch (e) {
+    document.documentElement.setAttribute('data-theme', 'oled');
+    document.documentElement.setAttribute('data-density', 'default');
+  }
+})();
+`
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
-      <body className="font-sans antialiased bg-background text-foreground">
-        <Providers>{children}</Providers>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+    <html
+      lang="en"
+      data-theme="oled"
+      data-density="default"
+      className={`${GeistSans.variable} ${GeistMono.variable}`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
+      <body className="font-sans antialiased bg-background text-foreground min-h-screen">
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )
