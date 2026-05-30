@@ -7,6 +7,7 @@ import {
   Cpu, Flame, BarChart3, Target, RefreshCw, ChevronDown, ChevronUp,
   CheckCircle2, XCircle, AlertCircle, Calculator,
 } from "lucide-react"
+import { isMarketOpen, classifyAsset, getMarketReopenTime, formatTimeUntilOpen } from "@/lib/market-hours"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Trade {
@@ -83,10 +84,15 @@ function getCountdown(now: Date): { name: string; hh: string; mm: string; ss: st
   return { name: "London Open", hh: String(Math.floor(diff / 3600)).padStart(2,'0'), mm: String(Math.floor((diff % 3600) / 60)).padStart(2,'0'), ss: String(diff % 60).padStart(2,'0') }
 }
 
-function matchSymbol(sym: string, filter: "XAUUSD" | "USTEC"): boolean {
+type AssetSymbol = "XAUUSD" | "USTEC" | "EURUSD" | "GBPUSD" | "BTCUSD"
+
+function matchSymbol(sym: string, filter: AssetSymbol): boolean {
   const s = sym.toUpperCase()
   if (filter === "XAUUSD") return s.includes("XAU") || s.includes("GOLD") || s === "XAUUSD"
   if (filter === "USTEC")  return s.includes("NQ") || s.includes("USTEC") || s.includes("NASDAQ") || s.includes("US100") || s.includes("NDX")
+  if (filter === "EURUSD") return s.includes("EUR") && s.includes("USD")
+  if (filter === "GBPUSD") return s.includes("GBP") && s.includes("USD")
+  if (filter === "BTCUSD") return s.includes("BTC") || s.includes("XBT")
   return false
 }
 
@@ -118,9 +124,15 @@ function useLiveClock() {
 function TVChart({ symbol, interval }: { symbol: string; interval: string }) {
   const ref = useRef<HTMLDivElement>(null)
   // TVC:GOLD    = TradingView free spot gold — no broker connection required
-  // NASDAQ:NDX  = NASDAQ 100 index — free on all TradingView accounts, no subscription needed
-  //               (CME_MINI:NQ1! requires a CME data add-on which triggers the "only on TV" popup)
-  const tvSymbol = symbol === "XAUUSD" ? "TVC:GOLD" : "NASDAQ:NDX"
+  // NASDAQ:NDX  = NASDAQ 100 index — free on all TradingView accounts
+  // FX:EURUSD, FX:GBPUSD = free TradingView FX feed
+  // BITSTAMP:BTCUSD = free crypto feed, widely available
+  const tvSymbol =
+    symbol === "XAUUSD" ? "TVC:GOLD" :
+    symbol === "USTEC"  ? "NASDAQ:NDX" :
+    symbol === "EURUSD" ? "FX:EURUSD" :
+    symbol === "GBPUSD" ? "FX:GBPUSD" :
+    symbol === "BTCUSD" ? "BITSTAMP:BTCUSD" : "TVC:GOLD"
 
   useEffect(() => {
     if (!ref.current) return
@@ -160,13 +172,13 @@ function TVChart({ symbol, interval }: { symbol: string; interval: string }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
   const now  = useLiveClock()
-  const [assetFilter, setAssetFilter] = useState<"ALL" | "XAUUSD" | "USTEC">("ALL")
-  const [marketAsset, setMarketAsset] = useState<"XAUUSD" | "USTEC">("XAUUSD")
+  const [assetFilter, setAssetFilter] = useState<"ALL" | AssetSymbol>("ALL")
+  const [marketAsset, setMarketAsset] = useState<AssetSymbol>("XAUUSD")
   const [traderMode,  setTraderMode]  = useState<"INTRADAY" | "SWING">("INTRADAY")
   const [interval,    setInterval]    = useState("15")
   const [marketData,  setMarketData]  = useState<MarketData | null>(null)
   const [mdLoading,   setMdLoading]   = useState(false)
-  const [notesAsset,  setNotesAsset]  = useState<"XAUUSD" | "USTEC">("XAUUSD")
+  const [notesAsset,  setNotesAsset]  = useState<AssetSymbol>("XAUUSD")
   const [notes,       setNotes]       = useState("")
 
   // R/R Calculator state
@@ -272,11 +284,16 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
             </p>
           </div>
         </div>
-        <div className="flex gap-1.5 bg-[#03050a] p-1.5 rounded-lg border border-slate-800">
-          {(["ALL", "XAUUSD", "USTEC"] as const).map(a => (
+        <div className="flex flex-wrap gap-1.5 bg-[#03050a] p-1.5 rounded-lg border border-slate-800">
+          {(["ALL", "XAUUSD", "USTEC", "EURUSD", "GBPUSD", "BTCUSD"] as const).map(a => (
             <button key={a} onClick={() => setAssetFilter(a)}
-              className={`px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest rounded-md transition-all ${assetFilter === a ? "bg-green-500/10 text-green-400 border border-green-500/30" : "text-slate-500 hover:text-slate-300"}`}>
-              {a === "XAUUSD" ? "🥇 XAUUSD" : a === "USTEC" ? "⚡ USTEC" : "ALL ASSETS"}
+              className={`px-2.5 py-1.5 text-[10px] font-mono font-bold tracking-widest rounded-md transition-all ${assetFilter === a ? "bg-green-500/10 text-green-400 border border-green-500/30" : "text-slate-500 hover:text-slate-300"}`}>
+              {a === "ALL" ? "ALL" :
+               a === "XAUUSD" ? "🥇 XAU" :
+               a === "USTEC" ? "⚡ USTEC" :
+               a === "EURUSD" ? "💶 EUR" :
+               a === "GBPUSD" ? "💷 GBP" :
+               "₿ BTC"}
             </button>
           ))}
         </div>
@@ -284,35 +301,58 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
 
       {/* ══ SECTION 2: Session State Bar ═══════════════════════════════════════ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Active session & kill zone */}
-        <Card className="bg-[#070b12]/60 border border-slate-800 shadow-xl"
-          style={{ borderColor: SESSIONS[currentSession].color + "55", boxShadow: `0 0 24px ${SESSIONS[currentSession].glow}` }}>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Active Market</span>
-              <span className="text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse border"
-                style={{ color: SESSIONS[currentSession].color, borderColor: SESSIONS[currentSession].color + "60", backgroundColor: SESSIONS[currentSession].glow }}>
-                LIVE
-              </span>
-            </div>
-            <p className="text-xl font-black font-mono" style={{ color: SESSIONS[currentSession].color }}>
-              {SESSIONS[currentSession].label} Session
-            </p>
-            {killZone ? (
-              <div className="flex items-center gap-1.5 bg-black/30 rounded-lg px-2 py-1.5 border border-white/5">
-                <Flame className="w-3 h-3 animate-bounce" style={{ color: killZone.color }} />
-                <span className="text-[10px] font-black tracking-widest font-mono" style={{ color: killZone.color }}>
-                  {killZone.name}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5 bg-black/20 rounded-lg px-2 py-1.5 border border-white/5">
-                <Clock className="w-3 h-3 text-slate-600" />
-                <span className="text-[10px] font-bold text-slate-600 font-mono">No Kill Zone Active</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Active session & kill zone — dimmed on weekends for non-crypto */}
+        {(() => {
+          const mktOpen = isMarketOpen(marketAsset)
+          const isCrypto = classifyAsset(marketAsset) === "crypto"
+          const showWeekendBadge = !mktOpen && !isCrypto
+          const reopen = showWeekendBadge ? getMarketReopenTime(marketAsset) : null
+
+          return (
+            <Card
+              className={`bg-[#070b12]/60 border border-slate-800 shadow-xl transition-opacity ${showWeekendBadge ? "opacity-60" : ""}`}
+              style={{ borderColor: SESSIONS[currentSession].color + "55", boxShadow: `0 0 24px ${SESSIONS[currentSession].glow}` }}>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Active Market</span>
+                  {showWeekendBadge ? (
+                    <span className="text-[8px] font-black px-1.5 py-0.5 rounded border bg-amber-500/10 text-amber-400 border-amber-500/40">
+                      WEEKEND
+                    </span>
+                  ) : (
+                    <span className="text-[8px] font-black px-1.5 py-0.5 rounded animate-pulse border"
+                      style={{ color: SESSIONS[currentSession].color, borderColor: SESSIONS[currentSession].color + "60", backgroundColor: SESSIONS[currentSession].glow }}>
+                      LIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-xl font-black font-mono" style={{ color: SESSIONS[currentSession].color }}>
+                  {SESSIONS[currentSession].label} Session
+                </p>
+                {showWeekendBadge ? (
+                  <div className="flex items-center gap-1.5 bg-amber-500/5 rounded-lg px-2 py-1.5 border border-amber-500/20">
+                    <Clock className="w-3 h-3 text-amber-400" />
+                    <span className="text-[10px] font-bold text-amber-400 font-mono">
+                      Reopens in {reopen ? formatTimeUntilOpen(reopen) : "—"}
+                    </span>
+                  </div>
+                ) : killZone ? (
+                  <div className="flex items-center gap-1.5 bg-black/30 rounded-lg px-2 py-1.5 border border-white/5">
+                    <Flame className="w-3 h-3 animate-bounce" style={{ color: killZone.color }} />
+                    <span className="text-[10px] font-black tracking-widest font-mono" style={{ color: killZone.color }}>
+                      {killZone.name}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 bg-black/20 rounded-lg px-2 py-1.5 border border-white/5">
+                    <Clock className="w-3 h-3 text-slate-600" />
+                    <span className="text-[10px] font-bold text-slate-600 font-mono">No Kill Zone Active</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )
+        })()}
 
         {/* Countdown timer */}
         <Card className="bg-[#070b12]/60 border border-slate-800 shadow-xl">
@@ -402,11 +442,15 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
           </div>
           <div className="flex items-center gap-2">
             {/* Market asset toggle for levels section */}
-            <div className="flex gap-1 bg-[#03050a] p-1 rounded-lg border border-slate-800">
-              {(["XAUUSD", "USTEC"] as const).map(a => (
+            <div className="flex flex-wrap gap-1 bg-[#03050a] p-1 rounded-lg border border-slate-800">
+              {(["XAUUSD", "USTEC", "EURUSD", "GBPUSD", "BTCUSD"] as const).map(a => (
                 <button key={a} onClick={() => setMarketAsset(a)}
-                  className={`px-2.5 py-1 text-[9px] font-mono font-bold tracking-widest rounded transition-all ${marketAsset === a ? "bg-green-500/10 text-green-400 border border-green-500/20" : "text-slate-500 hover:text-slate-300"}`}>
-                  {a === "XAUUSD" ? "🥇 XAUUSD" : "⚡ USTEC"}
+                  className={`px-2 py-1 text-[9px] font-mono font-bold tracking-widest rounded transition-all ${marketAsset === a ? "bg-green-500/10 text-green-400 border border-green-500/20" : "text-slate-500 hover:text-slate-300"}`}>
+                  {a === "XAUUSD" ? "🥇 XAU" :
+                   a === "USTEC" ? "⚡ USTEC" :
+                   a === "EURUSD" ? "💶 EUR" :
+                   a === "GBPUSD" ? "💷 GBP" :
+                   "₿ BTC"}
                 </button>
               ))}
             </div>
@@ -701,10 +745,10 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
               <Flame className="w-4 h-4 text-amber-500" />
               <CardTitle className="text-[11px] font-mono font-bold tracking-widest text-slate-400 uppercase">JEAFX Institutional Bias Journal</CardTitle>
             </div>
-            <div className="flex gap-1 bg-[#03050a] p-1 rounded-lg border border-slate-800">
-              {(["XAUUSD", "USTEC"] as const).map(a => (
+            <div className="flex flex-wrap gap-1 bg-[#03050a] p-1 rounded-lg border border-slate-800">
+              {(["XAUUSD", "USTEC", "EURUSD", "GBPUSD", "BTCUSD"] as const).map(a => (
                 <button key={a} onClick={() => setNotesAsset(a)}
-                  className={`px-2.5 py-0.5 text-[9px] font-mono font-bold tracking-widest rounded transition-all ${notesAsset === a ? "bg-green-500/10 text-green-400 border border-green-500/20" : "text-slate-500 hover:text-slate-300"}`}>
+                  className={`px-2 py-0.5 text-[9px] font-mono font-bold tracking-widest rounded transition-all ${notesAsset === a ? "bg-green-500/10 text-green-400 border border-green-500/20" : "text-slate-500 hover:text-slate-300"}`}>
                   {a}
                 </button>
               ))}
