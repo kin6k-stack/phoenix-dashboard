@@ -207,7 +207,7 @@ export default function TradingDashboard() {
                       Custom-scrollbar class assumes you have it in globals.css; if not
                       it just uses default scrollbar styling (still works).
                     */}
-                    <div className="space-y-3 xl:max-h-[640px] xl:overflow-y-auto xl:pr-1 custom-scrollbar">
+                    <div className="space-y-3 xl:max-h-[580px] xl:overflow-y-auto xl:pr-1 custom-scrollbar">
                       <SlimMonthlyPerformance
                         winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
                         netPnL={netPnL} fees={0} />
