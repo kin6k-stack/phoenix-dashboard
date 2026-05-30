@@ -20,6 +20,7 @@ import { EconomicCalendar } from "@/components/economic-calendar"
 import { MarketBiasView } from "@/components/market-bias-view"
 import { PnLHeader } from "@/components/pnl-header"
 import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
+import { PnLAnalyticsView } from "@/components/pnl-analytics-view"
 
 interface Trade {
   id: string; date: string; symbol: string; setup: string
@@ -60,6 +61,7 @@ export default function TradingDashboard() {
   const [editingTrade,      setEditingTrade]      = useState<Trade | null>(null)
   const [trades,            setTrades]            = useState<Trade[]>([])
   const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
+  const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")  // ← NEW
   const [currentMonthYear,  setCurrentMonthYear]  = useState({
     month: new Date().getMonth(),
     year:  new Date().getFullYear(),
@@ -155,13 +157,19 @@ export default function TradingDashboard() {
         )
 
       // ─────────────────────────────────────────────────────────────────
-      // PNL CALENDAR — GAP BUG FIXED
-      // Was: lg:flex-row stretched the calendar column to match the
-      //   taller slim-panel column → big empty space under calendar
-      //   before YearlyPerformance.
-      // Now: lg:items-start prevents column stretching; calendar wrapper
-      //   has h-fit so it sizes to its own content; YearlyPerformance
-      //   sits directly below without forced gap.
+      // PNL CALENDAR — GAP FIXED + Analytics view toggle
+      //
+      // GAP FIX (per your DevTools dump):
+      // The parent flex row had align-items: normal (= stretch).
+      // The right column (slim panels, ~1302px) was stretching the left
+      // column (calendar, ~583px), creating ~719px empty space below
+      // the calendar before YearlyPerformance.
+      //
+      // Fix: `items-start` on the flex row container.
+      // NOT `lg:items-start` — needs to apply at all breakpoints where
+      // flex is active. Tailwind applies items-* to flex/grid contexts
+      // only, and `lg:flex-row` activates flex at lg+, so `items-start`
+      // is harmless on mobile and necessary on desktop.
       // ─────────────────────────────────────────────────────────────────
       case "pnl-calendar":
         return (
@@ -170,47 +178,53 @@ export default function TradingDashboard() {
 
               <PnLHeader
                 totalTrades={totalTrades}
+                view={pnlView}
+                onViewChange={setPnlView}
                 onLogTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
               />
 
-              {/* lg:items-start prevents column-stretch.
-                  lg:gap-4 keeps spacing. min-w-0 prevents calendar
-                  shrinking issues on small viewports. */}
-              <div className="flex flex-col lg:flex-row lg:items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="bg-card/90 rounded-xl border border-border/40 p-3 sm:p-4 md:p-6 shadow-2xl h-fit">
-                    <TradingCalendar
-                      selectedDate={selectedDate}
-                      onDateSelect={setSelectedDate}
-                      tradeDates={tradeDates}
-                      trades={filteredTrades}
-                      totalTrades={totalTrades}
-                      wins={wins}
-                      netPnL={netPnL}
-                      winRate={winRate}
-                      onMonthYearChange={setCurrentMonthYear}
-                    />
+              {pnlView === "calendar" ? (
+                <>
+                  {/* ───── items-start: prevents column stretching ───── */}
+                  <div className="flex flex-col lg:flex-row items-start gap-4">
+                    <div className="flex-1 min-w-0 w-full">
+                      <div className="bg-card/90 rounded-xl border border-border/40 p-3 sm:p-4 md:p-6 shadow-2xl">
+                        <TradingCalendar
+                          selectedDate={selectedDate}
+                          onDateSelect={setSelectedDate}
+                          tradeDates={tradeDates}
+                          trades={filteredTrades}
+                          totalTrades={totalTrades}
+                          wins={wins}
+                          netPnL={netPnL}
+                          winRate={winRate}
+                          onMonthYearChange={setCurrentMonthYear}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
+                      <SlimMonthlyPerformance
+                        winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
+                        netPnL={netPnL} fees={0} />
+                      <SlimPnLChart trades={filteredTrades} />
+                      <SlimJournal
+                        entriesThisMonth={filteredTrades.length}
+                        screenshots={filteredTrades.filter(t => t.screenshot).length} />
+                      <ManualTradesCard
+                        trades={manualTradesList}
+                        onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
+                        onEditTrade={t => { setEditingTrade(t); setIsAddTradeOpen(true) }}
+                        onDeleteTrade={handleDeleteTrade} />
+                    </div>
                   </div>
-                </div>
 
-                <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
-                  <SlimMonthlyPerformance
-                    winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
-                    netPnL={netPnL} fees={0} />
-                  <SlimPnLChart trades={filteredTrades} />
-                  <SlimJournal
-                    entriesThisMonth={filteredTrades.length}
-                    screenshots={filteredTrades.filter(t => t.screenshot).length} />
-                  <ManualTradesCard
-                    trades={manualTradesList}
-                    onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
-                    onEditTrade={t => { setEditingTrade(t); setIsAddTradeOpen(true) }}
-                    onDeleteTrade={handleDeleteTrade} />
-                </div>
-              </div>
-
-              {/* Yearly Performance — full width, sits right below calendar/sidebar block */}
-              <YearlyPerformanceTable trades={trades} />
+                  <YearlyPerformanceTable trades={trades} />
+                </>
+              ) : (
+                /* ─── ANALYTICS view replaces calendar+sidebar+yearly ─── */
+                <PnLAnalyticsView trades={trades} />
+              )}
             </div>
           </div>
         )

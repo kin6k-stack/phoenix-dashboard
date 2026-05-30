@@ -8,8 +8,8 @@ interface PnLHeaderProps {
   onLogTrade:     () => void
   onSync?:        () => void
   syncing?:       boolean
-  view?:          "calendar" | "analytics"
-  onViewChange?:  (v: "calendar" | "analytics") => void
+  view:           "calendar" | "analytics"
+  onViewChange:   (v: "calendar" | "analytics") => void
 }
 
 const EXCHANGE_OPTIONS = [
@@ -24,7 +24,7 @@ export function PnLHeader({
   onLogTrade,
   onSync,
   syncing = false,
-  view = "calendar",
+  view,
   onViewChange,
 }: PnLHeaderProps) {
   const [exchange, setExchange] = useState("All Exchanges")
@@ -32,7 +32,6 @@ export function PnLHeader({
   const dropdownRef = useRef<HTMLDivElement>(null)
   const hasTrades = totalTrades > 0
 
-  // Close dropdown on outside click + Escape
   useEffect(() => {
     if (!dropdownOpen) return
     const handleClick = (e: MouseEvent) => {
@@ -63,33 +62,30 @@ export function PnLHeader({
           </p>
         </div>
 
-        {onViewChange && (
-          <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5 w-fit">
-            {([
-              { id: "calendar",  label: "Calendar",  icon: Activity },
-              { id: "analytics", label: "Analytics", icon: BarChart3 },
-            ] as const).map(t => {
-              const Icon = t.icon
-              const isActive = view === t.id
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => onViewChange(t.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition-all min-h-[36px]
-                    ${isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-                  <Icon size={13} />
-                  {t.label}
-                </button>
-              )
-            })}
-          </div>
-        )}
+        {/* ── Calendar / Analytics toggle — wired to parent ──────────── */}
+        <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5 w-fit">
+          {([
+            { id: "calendar",  label: "Calendar",  icon: Activity },
+            { id: "analytics", label: "Analytics", icon: BarChart3 },
+          ] as const).map(t => {
+            const Icon = t.icon
+            const isActive = view === t.id
+            return (
+              <button
+                key={t.id}
+                onClick={() => onViewChange(t.id)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition-all min-h-[36px]
+                  ${isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                <Icon size={13} />
+                {t.label}
+              </button>
+            )
+          })}
+        </div>
 
         <div className="lg:ml-auto flex flex-wrap items-center gap-2">
 
-          {/* ── CUSTOM DROPDOWN ─────────────────────────────────────────
-              Replaces native <select> which was rendering white-on-white
-              on desktop. Dark themed, readable, keyboard-accessible. */}
+          {/* Custom dropdown (dark themed, readable) */}
           <div ref={dropdownRef} className="relative flex-1 sm:flex-none min-w-[140px] sm:min-w-[180px]">
             <button
               onClick={() => setDropdownOpen(o => !o)}
@@ -146,7 +142,8 @@ export function PnLHeader({
         </div>
       </div>
 
-      {!hasTrades && (
+      {/* Empty-state banner only shows on calendar view */}
+      {!hasTrades && view === "calendar" && (
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/20">
           <div className="flex items-center gap-3">
             <Activity className="h-4 w-4 text-emerald-400 flex-shrink-0" />
