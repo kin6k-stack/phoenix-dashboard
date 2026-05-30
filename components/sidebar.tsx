@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@/lib/auth-context"
 import {
   LayoutDashboard, Calendar, BarChart3, History, Clock,
   Globe, Target, CandlestickChart, ChevronLeft,
-  LogOut, Wifi, TrendingUp, Menu, X, PanelLeftOpen,
+  Settings, Wifi, TrendingUp, Menu, X, PanelLeftOpen,
 } from "lucide-react"
 
 interface NavItem {
@@ -61,7 +60,6 @@ function getSessionLabel(): { label: string; abbr: string } {
 }
 
 export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) {
-  const { signOut } = useAuth()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [session, setSession] = useState(getSessionLabel())
@@ -93,15 +91,22 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
     setMobileOpen(false)
   }
 
+  // Open the settings panel (defined in app/page.tsx via custom event)
+  const openSettings = () => {
+    window.dispatchEvent(new CustomEvent("phoenix:settings"))
+    setMobileOpen(false)
+  }
+
   const sevenDaysAgo = Date.now() - 7 * 86_400_000
   const recentTrades = trades.filter(t => new Date(t.date).getTime() > sevenDaysAgo)
   const wins         = recentTrades.filter(t => t.rMultiple > 0).length
   const dayPnl       = recentTrades.reduce((s, t) => s + Number(t.rMultiple), 0)
   const winRate      = recentTrades.length > 0 ? Math.round((wins / recentTrades.length) * 100) : 0
 
+  // Theme-aware badge styles — resolve via CSS tokens, not hardcoded hex
   const badgeStyles: Record<string, string> = {
-    pro:  "bg-[#1a1f2e] text-[#64748b] text-[9px] font-black tracking-wider",
-    live: "bg-[#5fc77a]/10 text-[#5fc77a] text-[9px] font-black tracking-wider border border-[#5fc77a]/25",
+    pro:  "bg-muted text-muted-foreground text-[9px] font-black tracking-wider",
+    live: "bg-primary/10 text-primary text-[9px] font-black tracking-wider border border-primary/25",
     open: "bg-amber-500/10 text-amber-400 text-[9px] font-black tracking-wider",
   }
 
@@ -109,19 +114,13 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
 
   const renderSidebarContent = (isMobile: boolean) => (
     <>
-      {/* ── Header bar ──────────────────────────────────────────────────
-         Mobile: logo + X close
-         Desktop collapsed: clickable PanelLeftOpen icon (replaces floating chevron)
-         Desktop expanded: logo + collapse arrow */}
-      <div
-        className="flex items-center justify-between px-3.5 py-4 border-b"
-        style={{ borderColor: "#1e2232", minHeight: 56 }}>
+      {/* ── Header bar ─────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-3.5 py-4 border-b border-border" style={{ minHeight: 56 }}>
 
-        {/* Collapsed desktop: single full-width expand button */}
         {collapsed && !isMobile ? (
           <button
             onClick={toggleCollapse}
-            className="w-full flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-white/5 transition-colors group"
+            className="w-full flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors group"
             aria-label="Expand sidebar"
             title="Expand sidebar">
             <PanelLeftOpen className="w-4 h-4 transition-transform group-hover:scale-110" />
@@ -129,24 +128,23 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
         ) : (
           <>
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center"
-                style={{ background: "linear-gradient(135deg,#5fc77a,#3da85a)" }}>
-                <TrendingUp className="w-3.5 h-3.5 text-[#0d0f14]" />
+              <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center bg-primary">
+                <TrendingUp className="w-3.5 h-3.5 text-primary-foreground" />
               </div>
-              <span className="text-white text-[13px] font-black tracking-widest uppercase whitespace-nowrap">
+              <span className="text-foreground text-[13px] font-black tracking-widest uppercase whitespace-nowrap">
                 Phoenix
               </span>
             </div>
 
             {isMobile ? (
               <button onClick={() => setMobileOpen(false)}
-                className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-white/5 transition-colors ml-1"
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors ml-1"
                 aria-label="Close menu">
                 <X className="w-5 h-5" />
               </button>
             ) : (
               <button onClick={toggleCollapse}
-                className="p-1.5 rounded-md text-slate-500 hover:text-slate-300 hover:bg-white/5 transition-colors ml-1"
+                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors ml-1"
                 aria-label="Collapse sidebar"
                 title="Collapse sidebar">
                 <ChevronLeft className="w-4 h-4" />
@@ -161,12 +159,12 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
           <div key={section.label}>
             {(!collapsed || isMobile) && (
               <div className="px-4 mb-1">
-                <span className="text-[9px] font-black tracking-widest text-slate-600 uppercase">
+                <span className="text-[9px] font-black tracking-widest text-muted-foreground/70 uppercase">
                   {section.label}
                 </span>
               </div>
             )}
-            {collapsed && !isMobile && <div className="mx-3 my-1.5" style={{ borderTop: "1px solid #1e2232" }} />}
+            {collapsed && !isMobile && <div className="mx-3 my-1.5 border-t border-border" />}
 
             {section.items.map(item => {
               const Icon     = item.icon
@@ -178,20 +176,23 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
                   key={item.id}
                   onClick={() => handleItemClick(item.id)}
                   title={!showText ? item.label : undefined}
-                  className="w-full flex items-center gap-2.5 transition-all group min-h-[40px]"
+                  className={`w-full flex items-center gap-2.5 transition-all group min-h-[40px] ${
+                    isActive ? "bg-primary/[0.08]" : "hover:bg-white/[0.03]"
+                  }`}
                   style={{
                     padding: showText ? "8px 12px" : "8px 0",
                     justifyContent: showText ? "flex-start" : "center",
-                    background: isActive ? "rgba(95,199,122,0.08)" : "transparent",
-                    borderLeft: isActive && showText ? "2px solid #5fc77a" : "2px solid transparent",
+                    borderLeft: isActive && showText ? "2px solid hsl(var(--primary))" : "2px solid transparent",
                     paddingLeft: showText ? (isActive ? "10px" : "12px") : undefined,
                   }}>
-                  <Icon className="w-4 h-4 flex-shrink-0 transition-colors"
-                    style={{ color: isActive ? "#5fc77a" : "#64748b" }} />
+                  <Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${
+                    isActive ? "text-primary" : "text-muted-foreground"
+                  }`} />
                   {showText && (
                     <>
-                      <span className="text-[13px] flex-1 text-left transition-colors whitespace-nowrap"
-                        style={{ color: isActive ? "#e2e8f0" : "#94a3b8", fontWeight: isActive ? 600 : 400 }}>
+                      <span className={`text-[13px] flex-1 text-left transition-colors whitespace-nowrap ${
+                        isActive ? "text-foreground font-semibold" : "text-muted-foreground"
+                      }`}>
                         {item.label}
                       </span>
                       {item.badge && (
@@ -208,51 +209,53 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
         ))}
       </nav>
 
-      <div className="border-t" style={{ borderColor: "#1e2232" }}>
+      {/* ── Footer: perf summary + session + Settings ─────── */}
+      <div className="border-t border-border">
         {(!collapsed || isMobile) && (
           <div className="p-3 space-y-2">
-            <div className="rounded-lg p-2.5" style={{ background: "#141720", border: "1px solid #1e2232" }}>
+            <div className="rounded-lg p-2.5 bg-card border border-border">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-600">Performance</span>
-                <span className="text-[9px] text-slate-600">7 DAY</span>
+                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/70">Performance</span>
+                <span className="text-[9px] text-muted-foreground/70">7 DAY</span>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 <div>
-                  <p className="text-[9px] text-slate-600 uppercase">Daily P&L</p>
-                  <p className={`text-xs font-black font-mono ${dayPnl >= 0 ? "text-[#5fc77a]" : "text-red-400"}`}>
+                  <p className="text-[9px] text-muted-foreground/70 uppercase">Daily P&L</p>
+                  <p className={`text-xs font-black font-mono ${dayPnl >= 0 ? "text-primary" : "text-rose-400"}`}>
                     {dayPnl >= 0 ? "+" : ""}${dayPnl.toFixed(2)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-[9px] text-slate-600 uppercase">Win Rate</p>
-                  <p className="text-xs font-black font-mono text-slate-200">{winRate}%</p>
+                  <p className="text-[9px] text-muted-foreground/70 uppercase">Win Rate</p>
+                  <p className="text-xs font-black font-mono text-foreground">{winRate}%</p>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#5fc77a] animate-pulse" />
-                <span className="text-[11px] font-black text-slate-400">{session.abbr}</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                <span className="text-[11px] font-black text-muted-foreground">{session.abbr}</span>
               </div>
-              <span className="text-[9px] text-slate-600 uppercase">ACTIVE</span>
+              <span className="text-[9px] text-muted-foreground/70 uppercase">ACTIVE</span>
             </div>
           </div>
         )}
 
-        <button onClick={signOut}
-          title={!(!collapsed || isMobile) ? "Sign Out" : undefined}
-          className="w-full flex items-center gap-2.5 p-3 text-slate-600 hover:text-red-400 hover:bg-red-400/5 transition-colors min-h-[44px]"
+        {/* SETTINGS button — replaces Sign Out (Sign Out lives in the panel) */}
+        <button onClick={openSettings}
+          title={!(!collapsed || isMobile) ? "Settings" : undefined}
+          className="w-full flex items-center gap-2.5 p-3 text-muted-foreground hover:text-primary hover:bg-primary/[0.06] transition-colors min-h-[44px]"
           style={{ justifyContent: (!collapsed || isMobile) ? "flex-start" : "center", paddingLeft: (!collapsed || isMobile) ? "16px" : undefined }}>
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          {(!collapsed || isMobile) && <span className="text-xs">Sign Out</span>}
+          <Settings className="w-4 h-4 flex-shrink-0" />
+          {(!collapsed || isMobile) && <span className="text-xs">Settings</span>}
         </button>
 
         {(!collapsed || isMobile) && (
           <div className="px-4 pb-3 flex items-center gap-2">
-            <Wifi className="w-3 h-3 text-[#5fc77a]" />
-            <span className="text-[10px] text-slate-600 font-mono">LIVE TERMINAL</span>
-            <span className="ml-auto text-[9px] text-[#5fc77a] font-bold">ACTIVE</span>
+            <Wifi className="w-3 h-3 text-primary" />
+            <span className="text-[10px] text-muted-foreground/70 font-mono">LIVE TERMINAL</span>
+            <span className="ml-auto text-[9px] text-primary font-bold">ACTIVE</span>
           </div>
         )}
       </div>
@@ -261,37 +264,37 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
 
   return (
     <>
-      <div
-        className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-3 py-2.5 border-b backdrop-blur-md"
-        style={{ background: "rgba(13,16,23,0.92)", borderColor: "#1e2232" }}>
+      {/* Mobile top bar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-3 py-2.5 border-b border-border backdrop-blur-md bg-background/90">
         <button onClick={() => setMobileOpen(true)}
-          className="p-2 -ml-1 rounded-md text-slate-300 hover:bg-white/5 transition-colors"
+          className="p-2 -ml-1 rounded-md text-foreground hover:bg-white/5 transition-colors"
           aria-label="Open menu">
           <Menu className="w-5 h-5" />
         </button>
 
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded flex items-center justify-center"
-            style={{ background: "linear-gradient(135deg,#5fc77a,#3da85a)" }}>
-            <TrendingUp className="w-3 h-3 text-[#0d0f14]" />
+          <div className="w-6 h-6 rounded flex items-center justify-center bg-primary">
+            <TrendingUp className="w-3 h-3 text-primary-foreground" />
           </div>
-          <span className="text-white text-xs font-black tracking-widest uppercase">Phoenix</span>
+          <span className="text-foreground text-xs font-black tracking-widest uppercase">Phoenix</span>
         </div>
 
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: "rgba(95,199,122,0.08)" }}>
-          <div className="w-1.5 h-1.5 rounded-full bg-[#5fc77a] animate-pulse" />
-          <span className="text-[10px] font-black text-[#5fc77a]">{session.abbr}</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="text-[10px] font-black text-primary">{session.abbr}</span>
         </div>
       </div>
 
       <div className="md:hidden h-12 flex-shrink-0" />
 
+      {/* Desktop sidebar */}
       <aside
-        className="hidden md:flex relative flex-shrink-0 h-screen flex-col border-r transition-all duration-300"
-        style={{ width: desktopW, background: "#0d1017", borderColor: "#1e2232" }}>
+        className="hidden md:flex relative flex-shrink-0 h-screen flex-col border-r border-border bg-background transition-all duration-300"
+        style={{ width: desktopW }}>
         {renderSidebarContent(false)}
       </aside>
 
+      {/* Mobile drawer */}
       {mobileOpen && (
         <>
           <div
@@ -299,9 +302,7 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
             className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
             aria-hidden="true"
           />
-          <aside
-            className="md:hidden fixed top-0 left-0 z-50 h-full w-[280px] flex flex-col border-r shadow-2xl"
-            style={{ background: "#0d1017", borderColor: "#1e2232" }}>
+          <aside className="md:hidden fixed top-0 left-0 z-50 h-full w-[280px] flex flex-col border-r border-border bg-background shadow-2xl">
             {renderSidebarContent(true)}
           </aside>
         </>
