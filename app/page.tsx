@@ -21,6 +21,7 @@ import { MarketBiasView } from "@/components/market-bias-view"
 import { PnLHeader } from "@/components/pnl-header"
 import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
 import { PnLAnalyticsView } from "@/components/pnl-analytics-view"
+import { CandleAnalysisView } from "@/components/candle-analysis-view"
 
 interface Trade {
   id: string; date: string; symbol: string; setup: string
@@ -70,6 +71,18 @@ export default function TradingDashboard() {
   useEffect(() => {
     if (!authLoading && !user) router.push("/login")
   }, [user, authLoading, router])
+
+  // ── Listen for custom nav events from child components ──
+  // (CandleAnalysisView dispatches `phoenix:nav` when its
+  //  "View Economic Events" link is clicked)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ev = e as CustomEvent<string>
+      if (typeof ev.detail === "string") setActiveNavItem(ev.detail)
+    }
+    window.addEventListener("phoenix:nav", handler)
+    return () => window.removeEventListener("phoenix:nav", handler)
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -156,14 +169,6 @@ export default function TradingDashboard() {
           </div>
         )
 
-      // ═══════════════════════════════════════════════════════════════
-      // PNL CALENDAR — Gap eliminated via scrollable side column
-      //
-      // The right column now has a max-height matching the viewport
-      // and overflows internally with auto-scroll. The grid row's height
-      // is anchored to the calendar (~600px) instead of the panels stack.
-      // Yearly Performance now sits directly below the calendar height.
-      // ═══════════════════════════════════════════════════════════════
       case "pnl-calendar":
         return (
           <div className="flex-1 overflow-y-auto">
@@ -178,15 +183,7 @@ export default function TradingDashboard() {
 
               {pnlView === "calendar" ? (
                 <>
-                  {/*
-                    On xl+: grid with auto-rows-min so calendar row sizes to calendar.
-                    Right column gets a max-height equal to a viewport-relative value
-                    and overflow-y-auto so it scrolls within itself.
-                    On smaller screens: stacks normally, no max-height (panels show fully).
-                  */}
                   <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 xl:auto-rows-min">
-
-                    {/* LEFT — calendar */}
                     <div className="min-w-0">
                       <TradingCalendar
                         selectedDate={selectedDate}
@@ -200,13 +197,6 @@ export default function TradingDashboard() {
                         onMonthYearChange={setCurrentMonthYear}
                       />
                     </div>
-
-                    {/*
-                      RIGHT — slim panels, scrollable on xl+
-                      Max-height: 600px (~calendar height). pr-1 leaves room for scrollbar.
-                      Custom-scrollbar class assumes you have it in globals.css; if not
-                      it just uses default scrollbar styling (still works).
-                    */}
                     <div className="space-y-3 xl:max-h-[580px] xl:overflow-y-auto xl:pr-1 custom-scrollbar">
                       <SlimMonthlyPerformance
                         winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
@@ -222,7 +212,6 @@ export default function TradingDashboard() {
                         onDeleteTrade={handleDeleteTrade} />
                     </div>
                   </div>
-
                   <YearlyPerformanceTable trades={trades} />
                 </>
               ) : (
@@ -253,17 +242,15 @@ export default function TradingDashboard() {
           </PageShell>
         )
 
+      // ─────────────────────────────────────────────────────────────────
+      // CANDLE ANALYSIS — Round 3 rebuild
+      // Replaced TradingView iframe with custom lightweight-charts
+      // candlestick chart + click-to-explain side panel.
+      // ─────────────────────────────────────────────────────────────────
       case "candle-analysis":
         return (
-          <PageShell title="Candle Analysis" sub="Click any candle on the TradingView chart for context">
-            <div className="rounded-xl overflow-hidden border border-border/40" style={{ height: "calc(100vh - 220px)", minHeight: 400 }}>
-              <iframe
-                src="https://www.tradingview.com/widgetembed/?hidesidetoolbar=0&symbol=TVC:GOLD&interval=60&theme=dark&style=1&locale=en&allow_symbol_change=1&save_image=0&calendar=0&backgroundColor=%230d0f14&gridColor=rgba(255%2C255%2C255%2C0.03)"
-                style={{ width: "100%", height: "100%", border: "none" }}
-                title="Candle Analysis Chart"
-                allow="clipboard-read; clipboard-write"
-              />
-            </div>
+          <PageShell title="Candle Analysis" sub="Click any candle for OHLC, pattern, trend, RSI, and macro context">
+            <CandleAnalysisView />
           </PageShell>
         )
 
