@@ -61,7 +61,7 @@ export default function TradingDashboard() {
   const [editingTrade,      setEditingTrade]      = useState<Trade | null>(null)
   const [trades,            setTrades]            = useState<Trade[]>([])
   const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
-  const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")  // ← NEW
+  const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")
   const [currentMonthYear,  setCurrentMonthYear]  = useState({
     month: new Date().getMonth(),
     year:  new Date().getFullYear(),
@@ -157,19 +157,12 @@ export default function TradingDashboard() {
         )
 
       // ─────────────────────────────────────────────────────────────────
-      // PNL CALENDAR — GAP FIXED + Analytics view toggle
+      // PNL CALENDAR — gap finally fixed with CSS GRID (not flex)
       //
-      // GAP FIX (per your DevTools dump):
-      // The parent flex row had align-items: normal (= stretch).
-      // The right column (slim panels, ~1302px) was stretching the left
-      // column (calendar, ~583px), creating ~719px empty space below
-      // the calendar before YearlyPerformance.
-      //
-      // Fix: `items-start` on the flex row container.
-      // NOT `lg:items-start` — needs to apply at all breakpoints where
-      // flex is active. Tailwind applies items-* to flex/grid contexts
-      // only, and `lg:flex-row` activates flex at lg+, so `items-start`
-      // is harmless on mobile and necessary on desktop.
+      // TradeX uses: `grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-4`
+      // CSS Grid items DON'T stretch by default the way flex children do
+      // when one column is taller than the other. Each column sizes to
+      // its own content. No more 719px empty gap.
       // ─────────────────────────────────────────────────────────────────
       case "pnl-calendar":
         return (
@@ -185,9 +178,15 @@ export default function TradingDashboard() {
 
               {pnlView === "calendar" ? (
                 <>
-                  {/* ───── items-start: prevents column stretching ───── */}
-                  <div className="flex flex-col lg:flex-row items-start gap-4">
-                    <div className="flex-1 min-w-0 w-full">
+                  {/*
+                    CSS GRID layout — solves the gap bug:
+                    - On mobile/tablet: single column (calendar then sidebar stacked)
+                    - On xl+ (1280px): 2 columns — flexible main + fixed 320px sidebar
+                    - Grid items size to their content naturally, no stretch
+                  */}
+                  <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
+                    {/* LEFT — Calendar */}
+                    <div className="min-w-0">
                       <div className="bg-card/90 rounded-xl border border-border/40 p-3 sm:p-4 md:p-6 shadow-2xl">
                         <TradingCalendar
                           selectedDate={selectedDate}
@@ -203,7 +202,8 @@ export default function TradingDashboard() {
                       </div>
                     </div>
 
-                    <div className="w-full lg:w-80 flex-shrink-0 space-y-4">
+                    {/* RIGHT — slim panels stack */}
+                    <div className="space-y-4">
                       <SlimMonthlyPerformance
                         winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
                         netPnL={netPnL} fees={0} />
@@ -219,10 +219,10 @@ export default function TradingDashboard() {
                     </div>
                   </div>
 
+                  {/* Yearly Performance — full width, sits below the grid */}
                   <YearlyPerformanceTable trades={trades} />
                 </>
               ) : (
-                /* ─── ANALYTICS view replaces calendar+sidebar+yearly ─── */
                 <PnLAnalyticsView trades={trades} />
               )}
             </div>
