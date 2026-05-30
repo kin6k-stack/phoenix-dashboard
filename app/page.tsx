@@ -156,18 +156,16 @@ export default function TradingDashboard() {
           </div>
         )
 
-      // ─────────────────────────────────────────────────────────────────
-      // PNL CALENDAR — gap finally fixed with CSS GRID (not flex)
-      //
-      // TradeX uses: `grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-4`
-      // CSS Grid items DON'T stretch by default the way flex children do
-      // when one column is taller than the other. Each column sizes to
-      // its own content. No more 719px empty gap.
-      // ─────────────────────────────────────────────────────────────────
+      // ═══════════════════════════════════════════════════════════════
+      // PNL CALENDAR — Rebuilt to match TradeX structure 1:1
+      // Replaces all previous flex-based layouts.
+      // Uses CSS GRID like TradeX: `grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4`
+      // Grid items don't stretch by default → no more gap bug.
+      // ═══════════════════════════════════════════════════════════════
       case "pnl-calendar":
         return (
           <div className="flex-1 overflow-y-auto">
-            <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4">
+            <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 space-y-4">
 
               <PnLHeader
                 totalTrades={totalTrades}
@@ -178,31 +176,22 @@ export default function TradingDashboard() {
 
               {pnlView === "calendar" ? (
                 <>
-                  {/*
-                    CSS GRID layout — solves the gap bug:
-                    - On mobile/tablet: single column (calendar then sidebar stacked)
-                    - On xl+ (1280px): 2 columns — flexible main + fixed 320px sidebar
-                    - Grid items size to their content naturally, no stretch
-                  */}
+                  {/* TradeX-exact grid structure */}
                   <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
-                    {/* LEFT — Calendar */}
                     <div className="min-w-0">
-                      <div className="bg-card/90 rounded-xl border border-border/40 p-3 sm:p-4 md:p-6 shadow-2xl">
-                        <TradingCalendar
-                          selectedDate={selectedDate}
-                          onDateSelect={setSelectedDate}
-                          tradeDates={tradeDates}
-                          trades={filteredTrades}
-                          totalTrades={totalTrades}
-                          wins={wins}
-                          netPnL={netPnL}
-                          winRate={winRate}
-                          onMonthYearChange={setCurrentMonthYear}
-                        />
-                      </div>
+                      <TradingCalendar
+                        selectedDate={selectedDate}
+                        onDateSelect={setSelectedDate}
+                        tradeDates={tradeDates}
+                        trades={filteredTrades}
+                        totalTrades={totalTrades}
+                        wins={wins}
+                        netPnL={netPnL}
+                        winRate={winRate}
+                        onMonthYearChange={setCurrentMonthYear}
+                      />
                     </div>
 
-                    {/* RIGHT — slim panels stack */}
                     <div className="space-y-4">
                       <SlimMonthlyPerformance
                         winRate={winRate} trades={totalTrades} wins={wins} losses={losses}
@@ -219,7 +208,6 @@ export default function TradingDashboard() {
                     </div>
                   </div>
 
-                  {/* Yearly Performance — full width, sits below the grid */}
                   <YearlyPerformanceTable trades={trades} />
                 </>
               ) : (
