@@ -35,8 +35,11 @@ export function YearlyPerformanceTable({ trades = [] }: { trades: Trade[] }) {
     return m
   }, [trades])
 
-  const yearsToShow = [currentYear - 1, currentYear].filter((y, i, arr) => arr.indexOf(y) === i)
-  const yearTabs = [currentYear - 3, currentYear - 2, currentYear - 1, currentYear, currentYear + 1, currentYear + 2]
+  // Pass K: Show only current + 2 future years. Drop historicals
+  // (2023/2024/2025) — they have no live data and clutter the picker.
+  // Adjusts dynamically with calendar year so this still works in 2027.
+  const yearsToShow = [currentYear, currentYear + 1, currentYear + 2]
+  const yearTabs    = [currentYear, currentYear + 1, currentYear + 2]
 
   const fmt = (n: number) => {
     if (n === 0) return "—"

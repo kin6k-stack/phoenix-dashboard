@@ -76,15 +76,22 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
         aria-hidden="true"
       />
 
-      {/* Drawer */}
+      {/* Drawer
+          Pass K: Switched h-screen → h-[100dvh] so the footer
+          (Sign Out button) isn't pushed off-screen by mobile browser
+          UI (iOS Safari URL bar, Chrome bottom bar, etc).
+          `100dvh` = dynamic viewport height, which accounts for
+          collapsible browser chrome. Fallback to h-screen for older
+          browsers via the inline style. */}
       <aside
         role="dialog"
         aria-modal="true"
         aria-label="Settings"
-        className="fixed top-0 right-0 h-screen w-full sm:w-[420px] bg-card border-l border-border z-50 flex flex-col shadow-2xl"
+        style={{ height: "100dvh" }}
+        className="fixed top-0 right-0 w-full sm:w-[420px] h-screen bg-card border-l border-border z-50 flex flex-col shadow-2xl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/30">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/30 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Palette className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-black uppercase tracking-widest text-foreground">Settings</h2>
@@ -97,8 +104,11 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+        {/* Body
+            Pass K: `min-h-0` is critical for the flex layout — without it,
+            this flex-1 div would refuse to shrink past its content height,
+            pushing the Sign Out footer off-screen on mobile. */}
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-6">
 
           {/* THEMES */}
           <section className="space-y-2.5">
@@ -231,8 +241,10 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
 
         </div>
 
-        {/* Footer — Sign Out */}
-        <div className="p-3 border-t border-border bg-background/30">
+        {/* Footer — Sign Out
+            Pass K: `flex-shrink-0` ensures the footer keeps its full height
+            and stays visible even when the body content is tall. */}
+        <div className="p-3 border-t border-border bg-background/30 flex-shrink-0">
           <button
             onClick={handleSignOut}
             className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive hover:bg-destructive/20 transition-colors text-xs font-black uppercase tracking-widest">
