@@ -102,106 +102,165 @@ function AuroraBackdrop() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════
-          THE PLANET + SUNRISE — composed as stacked layers
-          centered around a single focal point.
+          THE PLANET + SUNRISE — bigger composition, stronger bleed
+          Hot spot offset upper-right like the reference images.
           ═══════════════════════════════════════════════════════ */}
 
-      {/* Layer 1: THE SUN'S BLOOM (background)
-          A bright contained radial that will be partially blocked
-          by the planet circle on top of it. */}
+      {/* Layer 1: WIDE AMBIENT GLOW — soft purple wash filling the rim area */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "560px",
-          height: "560px",
-          transform: "translate(-50%, -10%)",
+          width:  "1400px",
+          height: "1400px",
+          transform: "translate(-50%, 20%)",
           background: `radial-gradient(circle at center,
-            hsl(290 100% 92%) 0%,
-            hsl(285 95% 75%)  6%,
-            hsl(280 90% 60%)  14%,
-            hsl(270 85% 45%)  25%,
-            hsl(260 75% 35% / 0.6) 40%,
-            hsl(255 60% 25% / 0.2) 60%,
-            transparent 80%
+            hsl(280 80% 55% / 0.35) 0%,
+            hsl(270 70% 45% / 0.2)  20%,
+            hsl(260 60% 35% / 0.08) 40%,
+            transparent 60%
           )`,
-          filter: "blur(8px)",
-          opacity: 0.95,
+          filter: "blur(60px)",
         }}
       />
 
-      {/* Layer 2: Soft outer glow — adds a wider purple bloom around the bright core */}
+      {/* Layer 2: THE PLANET — large dark circle */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "760px",
+          height: "760px",
+          transform: "translate(-50%, 12%)",
+          background: "radial-gradient(circle at 50% 30%, hsl(265 25% 7%) 0%, hsl(0 0% 0%) 75%)",
+          borderRadius: "50%",
+          boxShadow: `
+            inset 0 0 80px hsla(0, 0%, 0%, 0.6)
+          `,
+        }}
+      />
+
+      {/* Layer 3: FULL RIM HIGHLIGHT — purple-blue gradient ring along the planet's edge */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "760px",
+          height: "760px",
+          transform: "translate(-50%, 12%)",
+          borderRadius: "50%",
+          // Multi-layer inset shadows create the rim from purple-left → bright-center → blue-right
+          boxShadow: `
+            inset 0 3px 0 hsl(290 100% 92%),
+            inset 0 6px 12px hsla(285, 100%, 78%, 0.85),
+            inset 0 14px 30px hsla(280, 100%, 65%, 0.5),
+            inset 0 24px 60px hsla(265, 90%, 55%, 0.25)
+          `,
+          opacity: 1,
+        }}
+      />
+
+      {/* Layer 4: PURPLE BLEED (LEFT SIDE) — soft purple haze on the planet's left rim */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
           width:  "900px",
           height: "900px",
-          transform: "translate(-50%, -10%)",
+          transform: "translate(calc(-50% - 80px), 5%)",
           background: `radial-gradient(circle at center,
-            hsl(280 90% 60% / 0.3) 0%,
-            hsl(270 80% 50% / 0.15) 25%,
+            transparent 41%,
+            hsl(280 95% 60% / 0.5) 43%,
+            hsl(270 85% 50% / 0.2) 47%,
             transparent 55%
           )`,
-          filter: "blur(40px)",
+          borderRadius: "50%",
+          filter: "blur(14px)",
+          opacity: 0.9,
+          maskImage: "linear-gradient(to right, black 0%, black 50%, transparent 75%)",
+          WebkitMaskImage: "linear-gradient(to right, black 0%, black 50%, transparent 75%)",
+        }}
+      />
+
+      {/* Layer 5: BLUE BLEED (RIGHT SIDE) — cyan/blue haze on the planet's right rim */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "900px",
+          height: "900px",
+          transform: "translate(calc(-50% + 80px), 5%)",
+          background: `radial-gradient(circle at center,
+            transparent 41%,
+            hsl(200 95% 70% / 0.45) 43%,
+            hsl(210 85% 60% / 0.2) 47%,
+            transparent 55%
+          )`,
+          borderRadius: "50%",
+          filter: "blur(14px)",
+          opacity: 0.85,
+          maskImage: "linear-gradient(to left, black 0%, black 50%, transparent 75%)",
+          WebkitMaskImage: "linear-gradient(to left, black 0%, black 50%, transparent 75%)",
+        }}
+      />
+
+      {/* Layer 6: THE SUNBURST — intense bright bloom on upper-right rim
+          This is where the "sun behind the planet" is visible.
+          Positioned at ~70% across the rim's curve. */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "500px",
+          height: "500px",
+          // Position: roughly upper-right edge of the planet
+          transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
+          background: `radial-gradient(circle at center,
+            hsl(0 0% 100%) 0%,
+            hsl(290 100% 92%) 4%,
+            hsl(285 100% 80%) 10%,
+            hsl(280 95% 65% / 0.7) 20%,
+            hsl(270 85% 50% / 0.35) 35%,
+            hsl(260 70% 40% / 0.1) 55%,
+            transparent 75%
+          )`,
+          filter: "blur(6px)",
           opacity: 1,
         }}
       />
 
-      {/* Layer 3: THE PLANET — dark circle that covers the lower half of the bloom,
-          creating the "sunrise behind planet" effect. */}
+      {/* Layer 7: SUNBURST OUTER BLOOM — wider, softer halo around the bright point */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "540px",
-          height: "540px",
-          transform: "translate(-50%, 8%)",
-          background: "radial-gradient(circle at 50% 30%, hsl(265 25% 8%) 0%, hsl(0 0% 0%) 70%)",
-          borderRadius: "50%",
-          boxShadow: `
-            inset 0 6px 20px hsla(290, 100%, 80%, 0.15),
-            inset 0 0 60px hsla(0, 0%, 0%, 0.6)
-          `,
+          width:  "900px",
+          height: "900px",
+          transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
+          background: `radial-gradient(circle at center,
+            hsl(280 100% 70% / 0.4) 0%,
+            hsl(270 90% 55% / 0.2) 15%,
+            hsl(260 80% 45% / 0.08) 35%,
+            transparent 60%
+          )`,
+          filter: "blur(50px)",
+          opacity: 1,
         }}
       />
 
-      {/* Layer 4: BRIGHT RIM HIGHLIGHT — a thin bright crescent
-          at the top of the planet circle, where it meets the sun. */}
+      {/* Layer 8: BRIGHT WHITE CORE — the absolute "sun" point */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "540px",
-          height: "540px",
-          transform: "translate(-50%, 8%)",
-          borderRadius: "50%",
-          // The shadow technique: a small inset shadow at the top creates
-          // a bright "edge highlight"
-          boxShadow: `
-            inset 0 4px 0 hsl(290 100% 95%),
-            inset 0 8px 16px hsla(285, 100%, 75%, 0.9),
-            inset 0 20px 50px hsla(280, 100%, 65%, 0.4)
-          `,
-          opacity: 0.95,
-        }}
-      />
-
-      {/* Layer 5: HOT SPOT — bright pinpoint flare on the upper edge */}
-      <div
-        className="absolute left-1/2 top-1/2"
-        style={{
-          width:  "10px",
-          height: "10px",
-          transform: "translate(calc(-50% + 120px), calc(-50% - 38px))",
+          width:  "14px",
+          height: "14px",
+          transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
           background: "white",
           borderRadius: "50%",
           boxShadow: `
-            0 0 10px white,
-            0 0 30px hsl(290 100% 80%),
-            0 0 80px hsl(280 100% 65%),
-            0 0 140px hsl(265 100% 55% / 0.6)
+            0 0 12px white,
+            0 0 30px hsl(290 100% 90%),
+            0 0 60px hsl(285 100% 75%),
+            0 0 120px hsl(275 100% 60%),
+            0 0 200px hsl(265 100% 50% / 0.5)
           `,
         }}
       />
 
-      {/* Layer 6: Bottom darkness — ensures the lower portion of the panel stays dark */}
+      {/* Layer 9: Bottom darkness — ensures the lower portion stays pure black */}
       <div
         className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
         style={{
