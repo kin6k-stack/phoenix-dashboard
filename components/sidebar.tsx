@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import {
   LayoutDashboard, Calendar, BarChart3, History, Clock,
   Globe, Target, CandlestickChart, ChevronLeft,
-  Settings, Wifi, TrendingUp, Menu, X, PanelLeftOpen,
+  Settings, Wifi, Menu, X, PanelLeftOpen,
 } from "lucide-react"
 
 interface NavItem {
@@ -128,8 +129,13 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
         ) : (
           <>
             <div className="flex items-center gap-2.5 overflow-hidden">
-              <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center bg-primary">
-                <TrendingUp className="w-3.5 h-3.5 text-primary-foreground" />
+              <div className="w-7 h-7 rounded-lg flex-shrink-0 overflow-hidden border border-border/50">
+                <Image
+                  src="/phoenix-logo.jpg"
+                  alt="Phoenix"
+                  width={28} height={28}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <div className="flex flex-col leading-none overflow-hidden">
                 <span className="text-foreground text-[13px] font-black tracking-widest uppercase whitespace-nowrap">
@@ -278,8 +284,13 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
         </button>
 
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded flex items-center justify-center bg-primary">
-            <TrendingUp className="w-3 h-3 text-primary-foreground" />
+          <div className="w-6 h-6 rounded overflow-hidden border border-border/50">
+            <Image
+              src="/phoenix-logo.jpg"
+              alt="Phoenix"
+              width={24} height={24}
+              className="w-full h-full object-cover"
+            />
           </div>
           <span className="text-foreground text-xs font-black tracking-widest uppercase">Phoenix Cmd</span>
         </div>
