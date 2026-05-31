@@ -4,6 +4,8 @@ import { useState, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Eye, EyeOff, CheckCircle2, Zap, ArrowLeft } from "lucide-react"
+import { useVipCheck } from "@/lib/use-vip-check"
+import { VipBlockedScreen } from "@/components/vip-blocked-screen"
 
 const FEATURES = [
   "Live MT5 bot sync — Gold Sentinel, Phoenix NQ, Phoenix Hybrid",
@@ -58,6 +60,7 @@ function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup"
 export default function LoginPage() {
   const router = useRouter()
   const { signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword } = useAuth()
+  const { checkAccess, blocked, checking, clearBlock } = useVipCheck()
 
   const [mode,      setMode]      = useState<"signin" | "signup" | "reset">("signin")
   const [email,     setEmail]     = useState("")
@@ -76,13 +79,17 @@ export default function LoginPage() {
     try {
       if (mode === "signup") {
         await signUpWithEmail(email, password)
-        router.push("/")
+        // Verify VIP slot — if at cap, hook signs them out + deletes the new account
+        const ok = await checkAccess()
+        if (ok) router.push("/")
       } else if (mode === "reset") {
         await resetPassword(email)
         setSuccess("Password reset email sent. Check your inbox.")
       } else {
         await signInWithEmail(email, password)
-        router.push("/")
+        // Existing users: verify they're still whitelisted (e.g. you removed them via console)
+        const ok = await checkAccess()
+        if (ok) router.push("/")
       }
     } catch (err: any) {
       setError(getAuthErrorMessage(err?.code, mode))
@@ -97,7 +104,8 @@ export default function LoginPage() {
     setGLoading(true)
     try {
       await signInWithGoogle()
-      router.push("/")
+      const ok = await checkAccess()
+      if (ok) router.push("/")
     } catch (err: any) {
       setError(getAuthErrorMessage(err?.code, mode === "signup" ? "signup" : "signin"))
     } finally {
@@ -112,9 +120,15 @@ export default function LoginPage() {
   const subhead = mode === "signin" ? "Sign in to your trading terminal"
                 : mode === "signup" ? "Start your 14-day trading edge"
                                     : "Enter your email and we'll send a reset link"
-  const submitLabel = mode === "signin" ? (loading ? "Signing in…" : "Sign In")
-                    : mode === "signup" ? (loading ? "Creating account…" : "Create Account")
+  const busy = loading || checking
+  const submitLabel = mode === "signin" ? (checking ? "Verifying access…" : loading ? "Signing in…" : "Sign In")
+                    : mode === "signup" ? (checking ? "Verifying access…" : loading ? "Creating account…" : "Create Account")
                                         : (loading ? "Sending…" : "Send Reset Link")
+
+  // If access denied, render the VIP blocked screen over everything else
+  if (blocked) {
+    return <VipBlockedScreen reason={blocked} onRetry={clearBlock} />
+  }
 
   return (
     <div className="relative min-h-screen flex overflow-hidden bg-[#0d0f14]">
@@ -273,9 +287,9 @@ export default function LoginPage() {
               )}
 
               {/* Submit */}
-              <button type="submit" disabled={loading}
+              <button type="submit" disabled={busy}
                 className="w-full py-2.5 rounded-lg text-sm font-black tracking-wider text-[#0d0f14] transition-all active:scale-[0.98]"
-                style={{ background: loading ? "rgba(95,199,122,0.5)" : "#5fc77a", cursor: loading ? "not-allowed" : "pointer" }}>
+                style={{ background: busy ? "rgba(95,199,122,0.5)" : "#5fc77a", cursor: busy ? "not-allowed" : "pointer" }}>
                 {submitLabel}
               </button>
             </form>
@@ -292,9 +306,9 @@ export default function LoginPage() {
                   </div>
                 </div>
 
-                <button onClick={handleGoogle} disabled={gLoading}
+                <button onClick={handleGoogle} disabled={gLoading || checking}
                   className="w-full py-2.5 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2.5 transition-all hover:border-slate-600 active:scale-[0.98]"
-                  style={{ background: "#1a1f2e", border: "1px solid #1e2232", cursor: gLoading ? "not-allowed" : "pointer" }}>
+                  style={{ background: "#1a1f2e", border: "1px solid #1e2232", cursor: (gLoading || checking) ? "not-allowed" : "pointer" }}>
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>

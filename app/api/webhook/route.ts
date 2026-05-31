@@ -1,192 +1,141 @@
 // ============================================================
 // /api/webhook  (POST)
-// THE endpoint your 3 bots are already calling.
 //
-// Accepts the exact payload format your bots send:
-// {
-//   ticket: "12345678",
-//   symbol: "XAUUSD",
-//   profit: 127.50,
-//   type: 0 | 1,         // 0 = BUY, 1 = SELL  (DEAL_TYPE_BUY / DEAL_TYPE_SELL)
-//   side: 0 | 1,         // Same as type — some bots use "side", some use "type"
-//   bot: "Gold Sentinel Apex" | "Phoenix NQ" | "Phoenix Gold Hybrid" | "Manual Execution",
-//   status: "OPENED" | "CLOSED",
-//   timestamp: "2026-05-29 15:42:00" OR unix-seconds-number,
-//   apiKey: "..."        // Some bots send in body
-// }
-// Headers may also contain x-api-key
+// Receives trade notifications from MT5 bots and writes them
+// to the `botTrades` collection (shared demo feed visible to
+// all signed-in users on the Performance tab).
+//
+// Bot trades NEVER write to `trades` — that collection is
+// reserved for per-user manual entries.
+//
+// Auth: simple shared-secret header `x-api-key` matching WEBHOOK_API_KEY
 // ============================================================
 
-import { NextRequest, NextResponse } from "next/server";
-import { getAdminDb } from "@/lib/firebase-admin";
-import { FieldValue } from "firebase-admin/firestore";
+import { NextRequest, NextResponse } from "next/server"
+import { initializeApp, cert, getApps } from "firebase-admin/app"
+import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore"
 
-// Normalize bot name to your dashboard's canonical labels
-function normalizeBotName(raw: string | undefined | null): string {
-  if (!raw) return "Manual Execution";
-  const u = raw.toUpperCase().replace(/_/g, " ").trim();
-  if (u.includes("PHOENIX NQ") || u.includes("NQ V1") || u.includes("NQ V2")) return "Phoenix NQ v1.6";
-  if (u.includes("GOLD SENTINEL") || u.includes("SENTINEL APEX") || u.includes("APEX")) return "Gold Sentinel Apex";
-  if (u.includes("PHOENIX GOLD") || u.includes("GOLD HYBRID") || u.includes("PHOENIX HYBRID") || u.includes("HYBRID")) return "Phoenix Gold Hybrid";
-  if (u.includes("MANUAL")) return "Manual Execution";
-  return raw.trim();
+// ── Init Admin SDK (once per cold start) ────────────────
+if (!getApps().length) {
+  initializeApp({
+    credential: cert({
+      projectId:    process.env.FIREBASE_PROJECT_ID!,
+      clientEmail:  process.env.FIREBASE_CLIENT_EMAIL!,
+      privateKey:   (process.env.FIREBASE_PRIVATE_KEY ?? "").replace(/\\n/g, "\n"),
+    }),
+  })
 }
 
-// Parse the timestamp — bots send either "2026-05-29 15:42:00" string OR unix seconds number
-function parseTimestamp(ts: unknown): Date {
-  if (!ts) return new Date();
-  if (typeof ts === "number") {
-    // Unix seconds (very small number — bot's `(long)TimeCurrent()`)
-    if (ts < 10_000_000_000) return new Date(ts * 1000);
-    return new Date(ts);
-  }
-  if (typeof ts === "string") {
-    // MQL5 format: "2026-05-29 15:42:00" — JS Date accepts this
-    const d = new Date(ts.replace(" ", "T") + "Z");
-    if (!isNaN(d.getTime())) return d;
-    const d2 = new Date(ts);
-    if (!isNaN(d2.getTime())) return d2;
-  }
-  return new Date();
+const db = getFirestore()
+
+// ── Normalize incoming bot name to canonical form ──────
+function normalizeBotName(raw?: string | null): string {
+  if (!raw) return "Unknown Bot"
+  const u = raw.toUpperCase().replace(/_/g, " ").trim()
+  if (u.includes("PHOENIX NQ") || u.includes("NQ V1"))             return "Phoenix NQ v1.6"
+  if (u.includes("GOLD SENTINEL") || u.includes("SENTINEL APEX"))  return "Gold Sentinel Apex"
+  if (u.includes("PHOENIX GOLD") || u.includes("GOLD HYBRID") || u.includes("PHOENIX HYBRID"))
+                                                                     return "Phoenix Gold Hybrid"
+  if (u.includes("MANUAL"))                                         return "Manual Execution"
+  return raw.trim()
 }
 
 export async function POST(req: NextRequest) {
+  // ── Auth ─────────────────────────────────────────────
+  const expectedKey = process.env.WEBHOOK_API_KEY
+  if (!expectedKey) {
+    return NextResponse.json({ error: "Webhook not configured" }, { status: 503 })
+  }
+
+  const providedKey =
+    req.headers.get("x-api-key") ??
+    (await req.json().then(b => b?.apiKey).catch(() => null))
+
+  // ⚠ We've already consumed the body above; need to re-parse below if header missing
+  // To avoid that complexity, re-read once cleanly:
+  const body = await req.clone().json().catch(() => null)
+  const headerKey = req.headers.get("x-api-key")
+  const bodyKey   = body?.apiKey
+  const key = headerKey ?? bodyKey
+
+  if (!key || key !== expectedKey) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  if (!body) {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
+
   try {
-    const body = await req.json();
+    // ── Extract & normalize ─────────────────────────────
+    const {
+      ticket,
+      symbol,
+      profit,
+      type,
+      side,
+      bot,
+      botName,
+      status,         // "OPENED" | "CLOSED"
+      timestamp,
+    } = body
 
-    // ── Auth (apiKey in header OR body) ───────────────────
-    const headerKey = req.headers.get("x-api-key");
-    const bodyKey = body.apiKey;
-    const expectedKey = process.env.WEBHOOK_API_KEY;
-
-    if (expectedKey && headerKey !== expectedKey && bodyKey !== expectedKey) {
-      console.warn("[webhook] Auth failed", { headerKey, bodyKey });
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Only persist CLOSED trades with realized P&L
+    const tradeStatus = (status ?? "CLOSED").toString().toUpperCase()
+    if (tradeStatus === "OPENED") {
+      return NextResponse.json({ ok: true, skipped: "open trade" })
     }
 
-    // ── Validate required fields ──────────────────────────
-    if (!body.ticket || !body.symbol || !body.bot) {
-      return NextResponse.json(
-        { error: "Missing required fields: ticket, symbol, bot" },
-        { status: 400 }
-      );
+    if (!symbol) {
+      return NextResponse.json({ error: "Missing symbol" }, { status: 400 })
     }
 
-    // ── Normalize fields ──────────────────────────────────
-    const ticket    = String(body.ticket);
-    const symbol    = String(body.symbol).toUpperCase();
-    const botName   = normalizeBotName(body.bot);
-    const status    = String(body.status ?? "CLOSED").toUpperCase();
-    const profit    = Number(body.profit ?? 0);
-    const dealType  = Number(body.type ?? body.side ?? 0);
-    const direction = dealType === 0 ? "BUY" : "SELL";
-    const ts        = parseTimestamp(body.timestamp);
-
-    const db = getAdminDb();
-
-    // Doc ID uses ticket — same ticket from OPENED → CLOSED updates same doc
-    const docId = `${botName}_${ticket}`.replace(/[^a-zA-Z0-9_-]/g, "_");
-
-    if (status === "OPENED") {
-      // ── ENTRY ─────────────────────────────────────────────
-      // Write to pending_orders + create stub in trades (with profit=0)
-      await db.collection("pending_orders").doc(docId).set(
-        {
-          bot:       botName,
-          botName:   botName,
-          symbol:    symbol,
-          ticket:    ticket,
-          direction: direction,
-          status:    "active",
-          openedAt:  ts,
-          timestamp: ts,
-          updatedAt: FieldValue.serverTimestamp(),
-          source:    "mt5_bot",
-        },
-        { merge: true }
-      );
-
-      return NextResponse.json({
-        success: true,
-        action: "opened",
-        docId,
-        bot: botName,
-        ticket,
-      });
+    const profitNum = profit !== undefined ? Number(profit) : 0
+    if (!Number.isFinite(profitNum)) {
+      return NextResponse.json({ error: "Invalid profit value" }, { status: 400 })
     }
 
-    // ── CLOSED ─────────────────────────────────────────────
-    // Write to BOTH trades + pending_orders so the dashboard
-    // (which uses Firestore onSnapshot on `trades`) picks it up
-    const tradeDoc = {
-      // Fields dashboard expects (match Firestore listener in app/page.tsx):
-      bot:        botName,
-      botName:    botName,
-      symbol:     symbol,
-      direction:  direction,
-      type:       status === "OPENED" ? "OPEN" : "BOT",
-      profit:     profit,                       // dashboard reads as rMultiple
-      setup:      botName,
-      timestamp:  ts,
-      notes:      "",
-      screenshot: "",
+    const canonicalBot = normalizeBotName(bot ?? botName)
+    const direction = (type ?? side ?? "BUY").toString().toUpperCase()
+    const ts = timestamp ? new Date(timestamp) : new Date()
 
-      // Extended fields:
-      ticket:     ticket,
-      status:     "closed",
-      closedAt:   ts,
-      source:     "mt5_bot",
-      createdAt:  FieldValue.serverTimestamp(),
-    };
+    // ── Idempotency: use ticket as doc ID if provided ───
+    // Prevents duplicate writes if the bot retries
+    const docRef = ticket
+      ? db.collection("botTrades").doc(`ticket_${ticket}`)
+      : db.collection("botTrades").doc()
 
-    await db.collection("trades").doc(docId).set(tradeDoc, { merge: true });
-
-    // Also mark pending order as closed (cleanup)
-    await db.collection("pending_orders").doc(docId).set(
-      {
-        status:    "closed",
-        profit:    profit,
-        closedAt:  ts,
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
+    await docRef.set({
+      ticket:    ticket ?? null,
+      symbol:    String(symbol).toUpperCase(),
+      profit:    profitNum,
+      type:      "BOT",
+      bot:       canonicalBot,
+      direction,
+      timestamp: Timestamp.fromDate(ts),
+      source:    "bot",
+      receivedAt: FieldValue.serverTimestamp(),
+    }, { merge: true })
 
     return NextResponse.json({
-      success: true,
-      action:  "closed",
-      docId,
-      bot:     botName,
-      symbol,
-      ticket,
-      profit,
-      direction,
-    });
+      ok: true,
+      collection: "botTrades",
+      bot: canonicalBot,
+      ticket: ticket ?? null,
+    })
+
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown error";
-    console.error("[webhook POST]", msg);
-    return NextResponse.json(
-      { error: "Internal server error", details: msg },
-      { status: 500 }
-    );
+    console.error("[webhook]", err)
+    const msg = err instanceof Error ? err.message : "Unknown error"
+    return NextResponse.json({ error: "Internal error", details: msg }, { status: 500 })
   }
 }
 
-// Lightweight health-check so you can sanity-test the route in a browser
+// Health check
 export async function GET() {
   return NextResponse.json({
-    endpoint: "/api/webhook",
-    method: "POST",
-    status: "ok",
-    expects: {
-      ticket: "string",
-      symbol: "string",
-      profit: "number",
-      type: "0=BUY 1=SELL",
-      bot: "string",
-      status: "OPENED | CLOSED",
-      timestamp: "string OR unix-seconds",
-      apiKey: "set WEBHOOK_API_KEY env var (or send in x-api-key header)",
-    },
-  });
+    status: "alive",
+    target: "botTrades collection",
+    auth: process.env.WEBHOOK_API_KEY ? "configured" : "MISSING",
+  })
 }

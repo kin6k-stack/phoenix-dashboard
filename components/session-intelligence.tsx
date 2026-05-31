@@ -8,6 +8,7 @@ import {
   CheckCircle2, XCircle, AlertCircle, Calculator,
 } from "lucide-react"
 import { isMarketOpen, classifyAsset, getMarketReopenTime, formatTimeUntilOpen } from "@/lib/market-hours"
+import { useNotes } from "@/lib/notes-sync"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Trade {
@@ -179,7 +180,9 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
   const [marketData,  setMarketData]  = useState<MarketData | null>(null)
   const [mdLoading,   setMdLoading]   = useState(false)
   const [notesAsset,  setNotesAsset]  = useState<AssetSymbol>("XAUUSD")
-  const [notes,       setNotes]       = useState("")
+
+  // ── Per-user, per-asset notes — synced to Firestore with 2s debounce
+  const { notes, saveNotes, saving: notesSaving } = useNotes(notesAsset)
 
   // R/R Calculator state
   const [rrEntry,   setRREntry]   = useState("")
@@ -206,10 +209,6 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
   }, [marketAsset])
 
   useEffect(() => { fetchMarketData() }, [fetchMarketData])
-
-  // Notes persistence
-  useEffect(() => { try { setNotes(localStorage.getItem(`phx_notes_${notesAsset}`) || "") } catch { setNotes("") } }, [notesAsset])
-  const saveNotes = (v: string) => { setNotes(v); try { localStorage.setItem(`phx_notes_${notesAsset}`, v) } catch {} }
 
   // ── Derived trade data ───────────────────────────────────────────────────
   const filteredTrades = useMemo(() => {
@@ -757,14 +756,16 @@ export function SessionIntelligence({ trades = [] }: { trades: Trade[] }) {
         </CardHeader>
         <CardContent className="p-4">
           <p className="text-[10px] text-muted-foreground mb-3 leading-relaxed">
-            Log your supply/demand zones, order block bias, and structural targets for <span className="text-foreground font-bold">{notesAsset}</span>. Saved locally per asset.
+            Log your supply/demand zones, order block bias, and structural targets for <span className="text-foreground font-bold">{notesAsset}</span>. Synced across your devices.
           </p>
           <textarea value={notes} onChange={e => saveNotes(e.target.value)}
             placeholder={`Enter structural notes for ${notesAsset}...\n\nE.g:\n· PDH: 3345.2 → resistance target above\n· OB Demand: 3290–3310 (4H bullish OB)\n· Bias: Bullish above AVWAP ${marketData ? p(marketData.avwap) : "—"}`}
             className="w-full min-h-[140px] bg-secondary border border-border rounded-lg p-4 text-[11px] font-mono text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/40 focus:ring-1 focus:ring-primary/20 transition-all resize-none" />
           <div className="flex items-center gap-1.5 mt-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-            <span className="text-[9px] font-mono text-muted-foreground/50">Auto-saved · {notesAsset} workspace</span>
+            <div className={`w-1.5 h-1.5 rounded-full ${notesSaving ? "bg-amber-400 animate-pulse" : "bg-primary"}`} />
+            <span className="text-[9px] font-mono text-muted-foreground/50">
+              {notesSaving ? `Saving ${notesAsset}…` : `Synced · ${notesAsset} workspace`}
+            </span>
           </div>
         </CardContent>
       </Card>

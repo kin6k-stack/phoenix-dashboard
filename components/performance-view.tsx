@@ -63,16 +63,26 @@ function getEngineStyles(name: string) {
   return     { icon: Shield,   bar: "bg-violet-500",  text: "text-violet-400",  soft: "bg-violet-500/10",  stroke: "#8b5cf6" }
 }
 
-export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
+interface PerformanceViewProps {
+  userTrades?: Trade[]   // user's manual entries — feeds "Manual Execution" tile only
+  botTrades?:  Trade[]   // shared bot demo feed — feeds Sentinel / NQ / Hybrid tiles
+}
+
+export function PerformanceView({ userTrades = [], botTrades = [] }: PerformanceViewProps) {
   const [filterMode,   setFilterMode]   = useState<"ALL" | "BOT" | "MANUAL">("ALL")
   const [selectedBot,  setSelectedBot]  = useState<string | null>(null)
 
+  // Build engines map:
+  //   • Bot trades populate their named tile (Sentinel / NQ / Hybrid)
+  //   • User manual trades all go into the "Manual Execution" tile
   const engines: Record<string, Trade[]> = { "Manual Execution": [] }
-  trades.forEach(t => {
-    const name = t.setup || "Manual Execution"
+  botTrades.forEach(t => {
+    const name = t.setup || "Unknown Bot"
     if (!engines[name]) engines[name] = []
-    if (t.setup) engines[name].push(t)
-    else         engines["Manual Execution"].push(t)
+    engines[name].push(t)
+  })
+  userTrades.forEach(t => {
+    engines["Manual Execution"].push(t)
   })
 
   const filteredEngines = Object.entries(engines).filter(([name]) => {
@@ -82,7 +92,7 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
     return true
   })
 
-  const botTrades = selectedBot ? (engines[selectedBot] || []) : []
+  const selectedBotTrades = selectedBot ? (engines[selectedBot] || []) : []
 
   // Short labels on mobile, full labels on desktop
   const FILTER_LABELS = {
@@ -249,10 +259,10 @@ export function PerformanceView({ trades = [] }: { trades: Trade[] }) {
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[300px] sm:max-h-[340px] overflow-y-auto space-y-2 mt-4 pr-1">
-            {botTrades.length === 0 ? (
+            {selectedBotTrades.length === 0 ? (
               <p className="text-xs italic text-muted-foreground text-center py-6">No historical executions found.</p>
             ) : (
-              [...botTrades]
+              [...selectedBotTrades]
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                 .map((t, i) => {
                   const isBuy  = (t.direction || "BUY").toUpperCase() === "BUY"

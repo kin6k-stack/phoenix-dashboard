@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { collection, onSnapshot, query, orderBy, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
+import { collection, onSnapshot, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "@/components/sidebar"
@@ -61,7 +61,8 @@ export default function TradingDashboard() {
   const [selectedDate,      setSelectedDate]      = useState<Date | null>(null)
   const [isAddTradeOpen,    setIsAddTradeOpen]    = useState(false)
   const [editingTrade,      setEditingTrade]      = useState<Trade | null>(null)
-  const [trades,            setTrades]            = useState<Trade[]>([])
+  const [trades,            setTrades]            = useState<Trade[]>([])      // USER's manual trades
+  const [botTrades,         setBotTrades]         = useState<Trade[]>([])      // SHARED bot demo feed
   const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
   const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")
   const [settingsOpen,      setSettingsOpen]      = useState(false)
@@ -92,9 +93,25 @@ export default function TradingDashboard() {
     }
   }, [])
 
+  // ─────────────────────────────────────────────────────────────────
+  // Trade listeners — two separate Firestore subscriptions:
+  //
+  //   trades/      → user's manual entries only (filtered by userId)
+  //                  feeds: PnL Calendar, Analytics, Journal, Dashboard
+  //
+  //   botTrades/   → shared bot demo feed (NQ, Sentinel, Hybrid)
+  //                  feeds: Performance/Engine Telemetry ONLY
+  //                  every user sees the same bot history
+  // ─────────────────────────────────────────────────────────────────
+
+  // Listener 1: user's own trades
   useEffect(() => {
     if (!user) return
-    const q = query(collection(db, "trades"), orderBy("timestamp", "desc"))
+    const q = query(
+      collection(db, "trades"),
+      where("userId", "==", user.uid),
+      orderBy("timestamp", "desc")
+    )
     return onSnapshot(q, (snapshot) => {
       setTrades(snapshot.docs.map(d => {
         const data = d.data()
@@ -113,6 +130,39 @@ export default function TradingDashboard() {
           screenshot: data.screenshot || "",
         }
       }))
+    }, err => {
+      // If we hit a permission error (e.g. before the user is on allowedUsers),
+      // log it but don't crash the UI
+      console.warn("[trades listener]", err.message)
+      setTrades([])
+    })
+  }, [user])
+
+  // Listener 2: shared bot trades (read-only demo feed)
+  useEffect(() => {
+    if (!user) return
+    const q = query(collection(db, "botTrades"), orderBy("timestamp", "desc"))
+    return onSnapshot(q, (snapshot) => {
+      setBotTrades(snapshot.docs.map(d => {
+        const data = d.data()
+        let tradeDate = new Date().toISOString()
+        if (data.timestamp?.toDate)       tradeDate = data.timestamp.toDate().toISOString()
+        else if (data.date)               tradeDate = new Date(data.date).toISOString()
+        const rawBot = data.bot || data.botName || data.setup || null
+        return {
+          id:         d.id,
+          date:       tradeDate,
+          symbol:     data.symbol || "Unknown",
+          setup:      normalizeBotName(rawBot),
+          rMultiple:  data.profit !== undefined ? Number(data.profit) : 0,
+          direction:  (data.direction || data.type || "BUY").toUpperCase(),
+          notes:      "",
+          screenshot: "",
+        }
+      }))
+    }, err => {
+      console.warn("[botTrades listener]", err.message)
+      setBotTrades([])
     })
   }, [user])
 
@@ -121,6 +171,7 @@ export default function TradingDashboard() {
   }, [selectedDate])
 
   const handleSaveTrade = async (trade: any) => {
+    if (!user) return
     try {
       if (trade.id) {
         await updateDoc(doc(db, "trades", trade.id), {
@@ -130,6 +181,7 @@ export default function TradingDashboard() {
         })
       } else {
         await addDoc(collection(db, "trades"), {
+          userId: user.uid,                                     // ← per-user scoping
           symbol: trade.symbol.toUpperCase(), profit: Number(trade.rMultiple), type: "MANUAL",
           bot: trade.setup || "Manual Execution", direction: trade.direction || "BUY",
           timestamp: new Date(trade.date), notes: trade.notes || "", screenshot: trade.screenshot || "",
@@ -246,7 +298,7 @@ export default function TradingDashboard() {
       case "performance-metrics":
         return (
           <PageShell title="Engine Telemetry" sub="Segmented algorithmic strategy and execution history">
-            <PerformanceView trades={trades} />
+            <PerformanceView userTrades={trades} botTrades={botTrades} />
           </PageShell>
         )
 
