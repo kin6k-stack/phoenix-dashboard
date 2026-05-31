@@ -176,7 +176,7 @@ export function AddTradeDialog({
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="bg-primary text-primary-foreground font-black uppercase tracking-widest text-[11px] px-6 py-2 rounded shadow-md hover:opacity-90 transition-opacity cursor-pointer">
+              className="gradient-primary font-black uppercase tracking-widest text-[11px] px-6 py-2 rounded shadow-md hover:opacity-90 transition-opacity cursor-pointer">
               Save Position Data
             </button>
           </div>

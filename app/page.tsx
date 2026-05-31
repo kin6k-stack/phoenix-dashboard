@@ -6,6 +6,7 @@ import { collection, onSnapshot, query, orderBy, where, addDoc, updateDoc, delet
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "@/components/sidebar"
+import { AmbientBackdrop } from "@/components/ambient-backdrop"
 import { TradingCalendar } from "@/components/trading-calendar"
 import { SlimMonthlyPerformance } from "@/components/slim-monthly-performance"
 import { SlimPnLChart } from "@/components/slim-pnl-chart"
@@ -386,9 +387,10 @@ export default function TradingDashboard() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-background">
+    <div className="flex flex-col md:flex-row h-screen w-screen overflow-hidden bg-background relative">
+      <AmbientBackdrop />
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} trades={trades} />
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
         {renderContent()}
       </div>
       <AddTradeDialog
