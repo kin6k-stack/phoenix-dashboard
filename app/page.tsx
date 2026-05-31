@@ -65,6 +65,7 @@ export default function TradingDashboard() {
   const [botTrades,         setBotTrades]         = useState<Trade[]>([])      // SHARED bot demo feed
   const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
   const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")
+  const [symbolFilter,      setSymbolFilter]      = useState<string>("ALL")        // Pass F2: PnL symbol filter
   const [settingsOpen,      setSettingsOpen]      = useState(false)
   const [currentMonthYear,  setCurrentMonthYear]  = useState({
     month: new Date().getMonth(),
@@ -78,18 +79,37 @@ export default function TradingDashboard() {
   // ── Listen for custom nav events from child components ──
   // (CandleAnalysisView dispatches `phoenix:nav` when its
   //  "View Economic Events" link is clicked.
-  //  Sidebar dispatches `phoenix:settings` to open the panel.)
+  //  Sidebar dispatches `phoenix:settings` to open the panel.
+  //  YearlyPerformanceTable dispatches `phoenix:calendar:nav` when
+  //  the "View in Calendar" button is clicked in the month modal.)
   useEffect(() => {
     const navHandler = (e: Event) => {
       const ev = e as CustomEvent<string>
       if (typeof ev.detail === "string") setActiveNavItem(ev.detail)
     }
     const settingsHandler = () => setSettingsOpen(true)
+    const calendarNavHandler = (e: Event) => {
+      const ev = e as CustomEvent<{ year: number; month: number }>
+      if (ev.detail && typeof ev.detail.year === "number" && typeof ev.detail.month === "number") {
+        // Switch to the PnL Calendar page if we're not already there
+        setActiveNavItem("pnl-calendar")
+        // Switch back to calendar view (not analytics)
+        setPnlView("calendar")
+        // Update which month the calendar is showing
+        setCurrentMonthYear({ year: ev.detail.year, month: ev.detail.month })
+        // Scroll the calendar into view after a short delay so it has time to render
+        setTimeout(() => {
+          document.getElementById("pnl-calendar-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
+        }, 100)
+      }
+    }
     window.addEventListener("phoenix:nav", navHandler)
     window.addEventListener("phoenix:settings", settingsHandler)
+    window.addEventListener("phoenix:calendar:nav", calendarNavHandler)
     return () => {
       window.removeEventListener("phoenix:nav", navHandler)
       window.removeEventListener("phoenix:settings", settingsHandler)
+      window.removeEventListener("phoenix:calendar:nav", calendarNavHandler)
     }
   }, [])
 
@@ -195,7 +215,18 @@ export default function TradingDashboard() {
     try { await deleteDoc(doc(db, "trades", id)) } catch (e) { console.error(e) }
   }
 
-  const filteredTrades = trades.filter(t => {
+  // ── Pass F2: Symbol filter (from PnLHeader dropdown) ──
+  // Applied BEFORE the month filter so calendar/analytics/yearly-table
+  // all respect the user's selected symbol. "ALL" passes everything through.
+  // Symbol comparison is case-insensitive and ignores broker suffixes (e.g. "XAUUSDm" → "XAUUSD").
+  const symbolFilteredTrades = symbolFilter === "ALL"
+    ? trades
+    : trades.filter(t => {
+        const normalized = (t.symbol || "").toUpperCase().replace(/M$/, "")  // strip trailing 'm' broker suffix
+        return normalized === symbolFilter.toUpperCase()
+      })
+
+  const filteredTrades = symbolFilteredTrades.filter(t => {
     const d = new Date(t.date)
     return d.getMonth() === currentMonthYear.month && d.getFullYear() === currentMonthYear.year
   })
@@ -205,7 +236,7 @@ export default function TradingDashboard() {
   const losses      = filteredTrades.filter(t => t.rMultiple < 0).length
   const winRate     = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0
   const netPnL      = filteredTrades.reduce((s, t) => s + t.rMultiple, 0)
-  const tradeDates  = trades.map(t => new Date(t.date))
+  const tradeDates  = symbolFilteredTrades.map(t => new Date(t.date))  // calendar dots also respect symbol filter
   const manualTradesList = filteredTrades.filter(t => t.setup.toUpperCase().includes("MANUAL"))
 
   if (authLoading) {
@@ -239,11 +270,14 @@ export default function TradingDashboard() {
                 view={pnlView}
                 onViewChange={setPnlView}
                 onLogTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
+                symbolFilter={symbolFilter}
+                onSymbolFilterChange={setSymbolFilter}
               />
 
               {pnlView === "calendar" ? (
                 <>
-                  <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 xl:auto-rows-min">
+                  {/* anchor target for "View in Calendar" scroll-to-section */}
+                  <div id="pnl-calendar-section" className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 xl:auto-rows-min">
                     <div className="min-w-0">
                       <TradingCalendar
                         selectedDate={selectedDate}
@@ -272,10 +306,10 @@ export default function TradingDashboard() {
                         onDeleteTrade={handleDeleteTrade} />
                     </div>
                   </div>
-                  <YearlyPerformanceTable trades={trades} />
+                  <YearlyPerformanceTable trades={symbolFilteredTrades} />
                 </>
               ) : (
-                <PnLAnalyticsView trades={trades} />
+                <PnLAnalyticsView trades={symbolFilteredTrades} />
               )}
             </div>
           </div>
