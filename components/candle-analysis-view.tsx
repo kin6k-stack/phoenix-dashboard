@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react"
 import {
-  createChart, ColorType, CrosshairMode, CandlestickSeries, type IChartApi, type Time,
-  type ISeriesApi, type CandlestickData,
+  createChart, ColorType, CrosshairMode, CandlestickSeries, createSeriesMarkers,
+  type IChartApi, type Time, type ISeriesApi, type CandlestickData, type ISeriesMarkersPluginApi,
 } from "lightweight-charts"
 import {
   TrendingUp, TrendingDown, Activity, Target, RefreshCw,
@@ -44,6 +44,7 @@ export function CandleAnalysisView() {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef          = useRef<IChartApi | null>(null)
   const seriesRef         = useRef<ISeriesApi<"Candlestick"> | null>(null)
+  const markersRef        = useRef<ISeriesMarkersPluginApi<Time> | null>(null)
 
   const [symbol,        setSymbol]        = useState<typeof SYMBOLS[number]["id"]>("XAUUSD")
   const [timeframe,     setTimeframe]     = useState<typeof TIMEFRAMES[number]["id"]>("1h")
@@ -153,6 +154,14 @@ export function CandleAnalysisView() {
     chartRef.current = chart
     seriesRef.current = series
 
+    // Create markers plugin (v5 API). Markers are added/cleared in a
+    // separate effect when `selectedIdx` changes.
+    try {
+      markersRef.current = createSeriesMarkers(series, [])
+    } catch (e) {
+      console.warn("createSeriesMarkers not available — selection markers disabled:", e)
+    }
+
     // Click-to-select handler
     chart.subscribeClick(param => {
       if (!param.time || !param.point) return
@@ -179,6 +188,7 @@ export function CandleAnalysisView() {
       chart.remove()
       chartRef.current = null
       seriesRef.current = null
+      markersRef.current = null
     }
   }, [])
 
@@ -245,6 +255,34 @@ export function CandleAnalysisView() {
   useEffect(() => {
     setSelectedIdx(null)
   }, [symbol])
+
+  // ── Selected candle marker on the chart ──────────────────────
+  // Drops a downward-pointing arrow above the currently-selected candle
+  // so the analysis side panel has a visual anchor on the chart itself.
+  // Clears markers when nothing is selected.
+  useEffect(() => {
+    if (!markersRef.current) return
+
+    if (selectedIdx == null || !candles[selectedIdx]) {
+      markersRef.current.setMarkers([])
+      return
+    }
+
+    const c = candles[selectedIdx]
+    // Pull the theme's chart-primary color so the marker matches the active palette
+    const markerColor = (typeof window !== "undefined"
+      ? getComputedStyle(document.documentElement).getPropertyValue("--chart-primary").trim()
+      : "") || "#e5e5e5"
+
+    markersRef.current.setMarkers([{
+      time: c.time as Time,
+      position: "aboveBar",
+      color: markerColor,
+      shape: "arrowDown",
+      text: "SELECTED",
+      size: 1.5,
+    }])
+  }, [selectedIdx, candles, theme])
 
   // ── Selected candle analysis (memoized) ─────────────────
   const analysis = useMemo(() => {
