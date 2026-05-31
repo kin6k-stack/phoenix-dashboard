@@ -3,8 +3,9 @@
 /* ═══════════════════════════════════════════════════════════════════
    PHOENIX — Multi-theme system aligned with TradeX
    Activated via `data-theme` attribute on <html>.
-   Themes: black-white (default), dark, midnight, violet, light
+   Themes: black-white (default), dark, midnight, violet, gold
    Black/White supports invert: add `.invert-bw` class to <html>
+   Violet + Gold expose gradient tokens for opt-in styling
    Density: default, compact, expanded
    Animations: toggle via `.no-animations` class on <html>
    ═══════════════════════════════════════════════════════════════════ */
@@ -46,7 +47,7 @@
     --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
   }
 
-  /* ── Black/White (pure black, default — formerly OLED) ───── */
+  /* ── Black/White (TRUE MONOCHROME — only black/white/grey + trading colors) ─── */
   html[data-theme="black-white"] {
     --background:        0 0% 0%;
     --foreground:        0 0% 95%;
@@ -58,27 +59,46 @@
     --border:            0 0% 11%;
     --input:             0 0% 11%;
     --sidebar-bg:        0 0% 0%;
-    --primary:           142 71% 45%;
-    --ring:              142 71% 45%;
-    --accent:            217 91% 60%;
+    /* Primary & accent are FORCED grayscale (no green, no blue) */
+    --primary:           0 0% 92%;       /* near-white highlights */
+    --primary-foreground: 0 0% 0%;        /* black text on white buttons */
+    --accent:            0 0% 70%;       /* mid-grey for secondary accents */
+    --accent-foreground: 0 0% 0%;
+    --ring:              0 0% 70%;
+    /* Chart palette also grayscale — but emerald/rose stay for P&L */
+    --chart-blue:        0 0% 70%;
+    --chart-purple:      0 0% 60%;
+    --chart-amber:       38 92% 50%;     /* warnings keep amber */
   }
 
-  /* ── Black/White INVERT (white bg + black text) ──────────── */
-  /* Activated by adding `.invert-bw` class to <html> alongside data-theme="black-white" */
+  /* ── Black/White INVERT (white canvas, black text — greys stay) ──── */
   html[data-theme="black-white"].invert-bw {
     --background:        0 0% 100%;
     --foreground:        0 0% 5%;
     --card:              0 0% 96%;
     --popover:           0 0% 96%;
     --secondary:         0 0% 92%;
-    --muted:             0 0% 86%;
+    --muted:             0 0% 86%;       /* grey stays grey */
     --muted-foreground:  0 0% 35%;
     --border:            0 0% 88%;
     --input:             0 0% 88%;
     --sidebar-bg:        0 0% 100%;
-    --primary:           142 71% 35%;
-    --ring:              142 71% 35%;
-    --accent:            217 91% 50%;
+    /* Inverted primary — black on light surfaces */
+    --primary:           0 0% 8%;
+    --primary-foreground: 0 0% 100%;
+    --accent:            0 0% 30%;
+    --accent-foreground: 0 0% 100%;
+    --ring:              0 0% 30%;
+    --chart-blue:        0 0% 30%;
+    --chart-purple:      0 0% 40%;
+  }
+
+  /* Hide any colored primary glow effects in monochrome mode */
+  html[data-theme="black-white"] .ring-primary\/20,
+  html[data-theme="black-white"] .bg-primary\/10,
+  html[data-theme="black-white"] .border-primary\/30 {
+    /* Tailwind already maps these to --primary, so they auto-update.
+       This block is reserved for future hard overrides if needed. */
   }
 
   /* ── Dark (slate-blue, TradeX default) ────────────────────── */
@@ -148,52 +168,138 @@
     --chart-purple:      280 85% 65%;
   }
 
-  /* ── Light (high-contrast for daylight) ───────────────────── */
-  html[data-theme="light"] {
-    --background:        210 20% 97%;
-    --foreground:        220 30% 10%;
+  /* ── Gold (premium light canvas with gold accents — replaces Light) ─── */
+  html[data-theme="gold"] {
+    --background:        45 15% 96%;       /* warm off-white */
+    --foreground:        25 20% 12%;       /* deep brown-black */
     --card:              0 0% 100%;
-    --card-foreground:   220 30% 10%;
+    --card-foreground:   25 20% 12%;
     --popover:           0 0% 100%;
-    --popover-foreground: 220 30% 10%;
-    --primary:           142 60% 32%;
-    --primary-foreground: 0 0% 100%;
-    --secondary:         210 18% 90%;
-    --secondary-foreground: 220 30% 10%;
-    --muted:             210 16% 84%;
-    --muted-foreground:  220 18% 42%;
-    --accent:            217 80% 48%;
+    --popover-foreground: 25 20% 12%;
+    --primary:           38 92% 50%;       /* rich gold */
+    --primary-foreground: 25 30% 8%;
+    --secondary:         42 25% 90%;       /* warm beige */
+    --secondary-foreground: 25 20% 12%;
+    --muted:             42 18% 85%;
+    --muted-foreground:  30 12% 38%;
+    --accent:            32 85% 55%;       /* amber-orange accent */
     --accent-foreground: 0 0% 100%;
     --destructive:       0 75% 50%;
-    --border:            210 16% 80%;
-    --input:             210 16% 80%;
-    --ring:              142 60% 32%;
-    --sidebar-bg:        210 20% 94%;
+    --border:            42 20% 82%;
+    --input:             42 20% 82%;
+    --ring:              38 92% 50%;
+    --sidebar-bg:        45 15% 99%;
     --chart-green:       142 60% 32%;
-    --chart-blue:        217 80% 48%;
-    --chart-amber:       38 85% 42%;
+    --chart-blue:        38 92% 50%;       /* gold for line charts */
+    --chart-amber:       32 85% 50%;
     --chart-red:         0 75% 50%;
-    --chart-purple:      270 60% 52%;
+    --chart-purple:      30 25% 25%;       /* dark brown for variety */
   }
 
-  /* Light-mode overrides for any stray hardcoded dark colors.
-     These catch raw hex backgrounds we missed in the global sweep. */
-  html[data-theme="light"] .bg-\[\#0d0f14\],
-  html[data-theme="light"] .bg-\[\#070b12\],
-  html[data-theme="light"] .bg-\[\#03050a\],
-  html[data-theme="light"] .bg-\[\#000001\] {
-    background-color: hsl(var(--card)) !important;
+  /* ═══════════════════════════════════════════════════════════
+     GRADIENT TOKENS — for themes that opt into gradient styling
+     ═══════════════════════════════════════════════════════════
+     These `--gradient-*` variables are full linear-gradient strings.
+     Components can opt in via utility classes:
+       .gradient-primary  → fills with --gradient-primary
+       .gradient-active   → sidebar active items, hero buttons
+       .gradient-text     → text fill (clipped)
+       .gradient-chart    → for SVG chart fill via stroke="url(#g)"
+     Themes without a gradient set fall back to the solid `--primary` color.
+  */
+
+  /* Default for solid-color themes (Dark, Midnight, Black/White) — gradients are just solid primary */
+  :root {
+    --gradient-primary: hsl(var(--primary));
+    --gradient-active:  hsl(var(--primary) / 0.10);
   }
-  html[data-theme="light"] .text-slate-100,
-  html[data-theme="light"] .text-slate-200,
-  html[data-theme="light"] .text-slate-300 {
-    color: hsl(var(--foreground)) !important;
+
+  /* Violet — purple → magenta gradient */
+  html[data-theme="violet"] {
+    --gradient-primary: linear-gradient(135deg, hsl(280 85% 65%) 0%, hsl(310 80% 60%) 100%);
+    --gradient-active:  linear-gradient(135deg, hsl(280 85% 65% / 0.18) 0%, hsl(310 80% 60% / 0.10) 100%);
   }
-  html[data-theme="light"] .text-slate-400,
-  html[data-theme="light"] .text-slate-500,
-  html[data-theme="light"] .text-slate-600 {
-    color: hsl(var(--muted-foreground)) !important;
+
+  /* Gold — amber → gold gradient */
+  html[data-theme="gold"] {
+    --gradient-primary: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(28 92% 55%) 100%);
+    --gradient-active:  linear-gradient(135deg, hsl(38 92% 50% / 0.18) 0%, hsl(28 92% 55% / 0.10) 100%);
   }
+
+  /* Black/White — silver gradient (subtle) */
+  html[data-theme="black-white"] {
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 92%) 0%, hsl(0 0% 70%) 100%);
+    --gradient-active:  linear-gradient(135deg, hsl(0 0% 92% / 0.14) 0%, hsl(0 0% 70% / 0.08) 100%);
+  }
+  html[data-theme="black-white"].invert-bw {
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 8%) 0%, hsl(0 0% 30%) 100%);
+    --gradient-active:  linear-gradient(135deg, hsl(0 0% 8% / 0.10) 0%, hsl(0 0% 30% / 0.06) 100%);
+  }
+}
+
+/* ── Gold-mode defensive overrides for hardcoded dark utilities ─── */
+html[data-theme="gold"] .bg-\[\#0d0f14\],
+html[data-theme="gold"] .bg-\[\#070b12\],
+html[data-theme="gold"] .bg-\[\#03050a\],
+html[data-theme="gold"] .bg-\[\#000001\] {
+  background-color: hsl(var(--card)) !important;
+}
+html[data-theme="gold"] .text-slate-100,
+html[data-theme="gold"] .text-slate-200,
+html[data-theme="gold"] .text-slate-300 {
+  color: hsl(var(--foreground)) !important;
+}
+html[data-theme="gold"] .text-slate-400,
+html[data-theme="gold"] .text-slate-500,
+html[data-theme="gold"] .text-slate-600 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* Same defensive overrides for Black/White invert mode */
+html[data-theme="black-white"].invert-bw .bg-\[\#0d0f14\],
+html[data-theme="black-white"].invert-bw .bg-\[\#070b12\],
+html[data-theme="black-white"].invert-bw .bg-\[\#03050a\],
+html[data-theme="black-white"].invert-bw .bg-\[\#000001\] {
+  background-color: hsl(var(--card)) !important;
+}
+html[data-theme="black-white"].invert-bw .text-slate-100,
+html[data-theme="black-white"].invert-bw .text-slate-200,
+html[data-theme="black-white"].invert-bw .text-slate-300 {
+  color: hsl(var(--foreground)) !important;
+}
+html[data-theme="black-white"].invert-bw .text-slate-400,
+html[data-theme="black-white"].invert-bw .text-slate-500,
+html[data-theme="black-white"].invert-bw .text-slate-600 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   GRADIENT UTILITY CLASSES — opt-in helpers for components
+   ═══════════════════════════════════════════════════════════ */
+
+/* Primary gradient fill (used on submit buttons, hero CTAs) */
+.gradient-primary {
+  background: var(--gradient-primary);
+  color: hsl(var(--primary-foreground));
+}
+
+/* Active state gradient (used on sidebar active items, selected tabs) */
+.gradient-active {
+  background: var(--gradient-active);
+}
+
+/* Gradient text fill — useful for headlines and key numbers */
+.gradient-text {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Gradient border — combines with a transparent border on element */
+.gradient-border {
+  border-image: var(--gradient-primary) 1;
 }
 
 /* ── Tailwind v4 theme mapping ───────────────────────────────── */

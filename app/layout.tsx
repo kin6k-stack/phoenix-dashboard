@@ -13,9 +13,10 @@ export const metadata: Metadata = {
 // Reads localStorage and applies saved theme/density/animation/invert
 // settings to <html> so the page never flashes the wrong theme.
 //
-// Handles migration of legacy theme names:
-//   "oled" → "black-white" (same look, renamed)
-//   "pink" → "violet" (closest match)
+// Theme name migration (from prior versions):
+//   "oled"  → "black-white"
+//   "pink"  → "violet"
+//   "light" → "gold"
 const themeInitScript = `
 (function() {
   try {
@@ -24,6 +25,7 @@ const themeInitScript = `
     var theme = settings.theme;
     if (theme === 'oled' || !theme) theme = 'black-white';
     else if (theme === 'pink')     theme = 'violet';
+    else if (theme === 'light')    theme = 'gold';
     var density = settings.density || 'default';
     var animations = settings.animations !== false;
     var invert = settings.invert === true;

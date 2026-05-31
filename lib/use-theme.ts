@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 
 // ── Types ─────────────────────────────────────────────────
-export type Theme   = "black-white" | "dark" | "midnight" | "violet" | "light"
+export type Theme   = "black-white" | "dark" | "midnight" | "violet" | "gold"
 export type Density = "compact" | "default" | "expanded"
 
 export interface PhoenixSettings {
@@ -22,11 +22,17 @@ const DEFAULT_SETTINGS: PhoenixSettings = {
   invert:     false,
 }
 
-// ── Migration: handle old `oled` / `pink` values from existing users ──
+// ── Migration ─────────────────────────────────────────────
+// Handles old theme names from prior versions:
+//   "oled"  → "black-white" (renamed, same look)
+//   "pink"  → "violet"      (closest match)
+//   "light" → "gold"        (replaced)
 function migrateTheme(raw: string | undefined | null): Theme {
-  if (raw === "oled" || raw == null) return "black-white"   // OLED → Black/White (same look)
-  if (raw === "pink")                return "violet"        // Pink users → Violet (closest match)
-  if (raw === "black-white" || raw === "dark" || raw === "midnight" || raw === "violet" || raw === "light") {
+  if (raw === "oled" || raw == null) return "black-white"
+  if (raw === "pink")                return "violet"
+  if (raw === "light")               return "gold"
+  if (raw === "black-white" || raw === "dark" || raw === "midnight" ||
+      raw === "violet"      || raw === "gold") {
     return raw
   }
   return "black-white"
@@ -67,7 +73,7 @@ function applySettings(settings: PhoenixSettings) {
   if (settings.animations) html.classList.remove("no-animations")
   else                     html.classList.add("no-animations")
 
-  // Invert only applies in Black/White mode; clear it on other themes
+  // Invert only applies in Black/White; clear on other themes
   if (settings.theme === "black-white" && settings.invert) html.classList.add("invert-bw")
   else                                                     html.classList.remove("invert-bw")
 }

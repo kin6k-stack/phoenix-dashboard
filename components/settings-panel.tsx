@@ -15,12 +15,12 @@ interface SettingsPanelProps {
 }
 
 // ── Theme swatches ──────────────────────────────────────────
-const THEMES: { id: Theme; label: string; description: string; bg: string; accent: string; border: string }[] = [
-  { id: "black-white", label: "Black / White", description: "Pure black canvas — invertible to pure white",          bg: "#000000", accent: "#16a34a", border: "#1c1c1c" },
-  { id: "dark",        label: "Dark",          description: "Slate-grey base, balanced contrast",                     bg: "#1a1d23", accent: "#16a34a", border: "#2a2e36" },
-  { id: "midnight",    label: "Midnight",      description: "Deep navy with electric blue accents",                   bg: "#0c1018", accent: "#3b82f6", border: "#1a2030" },
-  { id: "violet",      label: "Violet",        description: "Bright violet gradient — matches login aesthetic",       bg: "#0f0a18", accent: "#c084fc", border: "#241a36" },
-  { id: "light",       label: "Light",         description: "High-contrast white for daylight trading",               bg: "#f5f7fa", accent: "#15803d", border: "#cdd5df" },
+const THEMES: { id: Theme; label: string; description: string; bg: string; accent: string; border: string; gradient?: string }[] = [
+  { id: "black-white", label: "Black / White", description: "True monochrome — invertible to white canvas",            bg: "#000000", accent: "#e5e5e5", border: "#1c1c1c" },
+  { id: "dark",        label: "Dark",          description: "Slate-grey base, balanced contrast",                       bg: "#1a1d23", accent: "#16a34a", border: "#2a2e36" },
+  { id: "midnight",    label: "Midnight",      description: "Deep navy with electric blue accents",                     bg: "#0c1018", accent: "#3b82f6", border: "#1a2030" },
+  { id: "violet",      label: "Violet",        description: "Purple gradient — matches login aesthetic",                bg: "#0f0a18", accent: "#c084fc", border: "#241a36", gradient: "linear-gradient(135deg, #c084fc 0%, #e879f9 100%)" },
+  { id: "gold",        label: "Gold",          description: "Light canvas with amber/gold accents",                     bg: "#f5f3ee", accent: "#f59e0b", border: "#e8e2d4", gradient: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)" },
 ]
 
 const DENSITIES: { id: Density; label: string; description: string }[] = [
@@ -123,9 +123,10 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                     <div
                       className="w-12 h-12 rounded flex-shrink-0 border relative overflow-hidden"
                       style={{ background: swatchBg, borderColor: swatchBorder }}>
+                      {/* Accent dot — gradient if the theme defines one, else solid */}
                       <div
-                        className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full"
-                        style={{ background: t.accent }}
+                        className="absolute bottom-1.5 left-1.5 w-2.5 h-2.5 rounded-full"
+                        style={{ background: t.gradient ?? t.accent }}
                       />
                     </div>
                     <div className="flex-1 min-w-0">

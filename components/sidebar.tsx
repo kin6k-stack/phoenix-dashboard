@@ -182,7 +182,7 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
                   onClick={() => handleItemClick(item.id)}
                   title={!showText ? item.label : undefined}
                   className={`w-full flex items-center gap-2.5 transition-all group min-h-[40px] ${
-                    isActive ? "bg-primary/[0.08]" : "hover:bg-white/[0.03]"
+                    isActive ? "gradient-active" : "hover:bg-white/[0.03]"
                   }`}
                   style={{
                     padding: showText ? "8px 12px" : "8px 0",
