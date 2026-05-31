@@ -47,59 +47,44 @@ function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup"
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Style A — AURORA (SVG planet with rim-lit edge)
+// Style A — AURORA (planet + sunrise, tightly composed)
 //
-// Uses an SVG layered approach for full control over the curve:
-//   1. Black background + stars
-//   2. Dark planet circle (positioned so upper half is visible)
-//   3. Crescent rim with glow filter
-//   4. Hot spot — bright lens flare on the rim
+// Approach: a single bright radial bloom positioned low and slightly
+// behind a darker circle that acts as the planet. The "sunrise" effect
+// emerges from the bloom showing through the gap between the planet's
+// edge and the surrounding darkness.
 // ─────────────────────────────────────────────────────────────────────
 function AuroraBackdrop() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Pure black space */}
+      {/* Deep space — true black */}
       <div className="absolute inset-0 bg-black" />
 
-      {/* Nebula haze in the upper sky */}
+      {/* Subtle purple ambient haze in the upper sky */}
       <div
         className="absolute"
         style={{
-          top: "-10%", left: "-15%", width: "70%", height: "55%",
-          background: "radial-gradient(ellipse, hsl(265 80% 45% / 0.22) 0%, transparent 60%)",
-          filter: "blur(50px)",
-        }}
-      />
-      <div
-        className="absolute"
-        style={{
-          top: "5%", right: "-15%", width: "60%", height: "50%",
-          background: "radial-gradient(ellipse, hsl(220 80% 50% / 0.15) 0%, transparent 60%)",
-          filter: "blur(50px)",
+          top: "0%", left: "20%", width: "60%", height: "40%",
+          background: "radial-gradient(ellipse at center, hsl(265 60% 25% / 0.4) 0%, transparent 65%)",
+          filter: "blur(40px)",
         }}
       />
 
-      {/* Stars — varied sizes and brightness */}
+      {/* Stars — kept subtle */}
       <div className="absolute inset-0">
         {[
-          { top: "4%",  left: "8%",  size: 2, opacity: 0.9 },
-          { top: "12%", left: "78%", size: 2, opacity: 0.85 },
-          { top: "8%",  left: "42%", size: 2, opacity: 0.75 },
-          { top: "20%", left: "88%", size: 2, opacity: 0.7 },
-          { top: "6%",  left: "65%", size: 2, opacity: 0.6 },
-          { top: "18%", left: "22%", size: 2, opacity: 0.7 },
-          { top: "3%",  left: "30%", size: 1, opacity: 0.55 },
-          { top: "10%", left: "55%", size: 1, opacity: 0.6 },
-          { top: "16%", left: "12%", size: 1, opacity: 0.55 },
-          { top: "22%", left: "48%", size: 1, opacity: 0.45 },
-          { top: "26%", left: "70%", size: 1, opacity: 0.45 },
-          { top: "30%", left: "5%",  size: 1, opacity: 0.5 },
-          { top: "34%", left: "92%", size: 1, opacity: 0.45 },
-          { top: "14%", left: "95%", size: 1, opacity: 0.45 },
-          { top: "11%", left: "5%",  size: 1, opacity: 0.5 },
-          { top: "25%", left: "35%", size: 1, opacity: 0.4 },
-          { top: "32%", left: "62%", size: 1, opacity: 0.35 },
-          { top: "7%",  left: "95%", size: 1, opacity: 0.5 },
+          { top: "5%",  left: "12%", size: 2, opacity: 0.8 },
+          { top: "8%",  left: "55%", size: 2, opacity: 0.7 },
+          { top: "14%", left: "82%", size: 2, opacity: 0.6 },
+          { top: "20%", left: "30%", size: 1, opacity: 0.5 },
+          { top: "25%", left: "65%", size: 1, opacity: 0.5 },
+          { top: "11%", left: "40%", size: 1, opacity: 0.45 },
+          { top: "18%", left: "92%", size: 1, opacity: 0.5 },
+          { top: "30%", left: "5%",  size: 1, opacity: 0.4 },
+          { top: "6%",  left: "75%", size: 1, opacity: 0.5 },
+          { top: "3%",  left: "25%", size: 1, opacity: 0.6 },
+          { top: "16%", left: "8%",  size: 1, opacity: 0.4 },
+          { top: "22%", left: "48%", size: 1, opacity: 0.35 },
         ].map((s, i) => (
           <div
             key={i}
@@ -108,151 +93,121 @@ function AuroraBackdrop() {
               top: s.top, left: s.left,
               width:  s.size, height: s.size,
               opacity: s.opacity,
-              animationDelay:    `${i * 0.4}s`,
-              animationDuration: `${4 + (i % 5)}s`,
-              boxShadow: s.size >= 2 ? "0 0 4px hsla(0,0%,100%,0.6)" : "none",
+              animationDelay:    `${i * 0.5}s`,
+              animationDuration: `${4 + (i % 4)}s`,
+              boxShadow: s.size >= 2 ? "0 0 4px hsla(0,0%,100%,0.7)" : "none",
             }}
           />
         ))}
       </div>
 
-      {/* ─── THE PLANET ─────────────────────────────────────────
-          SVG approach — full control over the curve.
-          The circle is positioned with its center BELOW the viewBox
-          so we see the upper portion as a curved arc rising from
-          the bottom. */}
-      <svg
-        className="absolute inset-0 w-full h-full"
-        viewBox="0 0 1000 1000"
-        preserveAspectRatio="xMidYMid slice"
-        style={{ overflow: "visible" }}
-      >
-        <defs>
-          {/* Planet surface gradient — very dark with slight purple */}
-          <radialGradient id="planetSurface" cx="50%" cy="0%" r="80%">
-            <stop offset="0%"   stopColor="hsl(265 35% 14%)" />
-            <stop offset="20%"  stopColor="hsl(265 25% 9%)" />
-            <stop offset="50%"  stopColor="hsl(0 0% 2%)" />
-            <stop offset="100%" stopColor="hsl(0 0% 0%)" />
-          </radialGradient>
+      {/* ═══════════════════════════════════════════════════════
+          THE PLANET + SUNRISE — composed as stacked layers
+          centered around a single focal point.
+          ═══════════════════════════════════════════════════════ */}
 
-          {/* Rim gradient — bright purple-white at top, fading to sides */}
-          <linearGradient id="rimLight" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%"   stopColor="hsl(265 90% 60%)" stopOpacity="0" />
-            <stop offset="20%"  stopColor="hsl(280 95% 70%)" stopOpacity="0.8" />
-            <stop offset="50%"  stopColor="hsl(290 100% 85%)" stopOpacity="1" />
-            <stop offset="65%"  stopColor="hsl(300 100% 90%)" stopOpacity="1" />
-            <stop offset="80%"  stopColor="hsl(220 95% 75%)" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="hsl(220 90% 60%)" stopOpacity="0" />
-          </linearGradient>
+      {/* Layer 1: THE SUN'S BLOOM (background)
+          A bright contained radial that will be partially blocked
+          by the planet circle on top of it. */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "560px",
+          height: "560px",
+          transform: "translate(-50%, -10%)",
+          background: `radial-gradient(circle at center,
+            hsl(290 100% 92%) 0%,
+            hsl(285 95% 75%)  6%,
+            hsl(280 90% 60%)  14%,
+            hsl(270 85% 45%)  25%,
+            hsl(260 75% 35% / 0.6) 40%,
+            hsl(255 60% 25% / 0.2) 60%,
+            transparent 80%
+          )`,
+          filter: "blur(8px)",
+          opacity: 0.95,
+        }}
+      />
 
-          {/* Glow filter for the rim */}
-          <filter id="rimGlow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="6" result="blur1" />
-            <feGaussianBlur stdDeviation="20" result="blur2" />
-            <feMerge>
-              <feMergeNode in="blur2" />
-              <feMergeNode in="blur1" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+      {/* Layer 2: Soft outer glow — adds a wider purple bloom around the bright core */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "900px",
+          height: "900px",
+          transform: "translate(-50%, -10%)",
+          background: `radial-gradient(circle at center,
+            hsl(280 90% 60% / 0.3) 0%,
+            hsl(270 80% 50% / 0.15) 25%,
+            transparent 55%
+          )`,
+          filter: "blur(40px)",
+          opacity: 1,
+        }}
+      />
 
-          {/* Soft outer halo filter */}
-          <filter id="halo" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="40" />
-          </filter>
+      {/* Layer 3: THE PLANET — dark circle that covers the lower half of the bloom,
+          creating the "sunrise behind planet" effect. */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "540px",
+          height: "540px",
+          transform: "translate(-50%, 8%)",
+          background: "radial-gradient(circle at 50% 30%, hsl(265 25% 8%) 0%, hsl(0 0% 0%) 70%)",
+          borderRadius: "50%",
+          boxShadow: `
+            inset 0 6px 20px hsla(290, 100%, 80%, 0.15),
+            inset 0 0 60px hsla(0, 0%, 0%, 0.6)
+          `,
+        }}
+      />
 
-          {/* Massive light-burst filter for the "sunrise behind planet" bloom */}
-          <filter id="sunBurst" x="-200%" y="-200%" width="500%" height="500%">
-            <feGaussianBlur stdDeviation="60" result="b1" />
-            <feGaussianBlur stdDeviation="120" result="b2" in="SourceGraphic" />
-            <feMerge>
-              <feMergeNode in="b2" />
-              <feMergeNode in="b1" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+      {/* Layer 4: BRIGHT RIM HIGHLIGHT — a thin bright crescent
+          at the top of the planet circle, where it meets the sun. */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "540px",
+          height: "540px",
+          transform: "translate(-50%, 8%)",
+          borderRadius: "50%",
+          // The shadow technique: a small inset shadow at the top creates
+          // a bright "edge highlight"
+          boxShadow: `
+            inset 0 4px 0 hsl(290 100% 95%),
+            inset 0 8px 16px hsla(285, 100%, 75%, 0.9),
+            inset 0 20px 50px hsla(280, 100%, 65%, 0.4)
+          `,
+          opacity: 0.95,
+        }}
+      />
 
-          {/* Hot-spot lens flare filter */}
-          <filter id="hotSpot" x="-100%" y="-100%" width="300%" height="300%">
-            <feGaussianBlur stdDeviation="3" result="b1" />
-            <feGaussianBlur stdDeviation="15" result="b2" in="SourceGraphic" />
-            <feGaussianBlur stdDeviation="40" result="b3" in="SourceGraphic" />
-            <feMerge>
-              <feMergeNode in="b3" />
-              <feMergeNode in="b2" />
-              <feMergeNode in="b1" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
+      {/* Layer 5: HOT SPOT — bright pinpoint flare on the upper edge */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "10px",
+          height: "10px",
+          transform: "translate(calc(-50% + 120px), calc(-50% - 38px))",
+          background: "white",
+          borderRadius: "50%",
+          boxShadow: `
+            0 0 10px white,
+            0 0 30px hsl(290 100% 80%),
+            0 0 80px hsl(280 100% 65%),
+            0 0 140px hsl(265 100% 55% / 0.6)
+          `,
+        }}
+      />
 
-          {/* Radial gradient for the sunrise burst */}
-          <radialGradient id="sunBurstGradient" cx="50%" cy="100%" r="80%">
-            <stop offset="0%"   stopColor="hsl(290 100% 90%)" stopOpacity="1" />
-            <stop offset="8%"   stopColor="hsl(285 100% 80%)" stopOpacity="0.9" />
-            <stop offset="20%"  stopColor="hsl(280 95% 65%)" stopOpacity="0.6" />
-            <stop offset="40%"  stopColor="hsl(270 85% 50%)" stopOpacity="0.25" />
-            <stop offset="70%"  stopColor="hsl(265 70% 40%)" stopOpacity="0.05" />
-            <stop offset="100%" stopColor="transparent" stopOpacity="0" />
-          </radialGradient>
-        </defs>
-
-        {/* ─── SUNRISE BURST — the bright bloom that emanates upward
-            from the rim's apex, lighting up the sky.
-            This is the "sun rising behind the planet" effect. */}
-        <ellipse
-          cx="500" cy="490" rx="700" ry="500"
-          fill="url(#sunBurstGradient)"
-          filter="url(#sunBurst)"
-        />
-
-        {/* Outer halo — soft purple glow that bleeds into the sky */}
-        <ellipse
-          cx="500" cy="1180" rx="780" ry="580"
-          fill="hsl(280 80% 55%)" opacity="0.18"
-          filter="url(#halo)"
-        />
-
-        {/* The planet body — dark sphere with subtle gradient */}
-        <circle
-          cx="500" cy="1180" r="700"
-          fill="url(#planetSurface)"
-        />
-
-        {/* The bright crescent rim — thick stroked arc with glow */}
-        <path
-          d="M -200 600 Q 500 350, 1200 600"
-          fill="none"
-          stroke="url(#rimLight)"
-          strokeWidth="4"
-          filter="url(#rimGlow)"
-        />
-
-        {/* Inner brighter rim core — sits on top for extra punch at apex */}
-        <path
-          d="M 150 540 Q 500 365, 850 540"
-          fill="none"
-          stroke="hsl(290 100% 92%)"
-          strokeWidth="2"
-          strokeLinecap="round"
-          opacity="0.9"
-          filter="url(#rimGlow)"
-        />
-
-        {/* Hot spot — bright lens flare on the rim, off-center to the right */}
-        <circle
-          cx="640" cy="490" r="6"
-          fill="white"
-          filter="url(#hotSpot)"
-        />
-
-        {/* Extra bright core of the hot spot */}
-        <circle
-          cx="640" cy="490" r="2"
-          fill="white"
-          opacity="1"
-        />
-      </svg>
+      {/* Layer 6: Bottom darkness — ensures the lower portion of the panel stays dark */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
+        style={{
+          background: "linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 70%)",
+        }}
+      />
     </div>
   )
 }
