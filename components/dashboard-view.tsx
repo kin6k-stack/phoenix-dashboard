@@ -1,18 +1,206 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { TrendingUp, DollarSign, Target, Activity, BarChart3, Zap } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, CartesianGrid } from "recharts"
+import { useTheme, type Theme } from "@/lib/use-theme"
 
+// ─────────────────────────────────────────────────────────────────────
+// Per-theme visual palette for charts.
+//
+// Trading semantic colors (win/loss/warning) stay the same across all
+// themes — that's a trader UX convention. But the PRIMARY chart accent
+// (equity stroke, bar fill, neutral elements) shifts per theme.
+// ─────────────────────────────────────────────────────────────────────
+interface ThemePalette {
+  equityStroke:     string
+  equityFillStart:  string
+  equityFillEnd:    string
+  equityGlow:       string
+  winColor:         string
+  lossColor:        string
+  winGlow:          string
+  lossGlow:         string
+  barFill:          string
+  barGlow:          string
+  gridStroke:       string
+  axisText:         string
+}
+
+function getPalette(theme: Theme, invert: boolean): ThemePalette {
+  switch (theme) {
+    case "violet":
+      return {
+        equityStroke:     "#c084fc",
+        equityFillStart:  "rgba(192,132,252,0.45)",
+        equityFillEnd:    "rgba(232,121,249,0.05)",
+        equityGlow:       "rgba(192,132,252,0.6)",
+        winColor:         "#a78bfa",
+        lossColor:        "#fb7185",
+        winGlow:          "rgba(167,139,250,0.6)",
+        lossGlow:         "rgba(251,113,133,0.5)",
+        barFill:          "#c084fc",
+        barGlow:          "rgba(192,132,252,0.4)",
+        gridStroke:       "hsla(280, 30%, 50%, 0.15)",
+        axisText:         "hsl(280 15% 60%)",
+      }
+    case "gold":
+      return {
+        equityStroke:     "#f59e0b",
+        equityFillStart:  "rgba(245,158,11,0.4)",
+        equityFillEnd:    "rgba(249,115,22,0.05)",
+        equityGlow:       "rgba(245,158,11,0.5)",
+        winColor:         "#16a34a",
+        lossColor:        "#dc2626",
+        winGlow:          "rgba(22,163,74,0.4)",
+        lossGlow:         "rgba(220,38,38,0.4)",
+        barFill:          "#f59e0b",
+        barGlow:          "rgba(245,158,11,0.4)",
+        gridStroke:       "hsla(38, 30%, 50%, 0.18)",
+        axisText:         "hsl(30 15% 35%)",
+      }
+    case "midnight":
+      return {
+        equityStroke:     "#60a5fa",
+        equityFillStart:  "rgba(96,165,250,0.4)",
+        equityFillEnd:    "rgba(96,165,250,0.02)",
+        equityGlow:       "rgba(96,165,250,0.5)",
+        winColor:         "#34d399",
+        lossColor:        "#fb7185",
+        winGlow:          "rgba(52,211,153,0.5)",
+        lossGlow:         "rgba(251,113,133,0.5)",
+        barFill:          "#818cf8",
+        barGlow:          "rgba(129,140,248,0.4)",
+        gridStroke:       "hsla(220, 30%, 40%, 0.15)",
+        axisText:         "hsl(220 20% 60%)",
+      }
+    case "black-white":
+      if (invert) {
+        return {
+          equityStroke:     "#1c1c1c",
+          equityFillStart:  "rgba(28,28,28,0.18)",
+          equityFillEnd:    "rgba(28,28,28,0.02)",
+          equityGlow:       "rgba(0,0,0,0.3)",
+          winColor:         "#16a34a",
+          lossColor:        "#dc2626",
+          winGlow:          "rgba(22,163,74,0.3)",
+          lossGlow:         "rgba(220,38,38,0.3)",
+          barFill:          "#404040",
+          barGlow:          "rgba(0,0,0,0.2)",
+          gridStroke:       "hsla(0, 0%, 70%, 0.4)",
+          axisText:         "hsl(0 0% 35%)",
+        }
+      }
+      return {
+        equityStroke:     "#e5e5e5",
+        equityFillStart:  "rgba(229,229,229,0.25)",
+        equityFillEnd:    "rgba(229,229,229,0.02)",
+        equityGlow:       "rgba(255,255,255,0.4)",
+        winColor:         "#34d399",
+        lossColor:        "#fb7185",
+        winGlow:          "rgba(52,211,153,0.4)",
+        lossGlow:         "rgba(251,113,133,0.4)",
+        barFill:          "#a3a3a3",
+        barGlow:          "rgba(255,255,255,0.2)",
+        gridStroke:       "hsla(0, 0%, 40%, 0.2)",
+        axisText:         "hsl(0 0% 60%)",
+      }
+    case "dark":
+    default:
+      return {
+        equityStroke:     "#34d399",
+        equityFillStart:  "rgba(52,211,153,0.4)",
+        equityFillEnd:    "rgba(52,211,153,0.02)",
+        equityGlow:       "rgba(52,211,153,0.5)",
+        winColor:         "#34d399",
+        lossColor:        "#fb7185",
+        winGlow:          "rgba(52,211,153,0.5)",
+        lossGlow:         "rgba(251,113,133,0.5)",
+        barFill:          "#818cf8",
+        barGlow:          "rgba(129,140,248,0.4)",
+        gridStroke:       "hsla(220, 13%, 40%, 0.15)",
+        axisText:         "hsl(0 0% 55%)",
+      }
+  }
+}
+
+function hasGradientStroke(theme: Theme): boolean {
+  return theme === "violet" || theme === "gold"
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Numora-style chart tooltip
+// ─────────────────────────────────────────────────────────────────────
+function ChartTooltip({ active, payload, label, valuePrefix = "", labelHeader }: any) {
+  if (!active || !payload?.length) return null
+  const value: number = payload[0].value
+  const isPositive = value >= 0
+
+  return (
+    <div className="px-3 py-2 rounded-lg border bg-card/95 border-border backdrop-blur-md shadow-xl"
+         style={{ minWidth: 140 }}>
+      {labelHeader && (
+        <div className="text-[8.5px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5">
+          {labelHeader}
+        </div>
+      )}
+      {label && (
+        <div className="text-[10px] font-mono text-muted-foreground mb-1.5 pb-1.5 border-b border-border/50">
+          {label}
+        </div>
+      )}
+      <div className="flex items-baseline gap-2">
+        <span className={`text-[10px] ${isPositive ? "text-emerald-400" : "text-rose-400"}`}>
+          {isPositive ? "▲" : "▼"}
+        </span>
+        <span className="text-sm font-black font-mono text-foreground tabular-nums">
+          {valuePrefix}{isPositive ? "+" : ""}{value.toFixed(2)}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function DistributionTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null
+  const datum = payload[0]
+  const name: string = datum.name
+  const value: number = datum.value
+  const isWin = name === "Wins"
+  return (
+    <div className="px-3 py-2 rounded-lg border bg-card/95 border-border backdrop-blur-md shadow-xl">
+      <div className="text-[8.5px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5">
+        Distribution
+      </div>
+      <div className="flex items-center gap-2">
+        <div className={`w-1.5 h-1.5 rounded-full ${isWin ? "bg-emerald-400" : "bg-rose-400"}`} />
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{name}</span>
+      </div>
+      <div className="mt-1 text-base font-black font-mono text-foreground tabular-nums">
+        {value}
+      </div>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Main dashboard
+// ─────────────────────────────────────────────────────────────────────
 export function DashboardView({ trades = [] }: { trades: any[] }) {
-  // Base Metrics
-  const totalPnl = trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0)
-  const wins = trades.filter(t => t.rMultiple > 0).length
-  const losses = trades.filter(t => t.rMultiple < 0).length
-  const winRate = trades.length > 0 ? Math.round((wins / trades.length) * 100) : 0
-  const avgR = trades.length > 0 ? (trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0) / trades.length) : 0
+  const { theme, invert } = useTheme()
+  const [palette, setPalette] = useState<ThemePalette>(() => getPalette("black-white", false))
 
-  // Velocity calcs
+  useEffect(() => {
+    setPalette(getPalette(theme, invert))
+  }, [theme, invert])
+
+  const totalPnl = trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0)
+  const wins     = trades.filter(t => t.rMultiple > 0).length
+  const losses   = trades.filter(t => t.rMultiple < 0).length
+  const winRate  = trades.length > 0 ? Math.round((wins / trades.length) * 100) : 0
+  const avgR     = trades.length > 0 ? (trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0) / trades.length) : 0
+
   const now = new Date()
   const oneWeekAgo   = new Date(now.getTime() - 7 * 86400_000)
   const twoWeeksAgo  = new Date(now.getTime() - 14 * 86400_000)
@@ -30,17 +218,14 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
 
   const calcWR = (arr: any[]) => arr.length > 0 ? (arr.filter(t => t.rMultiple > 0).length / arr.length) * 100 : 0
   const wrDelta = calcWR(currWeekTrades) - calcWR(prevWeekTrades)
-
   const tradesDelta = prevWeekTrades.length > 0
     ? ((currWeekTrades.length - prevWeekTrades.length) / prevWeekTrades.length) * 100
     : (currWeekTrades.length > 0 ? 100 : 0)
-
   const calcAvg = (arr: any[]) => arr.length > 0 ? arr.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0) / arr.length : 0
   const currAvg = calcAvg(currMonthTrades)
   const prevAvg = calcAvg(prevMonthTrades)
   const avgDelta = prevAvg !== 0 ? ((currAvg - prevAvg) / Math.abs(prevAvg)) * 100 : (currAvg > 0 ? 100 : 0)
 
-  // Chart data
   let runningEquity = 200
   const equityData = [...trades].reverse().map(t => {
     runningEquity += Number(t.rMultiple || 0)
@@ -54,31 +239,34 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
   }, {})
   const weeklyData = Object.entries(weeklyMap).map(([name, pnl]) => ({ name, pnl: Number(Number(pnl).toFixed(2)) }))
 
+  const useGradientStroke = hasGradientStroke(theme)
+  const strokeUrl = useGradientStroke ? "url(#equityStrokeGradient)" : palette.equityStroke
+
   const RADIAN = Math.PI / 180
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
     const radius = innerRadius + (outerRadius - innerRadius) * 0.5
     const x = cx + radius * Math.cos(-midAngle * RADIAN)
     const y = cy + radius * Math.sin(-midAngle * RADIAN)
     return percent > 0 ? (
-      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" className="text-[10px] sm:text-[11px] font-black drop-shadow-md">
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central"
+            className="text-[10px] sm:text-[11px] font-black drop-shadow-md">
         {`${(percent * 100).toFixed(0)}%`}
       </text>
     ) : null
   }
 
   return (
-    // p-4 on mobile, scales up to p-8 on desktop
     <div className="p-3 sm:p-4 md:p-6 lg:p-8 space-y-4 sm:space-y-6">
 
-      {/* ── Metrics grid: 2 cols phones, 4 cols desktop ───────────────── */}
+      {/* Metrics grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
         {[
-          { label: "Total P&L",    val: `$${totalPnl.toFixed(2)}`, icon: DollarSign, color: totalPnl >= 0 ? "text-emerald-400" : "text-rose-400", glow: "shadow-[0_0_15px_rgba(16,185,129,0.1)]", delta: pnlDelta,    deltaColor: pnlDelta    < 0 ? "text-rose-400" : "text-emerald-400" },
-          { label: "Win Rate",     val: `${winRate}%`,             icon: Target,     color: "text-blue-400",   glow: "shadow-[0_0_15px_rgba(59,130,246,0.1)]",  delta: wrDelta,     deltaColor: wrDelta     < 0 ? "text-rose-400" : "text-blue-400" },
-          { label: "Total Trades", val: trades.length,             icon: Activity,   color: "text-indigo-400", glow: "shadow-[0_0_15px_rgba(99,102,241,0.1)]",  delta: tradesDelta, deltaColor: "text-muted-foreground" },
-          { label: "Avg Execution",val: `${avgR.toFixed(2)} R`,    icon: Zap,        color: "text-amber-400",  glow: "shadow-[0_0_15px_rgba(245,158,11,0.1)]",  delta: avgDelta,    deltaColor: avgDelta    < 0 ? "text-rose-400" : "text-amber-400" },
+          { label: "Total P&L",    val: `$${totalPnl.toFixed(2)}`, icon: DollarSign, color: totalPnl >= 0 ? "text-emerald-400" : "text-rose-400", delta: pnlDelta,    deltaColor: pnlDelta    < 0 ? "text-rose-400" : "text-emerald-400" },
+          { label: "Win Rate",     val: `${winRate}%`,             icon: Target,     color: "text-blue-400",                                       delta: wrDelta,     deltaColor: wrDelta     < 0 ? "text-rose-400" : "text-blue-400" },
+          { label: "Total Trades", val: trades.length,             icon: Activity,   color: "text-indigo-400",                                     delta: tradesDelta, deltaColor: "text-muted-foreground" },
+          { label: "Avg Execution",val: `${avgR.toFixed(2)} R`,    icon: Zap,        color: "text-amber-400",                                      delta: avgDelta,    deltaColor: avgDelta    < 0 ? "text-rose-400" : "text-amber-400" },
         ].map((item, i) => (
-          <Card key={i} className={`border-border/40 bg-card/60 shadow-lg backdrop-blur-md ${item.glow} hover:bg-card/70 transition-colors`}>
+          <Card key={i} className="border-border/40 bg-card/60 shadow-lg backdrop-blur-md hover:bg-card/70 transition-colors">
             <CardContent className="p-3 sm:p-4 lg:p-5 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-2">
                 <div className="p-1.5 rounded-lg bg-background/50 border border-border/50">
@@ -97,12 +285,12 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
         ))}
       </div>
 
-      {/* ── Main charts: stack on mobile, 2:1 split on desktop ───────── */}
+      {/* Equity + Distribution */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
 
         <Card className="lg:col-span-2 p-3 sm:p-4 lg:p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md">
           <h3 className="text-xs sm:text-sm font-black flex items-center gap-2 uppercase tracking-widest text-foreground mb-3 sm:mb-4">
-            <TrendingUp size={14} className="text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]"/>
+            <TrendingUp size={14} style={{ color: palette.equityStroke, filter: `drop-shadow(0 0 5px ${palette.equityGlow})` }} />
             <span className="truncate">System Equity Curve</span>
           </h3>
           <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
@@ -110,25 +298,46 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
               <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase">Cumulative P&L</span>
               <span className="text-[9px] sm:text-[10px] font-mono font-bold text-muted-foreground bg-background/50 px-2 py-0.5 rounded border border-border/50 whitespace-nowrap">Base: $200</span>
             </div>
-            {/* Shorter height on mobile */}
             <div className="h-[140px] sm:h-[170px] lg:h-[200px] px-2 pt-2 pb-1">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={equityData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs>
-                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#34d399" stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor="#34d399" stopOpacity={0}/>
+                    <linearGradient id="equityAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor={palette.equityFillStart} />
+                      <stop offset="95%" stopColor={palette.equityFillEnd}   />
                     </linearGradient>
+                    {useGradientStroke && (
+                      <linearGradient id="equityStrokeGradient" x1="0" y1="0" x2="1" y2="0">
+                        {theme === "violet" ? (
+                          <>
+                            <stop offset="0%"   stopColor="#a78bfa" />
+                            <stop offset="50%"  stopColor="#c084fc" />
+                            <stop offset="100%" stopColor="#e879f9" />
+                          </>
+                        ) : (
+                          <>
+                            <stop offset="0%"   stopColor="#f59e0b" />
+                            <stop offset="50%"  stopColor="#fb923c" />
+                            <stop offset="100%" stopColor="#f97316" />
+                          </>
+                        )}
+                      </linearGradient>
+                    )}
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.3} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={palette.gridStroke} />
                   <XAxis dataKey="date" hide />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#666', fontWeight: 'bold' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: palette.axisText, fontWeight: 'bold' }} />
                   <Tooltip
-                    formatter={(value: number) => [`$${value.toFixed(2)}`, "Equity"]}
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }}
-                    itemStyle={{ color: '#34d399', fontWeight: '900', fontFamily: 'monospace' }}
+                    content={({ active, payload, label }) => (
+                      <ChartTooltip active={active} payload={payload} label={label} labelHeader="Equity" valuePrefix="$" />
+                    )}
                   />
-                  <Area type="monotone" dataKey="value" stroke="#34d399" strokeWidth={2} fill="url(#colorValue)" />
+                  <Area
+                    type="monotone" dataKey="value"
+                    stroke={strokeUrl} strokeWidth={2.5}
+                    fill="url(#equityAreaGradient)"
+                    style={{ filter: `drop-shadow(0 4px 8px ${palette.equityGlow})` }}
+                  />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -137,23 +346,20 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
 
         <Card className="p-3 sm:p-4 lg:p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md flex flex-col">
           <h3 className="text-xs sm:text-sm font-black mb-2 flex items-center gap-2 uppercase tracking-widest text-foreground">
-            <Target size={14} className="text-blue-400 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]"/> Distribution
+            <Target size={14} style={{ color: palette.winColor, filter: `drop-shadow(0 0 5px ${palette.winGlow})` }} />
+            Distribution
           </h3>
           <div className="flex-1 min-h-[180px] sm:min-h-[200px] lg:min-h-[220px] relative">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={[{name: 'Wins', value: wins}, {name: 'Losses', value: losses}]}
-                  dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={6} labelLine={false} label={renderCustomizedLabel}
-                >
-                  <Cell fill="#34d399" style={{ filter: 'drop-shadow(0px 0px 6px rgba(52,211,153,0.5))' }} />
-                  <Cell fill="#fb7185" style={{ filter: 'drop-shadow(0px 0px 6px rgba(251,113,133,0.5))' }} />
+                  dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={6}
+                  labelLine={false} label={renderCustomizedLabel}>
+                  <Cell fill={palette.winColor}  style={{ filter: `drop-shadow(0px 0px 6px ${palette.winGlow})` }} />
+                  <Cell fill={palette.lossColor} style={{ filter: `drop-shadow(0px 0px 6px ${palette.lossGlow})` }} />
                 </Pie>
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#f8fafc', borderColor: '#cbd5e1', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  itemStyle={{ color: '#0f172a', fontWeight: '900' }}
-                  labelStyle={{ color: '#0f172a' }}
-                />
+                <Tooltip content={<DistributionTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -161,15 +367,29 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
               <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Signals</span>
             </div>
           </div>
+
+          <div className="flex items-center justify-around pt-2 mt-1 border-t border-border/30">
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full" style={{ background: palette.winColor }} />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Wins</span>
+              <span className="text-[11px] font-black text-foreground font-mono">{wins}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full" style={{ background: palette.lossColor }} />
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Losses</span>
+              <span className="text-[11px] font-black text-foreground font-mono">{losses}</span>
+            </div>
+          </div>
         </Card>
       </div>
 
-      {/* ── Bottom row: stack on mobile, side-by-side on desktop ──────── */}
+      {/* Bottom row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 lg:gap-5">
 
         <Card className="p-3 sm:p-4 lg:p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md">
           <h3 className="text-xs sm:text-sm font-black mb-3 sm:mb-4 flex items-center gap-2 uppercase tracking-widest text-foreground">
-            <BarChart3 size={14} className="text-indigo-400 drop-shadow-[0_0_5px_rgba(129,140,248,0.5)]"/> Weekly P&L
+            <BarChart3 size={14} style={{ color: palette.barFill, filter: `drop-shadow(0 0 5px ${palette.barGlow})` }} />
+            Weekly P&L
           </h3>
           <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
             <div className="flex items-center px-3 sm:px-4 py-2 border-b border-border/20 bg-background/30">
@@ -178,15 +398,17 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
             <div className="h-[110px] sm:h-[130px] px-2 pt-2 pb-1">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyData} margin={{ top: 0, right: 5, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" opacity={0.2} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 9, fill: '#666', fontWeight: 'bold'}} dy={5} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fill: '#666', fontWeight: 'bold'}} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={palette.gridStroke} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 9, fill: palette.axisText, fontWeight: 'bold'}} dy={5} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fill: palette.axisText, fontWeight: 'bold'}} />
                   <Tooltip
-                    formatter={(value: number) => [`$${value.toFixed(2)}`, "P&L"]}
-                    cursor={{fill: '#333', opacity: 0.2}}
-                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', color: '#fff' }}
+                    cursor={{ fill: palette.gridStroke, opacity: 0.4 }}
+                    content={({ active, payload, label }) => (
+                      <ChartTooltip active={active} payload={payload} label={label} labelHeader="Weekly P&L" valuePrefix="$" />
+                    )}
                   />
-                  <Bar dataKey="pnl" fill="#818cf8" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="pnl" fill={palette.barFill} radius={[4, 4, 0, 0]}
+                       style={{ filter: `drop-shadow(0 0 4px ${palette.barGlow})` }} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
