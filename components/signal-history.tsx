@@ -1,19 +1,21 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { ArrowUpRight, ArrowDownRight, Info, History } from "lucide-react"
+import { ArrowUpRight, ArrowDownRight, Info, History, Bot, User, ClipboardCopy, Activity } from "lucide-react"
 
 interface Trade {
-  id:        string
-  date:      string
-  symbol:    string
-  setup:     string
-  rMultiple: number
+  id:         string
+  date:       string
+  symbol:     string
+  setup:      string
+  rMultiple:  number
   direction?: string
-  notes?:    string
+  notes?:     string
+  screenshot?: string
 }
 
 type PeriodFilter = "24h" | "7d" | "30d" | "all"
+type SourceTab   = "bots" | "manual"
 
 const PERIODS: { id: PeriodFilter; label: string; days: number | null }[] = [
   { id: "24h", label: "24h",      days: 1   },
@@ -74,16 +76,21 @@ function SymbolBreakdownRow({
   )
 }
 
-function SignalCard({ trade }: { trade: Trade }) {
+// ── Signal card — now optionally renders "Copy to Journal" button ─────
+function SignalCard({
+  trade, source, onCopyToJournal,
+}: {
+  trade: Trade
+  source: SourceTab
+  onCopyToJournal?: (t: Trade) => void
+}) {
   const isWin    = trade.rMultiple > 0
   const isLoss   = trade.rMultiple < 0
-  const isBE     = trade.rMultiple === 0
   const isBuy    = (trade.direction ?? "BUY").toUpperCase() === "BUY"
   const ago      = timeAgo(new Date(trade.date))
   const assetTag = getAssetTag(trade.symbol)
   const profitStr = `${trade.rMultiple >= 0 ? "+" : ""}$${trade.rMultiple.toFixed(2)}`
 
-  // outcome badge
   const outcomeBadge =
     isWin  ? { label: `WIN · ${profitStr}`,  cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" } :
     isLoss ? { label: `LOSS · ${profitStr}`, cls: "bg-rose-500/10 text-rose-400 border-rose-500/30" } :
@@ -94,7 +101,9 @@ function SignalCard({ trade }: { trade: Trade }) {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <span className="text-[10px] text-muted-foreground whitespace-nowrap">{ago}</span>
-          <span className="text-sm font-black text-foreground">{assetTag} <span className="text-muted-foreground font-bold">({trade.symbol})</span></span>
+          <span className="text-sm font-black text-foreground">
+            {assetTag} <span className="text-muted-foreground font-bold">({trade.symbol})</span>
+          </span>
           <span className="text-[10px] text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded">H1</span>
           <span className={`inline-flex items-center gap-1 text-[10px] font-black px-1.5 py-0.5 rounded
             ${isBuy ? "bg-emerald-500/10 text-emerald-400" : "bg-rose-500/10 text-rose-400"}`}>
@@ -107,35 +116,71 @@ function SignalCard({ trade }: { trade: Trade }) {
         </span>
       </div>
 
-      <div className="mt-1.5 ml-[1px]">
-        <p className="text-[11px] text-muted-foreground italic">
+      <div className="mt-1.5 ml-[1px] flex items-end justify-between gap-3">
+        <p className="text-[11px] text-muted-foreground italic flex-1 min-w-0">
           {trade.setup}
           {trade.notes && <span className="text-muted-foreground/80"> — {trade.notes}</span>}
         </p>
+
+        {/* Copy-to-Journal — only shown on bot signals */}
+        {source === "bots" && onCopyToJournal && (
+          <button
+            type="button"
+            onClick={() => onCopyToJournal(trade)}
+            title="Copy this signal into the Log Trade dialog"
+            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-black uppercase tracking-widest
+                       bg-primary/10 border border-primary/30 text-primary
+                       hover:bg-primary/20 transition-colors whitespace-nowrap flex-shrink-0">
+            <ClipboardCopy size={10} />
+            Copy to Journal
+          </button>
+        )}
       </div>
     </div>
   )
 }
 
 // ── Main view ───────────────────────────────────────────────────────────
-export function SignalHistoryView({ trades = [] }: { trades: Trade[] }) {
-  const [symbolFilter, setSymbolFilter] = useState<string>("All")
-  const [periodFilter, setPeriodFilter] = useState<PeriodFilter>("30d")
+interface ExecutionLedgerViewProps {
+  trades?:         Trade[]   // user's manual entries
+  botTrades?:      Trade[]   // shared bot demo feed
+  onCopyToJournal?: (t: Trade) => void
+}
 
-  // Available symbols from data
+export function SignalHistoryView({
+  trades = [],
+  botTrades = [],
+  onCopyToJournal,
+}: ExecutionLedgerViewProps) {
+  const [tab,           setTab]           = useState<SourceTab>("bots")
+  const [symbolFilter,  setSymbolFilter]  = useState<string>("All")
+  const [periodFilter,  setPeriodFilter]  = useState<PeriodFilter>("30d")
+
+  // The active dataset depends on which tab is selected
+  const activeSet = tab === "bots" ? botTrades : trades
+
+  // Available symbols are derived from the active dataset (avoids showing
+  // bot-only symbols on the Manual tab and vice versa)
   const allSymbols = useMemo(() => {
     const s = new Set<string>()
-    trades.forEach(t => s.add(getAssetTag(t.symbol)))
+    activeSet.forEach(t => s.add(getAssetTag(t.symbol)))
     return Array.from(s).slice(0, 5)
-  }, [trades])
+  }, [activeSet])
+
+  // Reset symbol filter if it's not present in the new dataset after a tab switch
+  useMemo(() => {
+    if (symbolFilter !== "All" && !allSymbols.includes(symbolFilter)) {
+      setSymbolFilter("All")
+    }
+  }, [allSymbols, symbolFilter])
 
   // Time-filter
   const periodFiltered = useMemo(() => {
     const period = PERIODS.find(p => p.id === periodFilter)
-    if (!period?.days) return trades
+    if (!period?.days) return activeSet
     const cutoff = Date.now() - period.days * 86_400_000
-    return trades.filter(t => new Date(t.date).getTime() > cutoff)
-  }, [trades, periodFilter])
+    return activeSet.filter(t => new Date(t.date).getTime() > cutoff)
+  }, [activeSet, periodFilter])
 
   // Symbol-filter
   const visibleTrades = useMemo(() => {
@@ -175,20 +220,46 @@ export function SignalHistoryView({ trades = [] }: { trades: Trade[] }) {
   return (
     <div className="space-y-4">
 
+      {/* ── Source tabs: Bots / Manual ───────────────────────────────── */}
+      <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5 w-fit">
+        {([
+          { id: "bots",   label: "Bots",   icon: Bot,  count: botTrades.length },
+          { id: "manual", label: "Manual", icon: User, count: trades.length    },
+        ] as const).map(t => {
+          const Icon = t.icon
+          const isActive = tab === t.id
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition-all min-h-[36px]
+                ${isActive ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+              <Icon size={13} />
+              {t.label}
+              <span className={`text-[9px] font-mono ${isActive ? "text-muted-foreground" : "text-muted-foreground/60"}`}>
+                ({t.count})
+              </span>
+            </button>
+          )
+        })}
+      </div>
+
       {/* ── Filters row ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Symbol filter */}
-        <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5 flex-wrap">
-          {["All", ...allSymbols].map(s => (
-            <button
-              key={s}
-              onClick={() => setSymbolFilter(s)}
-              className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all
-                ${symbolFilter === s ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
-              {s}
-            </button>
-          ))}
-        </div>
+        {allSymbols.length > 0 && (
+          <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5 flex-wrap">
+            {["All", ...allSymbols].map(s => (
+              <button
+                key={s}
+                onClick={() => setSymbolFilter(s)}
+                className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all
+                  ${symbolFilter === s ? "bg-foreground/10 text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Period filter */}
         <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5">
@@ -213,13 +284,13 @@ export function SignalHistoryView({ trades = [] }: { trades: Trade[] }) {
           valueColor={stats.hitRate >= 50 ? "text-emerald-400" : "text-foreground"}
         />
         <StatCard
-          label="Total R"
+          label="Total P&L"
           value={`${stats.totalR >= 0 ? "+" : ""}$${stats.totalR.toFixed(2)}`}
-          sub={`${stats.total} armed signals`}
+          sub={`${stats.total} executions`}
           valueColor={stats.totalR >= 0 ? "text-emerald-400" : "text-rose-400"}
         />
         <StatCard
-          label="Avg RR"
+          label="Avg Win"
           value={stats.wins > 0 ? `$${stats.avgRR.toFixed(2)}` : "—"}
           sub="Per winning signal"
         />
@@ -230,10 +301,10 @@ export function SignalHistoryView({ trades = [] }: { trades: Trade[] }) {
           valueColor="text-sky-400"
         />
         <StatCard
-          label="Still Open"
-          value="0"
-          sub={`${stats.total} total logged`}
-          valueColor="text-amber-400"
+          label="Source"
+          value={tab === "bots" ? "BOT" : "USER"}
+          sub={tab === "bots" ? "Engine telemetry feed" : "Your manual entries"}
+          valueColor={tab === "bots" ? "text-primary" : "text-amber-400"}
         />
       </div>
 
@@ -255,25 +326,37 @@ export function SignalHistoryView({ trades = [] }: { trades: Trade[] }) {
         </div>
       )}
 
-      {/* ── Recent signals list ─────────────────────────────────────── */}
+      {/* ── Recent executions list ──────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <History className="h-3.5 w-3.5 text-muted-foreground" />
+          {tab === "bots" ? <Bot className="h-3.5 w-3.5 text-muted-foreground" /> : <Activity className="h-3.5 w-3.5 text-muted-foreground" />}
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            Recent Signals {visibleTrades.length > 0 && <span className="text-muted-foreground/60">· {visibleTrades.length} shown</span>}
+            {tab === "bots" ? "Bot Executions" : "Manual Entries"}
+            {visibleTrades.length > 0 && <span className="text-muted-foreground/60"> · {visibleTrades.length} shown</span>}
           </p>
         </div>
 
         {visibleTrades.length === 0 ? (
           <div className="bg-card/40 border border-border/40 rounded-xl p-8 text-center">
             <Info className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No signals logged in this period</p>
-            <p className="text-xs text-muted-foreground/70 mt-1">Trades will appear here as bots execute and close positions.</p>
+            <p className="text-sm text-muted-foreground">
+              No {tab === "bots" ? "bot executions" : "manual entries"} logged in this period
+            </p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
+              {tab === "bots"
+                ? "Bot trades will appear here as engines fire and close positions."
+                : "Use Log Trade in the PnL Calendar to add manual entries."}
+            </p>
           </div>
         ) : (
           <div className="space-y-2">
             {visibleTrades.slice(0, 30).map(t => (
-              <SignalCard key={t.id} trade={t} />
+              <SignalCard
+                key={t.id}
+                trade={t}
+                source={tab}
+                onCopyToJournal={onCopyToJournal}
+              />
             ))}
           </div>
         )}

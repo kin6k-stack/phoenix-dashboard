@@ -6,7 +6,9 @@ import { ArrowUpRight, ArrowDownRight, Activity, Calendar as CalendarIcon } from
 // ── Pass F additions: full symbol list matching the PnL filter ─────
 const SYMBOL_OPTIONS = ["XAUUSD", "USTEC", "EURUSD", "GBPUSD", "BTCUSD"]
 
-export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, existingTrade, trades = [] }: any) {
+export function AddTradeDialog({
+  open, onOpenChange, onSubmit, initialDate, existingTrade, initialDraft, trades = [],
+}: any) {
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     symbol: "XAUUSD",
@@ -20,11 +22,30 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, exis
   useEffect(() => {
     if (open) {
       if (existingTrade) {
+        // Editing an existing trade — full overwrite from existing
         setFormData({
           ...existingTrade,
           date: new Date(existingTrade.date).toISOString().split('T')[0],
         });
+      } else if (initialDraft) {
+        // Pass G: Copy-to-Journal from bot signal — pre-fill from bot trade
+        // Use today's date by default (user can change). Append note that this
+        // was copied from a bot execution, preserving any original notes.
+        const draftDate = initialDraft.date
+          ? new Date(initialDraft.date).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0]
+        const originalNotes = initialDraft.notes ? `\n\n— Original: ${initialDraft.notes}` : ""
+        setFormData({
+          date:       draftDate,
+          symbol:     initialDraft.symbol     ?? "XAUUSD",
+          setup:      initialDraft.setup      ?? "Manual Entry",
+          direction:  initialDraft.direction  ?? "BUY",
+          rMultiple:  Number(initialDraft.rMultiple ?? 0),
+          notes:      `Copied from bot execution${originalNotes}`,
+          screenshot: initialDraft.screenshot ?? "",
+        })
       } else {
+        // Fresh log — use initialDate if provided
         setFormData({
           date: initialDate ? new Date(initialDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
           symbol: "XAUUSD",
@@ -36,7 +57,7 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, exis
         });
       }
     }
-  }, [open, initialDate, existingTrade]);
+  }, [open, initialDate, existingTrade, initialDraft]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +75,7 @@ export function AddTradeDialog({ open, onOpenChange, onSubmit, initialDate, exis
         <DialogHeader className="pb-2 border-b border-border/40">
           <DialogTitle className="uppercase tracking-widest text-xs font-black text-foreground flex items-center gap-2">
             <Activity size={14} className="text-primary"/>
-            {existingTrade ? "Edit Position Log" : "Log Execution"}
+            {existingTrade ? "Edit Position Log" : initialDraft ? "Copy from Bot — Review & Save" : "Log Execution"}
           </DialogTitle>
         </DialogHeader>
 

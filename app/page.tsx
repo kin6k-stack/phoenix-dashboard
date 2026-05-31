@@ -61,6 +61,7 @@ export default function TradingDashboard() {
   const [selectedDate,      setSelectedDate]      = useState<Date | null>(null)
   const [isAddTradeOpen,    setIsAddTradeOpen]    = useState(false)
   const [editingTrade,      setEditingTrade]      = useState<Trade | null>(null)
+  const [copyDraft,         setCopyDraft]         = useState<Partial<Trade> | null>(null)  // Pass G: bot trade copy-to-journal pre-fill
   const [trades,            setTrades]            = useState<Trade[]>([])      // USER's manual trades
   const [botTrades,         setBotTrades]         = useState<Trade[]>([])      // SHARED bot demo feed
   const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
@@ -351,7 +352,20 @@ export default function TradingDashboard() {
       case "signal-history":
         return (
           <PageShell title="Execution Ledger" sub="Immutable history of all fired engine signals">
-            <SignalHistoryView trades={trades} />
+            <SignalHistoryView
+              trades={trades}
+              botTrades={botTrades}
+              onCopyToJournal={(botTrade) => {
+                // Strip the bot trade's ID so the dialog treats this as a NEW
+                // entry (otherwise existingTrade !== null would overwrite the bot record).
+                // Keep date/symbol/setup/direction/rMultiple/notes as a pre-filled draft.
+                const { id, ...draft } = botTrade as any
+                setEditingTrade(null)
+                // Open the dialog with this draft as the initial form state
+                setCopyDraft(draft)
+                setIsAddTradeOpen(true)
+              }}
+            />
           </PageShell>
         )
 
@@ -379,8 +393,15 @@ export default function TradingDashboard() {
       </div>
       <AddTradeDialog
         open={isAddTradeOpen}
-        onOpenChange={(open: boolean) => { setIsAddTradeOpen(open); if (!open) { setSelectedDate(null); setEditingTrade(null) } }}
-        onSubmit={handleSaveTrade} initialDate={selectedDate} existingTrade={editingTrade} trades={trades}
+        onOpenChange={(open: boolean) => {
+          setIsAddTradeOpen(open)
+          if (!open) { setSelectedDate(null); setEditingTrade(null); setCopyDraft(null) }
+        }}
+        onSubmit={handleSaveTrade}
+        initialDate={selectedDate}
+        existingTrade={editingTrade}
+        initialDraft={copyDraft}
+        trades={trades}
       />
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
     </div>
