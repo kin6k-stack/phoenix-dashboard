@@ -209,15 +209,42 @@ export function CandleAnalysisView() {
   }, [theme, getThemeColors])
 
   // ── Push candles to the chart whenever data changes ─────
+  // CRITICAL: after setData() we must explicitly recalculate the PRICE scale
+  // (vertical axis), not just timeScale.fitContent() which only fits the
+  // horizontal/time axis. Without forcing priceScale to autoScale, the chart
+  // keeps the prior symbol's range — e.g. switching from XAUUSD (~$4,500)
+  // to USTEC (~$22,000) leaves the view stuck on the gold range.
   useEffect(() => {
-    if (!seriesRef.current || candles.length === 0) return
+    if (!seriesRef.current || !chartRef.current || candles.length === 0) return
     const data: CandlestickData[] = candles.map(c => ({
       time: c.time as Time,
       open: c.open, high: c.high, low: c.low, close: c.close,
     }))
     seriesRef.current.setData(data)
-    chartRef.current?.timeScale().fitContent()
+
+    // Reset the time axis (horizontal) to fit the full data range
+    chartRef.current.timeScale().fitContent()
+
+    // Force the price axis (vertical) to recompute its visible range
+    // for the NEW symbol's price magnitude. Without this, the y-axis
+    // stays at the previous symbol's scale.
+    try {
+      seriesRef.current.priceScale().applyOptions({ autoScale: true })
+    } catch {
+      // older lightweight-charts versions may not expose priceScale on series;
+      // fall back to chart-level
+      chartRef.current.priceScale("right").applyOptions({ autoScale: true })
+    }
   }, [candles])
+
+  // ── Reset selected candle when symbol changes ──────────────
+  // Otherwise the analysis side panel keeps showing data from a candle
+  // index that points to the previous symbol's array slot — produces
+  // misleading "Marubozu / RSI: 67" output that doesn't match what's
+  // visible on the new chart.
+  useEffect(() => {
+    setSelectedIdx(null)
+  }, [symbol])
 
   // ── Selected candle analysis (memoized) ─────────────────
   const analysis = useMemo(() => {
