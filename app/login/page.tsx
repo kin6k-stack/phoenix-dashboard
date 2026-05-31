@@ -47,12 +47,13 @@ function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup"
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Style A — AURORA (planet horizon with rim-lit edge, default)
+// Style A — AURORA (SVG planet with rim-lit edge)
 //
-// Visual goal: a dark sphere occupies the bottom of the panel.
-// A bright purple/blue rim of light catches the planet's top edge —
-// like seeing Earth from orbit at the terminator line.
-// Stars scattered in the dark sky above.
+// Uses an SVG layered approach for full control over the curve:
+//   1. Black background + stars
+//   2. Dark planet circle (positioned so upper half is visible)
+//   3. Crescent rim with glow filter
+//   4. Hot spot — bright lens flare on the rim
 // ─────────────────────────────────────────────────────────────────────
 function AuroraBackdrop() {
   return (
@@ -60,29 +61,45 @@ function AuroraBackdrop() {
       {/* Pure black space */}
       <div className="absolute inset-0 bg-black" />
 
-      {/* Stars — dense sky field */}
+      {/* Nebula haze in the upper sky */}
+      <div
+        className="absolute"
+        style={{
+          top: "-10%", left: "-15%", width: "70%", height: "55%",
+          background: "radial-gradient(ellipse, hsl(265 80% 45% / 0.22) 0%, transparent 60%)",
+          filter: "blur(50px)",
+        }}
+      />
+      <div
+        className="absolute"
+        style={{
+          top: "5%", right: "-15%", width: "60%", height: "50%",
+          background: "radial-gradient(ellipse, hsl(220 80% 50% / 0.15) 0%, transparent 60%)",
+          filter: "blur(50px)",
+        }}
+      />
+
+      {/* Stars — varied sizes and brightness */}
       <div className="absolute inset-0">
         {[
-          // Bright/larger stars near the top
           { top: "4%",  left: "8%",  size: 2, opacity: 0.9 },
-          { top: "12%", left: "78%", size: 2, opacity: 0.8 },
-          { top: "8%",  left: "42%", size: 2, opacity: 0.7 },
-          { top: "20%", left: "88%", size: 2, opacity: 0.6 },
-          { top: "6%",  left: "65%", size: 2, opacity: 0.5 },
+          { top: "12%", left: "78%", size: 2, opacity: 0.85 },
+          { top: "8%",  left: "42%", size: 2, opacity: 0.75 },
+          { top: "20%", left: "88%", size: 2, opacity: 0.7 },
+          { top: "6%",  left: "65%", size: 2, opacity: 0.6 },
           { top: "18%", left: "22%", size: 2, opacity: 0.7 },
-          // Smaller distant stars
-          { top: "3%",  left: "30%", size: 1, opacity: 0.5 },
+          { top: "3%",  left: "30%", size: 1, opacity: 0.55 },
           { top: "10%", left: "55%", size: 1, opacity: 0.6 },
-          { top: "16%", left: "12%", size: 1, opacity: 0.5 },
-          { top: "22%", left: "48%", size: 1, opacity: 0.4 },
-          { top: "26%", left: "70%", size: 1, opacity: 0.4 },
+          { top: "16%", left: "12%", size: 1, opacity: 0.55 },
+          { top: "22%", left: "48%", size: 1, opacity: 0.45 },
+          { top: "26%", left: "70%", size: 1, opacity: 0.45 },
           { top: "30%", left: "5%",  size: 1, opacity: 0.5 },
-          { top: "34%", left: "92%", size: 1, opacity: 0.4 },
-          { top: "38%", left: "35%", size: 1, opacity: 0.3 },
-          { top: "14%", left: "95%", size: 1, opacity: 0.4 },
-          { top: "28%", left: "25%", size: 1, opacity: 0.4 },
-          { top: "32%", left: "60%", size: 1, opacity: 0.3 },
-          { top: "11%", left: "5%",  size: 1, opacity: 0.4 },
+          { top: "34%", left: "92%", size: 1, opacity: 0.45 },
+          { top: "14%", left: "95%", size: 1, opacity: 0.45 },
+          { top: "11%", left: "5%",  size: 1, opacity: 0.5 },
+          { top: "25%", left: "35%", size: 1, opacity: 0.4 },
+          { top: "32%", left: "62%", size: 1, opacity: 0.35 },
+          { top: "7%",  left: "95%", size: 1, opacity: 0.5 },
         ].map((s, i) => (
           <div
             key={i}
@@ -99,181 +116,183 @@ function AuroraBackdrop() {
         ))}
       </div>
 
-      {/* Soft nebula haze in the sky */}
-      <div
-        className="absolute"
-        style={{
-          top: "-10%", left: "-20%", width: "70%", height: "60%",
-          background: "radial-gradient(ellipse, hsl(265 80% 45% / 0.18) 0%, transparent 60%)",
-          filter: "blur(40px)",
-        }}
-      />
-      <div
-        className="absolute"
-        style={{
-          top: "10%", right: "-15%", width: "60%", height: "50%",
-          background: "radial-gradient(ellipse, hsl(220 80% 50% / 0.12) 0%, transparent 60%)",
-          filter: "blur(40px)",
-        }}
-      />
-
       {/* ─── THE PLANET ─────────────────────────────────────────
-          A massive dark sphere positioned so only the upper third
-          is visible. Sits at the bottom of the panel, extending
-          far beyond left+right edges so the curvature reads as
-          a planet, not a hill. */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          // Planet is much wider than the panel — only upper crescent visible
-          width: "200%",
-          height: "200%",
-          // Center the sphere so its top edge falls at ~55% down the panel
-          left:   "-50%",
-          bottom: "-150%",
-          // Dark planet surface — almost pure black with a subtle gradient
-          background: `
-            radial-gradient(circle at 50% 0%,
-              hsl(265 40% 12%) 0%,
-              hsl(265 30% 7%)  20%,
-              hsl(0 0% 0%)     50%
-            )
-          `,
-          // Soft shadow at the edge to anchor it
-          boxShadow: "inset 0 100px 200px hsla(265, 100%, 50%, 0.05)",
-        }}
-      />
+          SVG approach — full control over the curve.
+          The circle is positioned with its center BELOW the viewBox
+          so we see the upper portion as a curved arc rising from
+          the bottom. */}
+      <svg
+        className="absolute inset-0 w-full h-full"
+        viewBox="0 0 1000 1000"
+        preserveAspectRatio="xMidYMid slice"
+        style={{ overflow: "visible" }}
+      >
+        <defs>
+          {/* Planet surface gradient — very dark with slight purple */}
+          <radialGradient id="planetSurface" cx="50%" cy="0%" r="80%">
+            <stop offset="0%"   stopColor="hsl(265 35% 14%)" />
+            <stop offset="20%"  stopColor="hsl(265 25% 9%)" />
+            <stop offset="50%"  stopColor="hsl(0 0% 2%)" />
+            <stop offset="100%" stopColor="hsl(0 0% 0%)" />
+          </radialGradient>
 
-      {/* ─── RIM LIGHT — the bright glowing top edge of the planet
-          This is the signature effect. A thin, intensely bright crescent
-          where light hits the planet's atmosphere. */}
+          {/* Rim gradient — bright purple-white at top, fading to sides */}
+          <linearGradient id="rimLight" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stopColor="hsl(265 90% 60%)" stopOpacity="0" />
+            <stop offset="20%"  stopColor="hsl(280 95% 70%)" stopOpacity="0.8" />
+            <stop offset="50%"  stopColor="hsl(290 100% 85%)" stopOpacity="1" />
+            <stop offset="65%"  stopColor="hsl(300 100% 90%)" stopOpacity="1" />
+            <stop offset="80%"  stopColor="hsl(220 95% 75%)" stopOpacity="0.85" />
+            <stop offset="100%" stopColor="hsl(220 90% 60%)" stopOpacity="0" />
+          </linearGradient>
 
-      {/* Bright core of the rim — narrow + intense */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: "200%",
-          height: "200%",
-          left:   "-50%",
-          bottom: "-150%",
-          // Just an outline with a strong glow above the planet's surface
-          border: "3px solid transparent",
-          background: `
-            radial-gradient(circle at 50% 0%,
-              transparent 49.5%,
-              hsl(285 100% 80% / 0.95) 49.7%,
-              hsl(280 100% 70% / 0.7) 49.85%,
-              transparent 50.1%
-            )
-          `,
-          filter: "blur(0.5px)",
-        }}
-      />
+          {/* Glow filter for the rim */}
+          <filter id="rimGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="6" result="blur1" />
+            <feGaussianBlur stdDeviation="20" result="blur2" />
+            <feMerge>
+              <feMergeNode in="blur2" />
+              <feMergeNode in="blur1" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
 
-      {/* Outer glow halo — soft purple bloom above the rim */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: "200%",
-          height: "200%",
-          left:   "-50%",
-          bottom: "-150%",
-          background: `
-            radial-gradient(circle at 50% 0%,
-              transparent 48%,
-              hsl(280 95% 65% / 0.5) 50%,
-              hsl(265 90% 55% / 0.25) 52%,
-              hsl(265 80% 50% / 0.08) 56%,
-              transparent 62%
-            )
-          `,
-          filter: "blur(12px)",
-        }}
-      />
+          {/* Soft outer halo filter */}
+          <filter id="halo" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="40" />
+          </filter>
 
-      {/* Even softer outer glow that bleeds into the sky */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: "200%",
-          height: "200%",
-          left:   "-50%",
-          bottom: "-150%",
-          background: `
-            radial-gradient(circle at 50% 0%,
-              transparent 47%,
-              hsl(280 80% 55% / 0.18) 51%,
-              hsl(265 70% 45% / 0.05) 60%,
-              transparent 72%
-            )
-          `,
-          filter: "blur(30px)",
-        }}
-      />
+          {/* Hot-spot lens flare filter */}
+          <filter id="hotSpot" x="-100%" y="-100%" width="300%" height="300%">
+            <feGaussianBlur stdDeviation="3" result="b1" />
+            <feGaussianBlur stdDeviation="15" result="b2" in="SourceGraphic" />
+            <feGaussianBlur stdDeviation="40" result="b3" in="SourceGraphic" />
+            <feMerge>
+              <feMergeNode in="b3" />
+              <feMergeNode in="b2" />
+              <feMergeNode in="b1" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
 
-      {/* Hot spot — one bright point on the rim where light is strongest
-          (creates the "lens flare from a star behind the planet" effect) */}
-      <div
-        className="absolute"
-        style={{
-          left:   "calc(50% + 80px)",
-          // Position right at the rim's height
-          top:    "calc(55% - 4px)",
-          width:  "8px",
-          height: "8px",
-          background: "white",
-          borderRadius: "50%",
-          boxShadow: `
-            0 0 8px hsla(0, 0%, 100%, 0.9),
-            0 0 24px hsla(285, 100%, 80%, 0.8),
-            0 0 60px hsla(280, 100%, 70%, 0.6),
-            0 0 100px hsla(265, 90%, 60%, 0.4)
-          `,
-        }}
-      />
+        {/* Outer halo — soft purple glow that bleeds into the sky */}
+        <ellipse
+          cx="500" cy="1180" rx="780" ry="580"
+          fill="hsl(280 80% 55%)" opacity="0.18"
+          filter="url(#halo)"
+        />
+
+        {/* The planet body — dark sphere with subtle gradient */}
+        <circle
+          cx="500" cy="1180" r="700"
+          fill="url(#planetSurface)"
+        />
+
+        {/* The bright crescent rim — thick stroked arc with glow */}
+        <path
+          d="M -200 600 Q 500 350, 1200 600"
+          fill="none"
+          stroke="url(#rimLight)"
+          strokeWidth="3"
+          filter="url(#rimGlow)"
+        />
+
+        {/* Hot spot — bright lens flare on the rim, off-center to the right */}
+        <circle
+          cx="640" cy="490" r="6"
+          fill="white"
+          filter="url(#hotSpot)"
+        />
+
+        {/* Extra bright core of the hot spot */}
+        <circle
+          cx="640" cy="490" r="2"
+          fill="white"
+          opacity="1"
+        />
+      </svg>
     </div>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Style B — ORBS (minimal gradient blobs)
+// Style B — ORBS (visible gradient blobs)
+//
+// Less aggressive blur, higher opacity, more saturated colors so the
+// orbs are actually visible on a black canvas.
 // ─────────────────────────────────────────────────────────────────────
 function OrbsBackdrop() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <div className="absolute inset-0 bg-black" />
 
+      {/* Top-left purple orb */}
       <div
-        className="absolute rounded-full blur-3xl opacity-60"
+        className="absolute rounded-full"
         style={{
-          width: "500px", height: "500px",
-          top:   "10%", left: "5%",
-          background: "radial-gradient(circle, hsl(265 85% 55% / 0.45) 0%, transparent 70%)",
-        }}
-      />
-      <div
-        className="absolute rounded-full blur-3xl opacity-50"
-        style={{
-          width: "600px", height: "600px",
-          bottom: "5%", left: "30%",
-          background: "radial-gradient(circle, hsl(220 85% 55% / 0.35) 0%, transparent 70%)",
-        }}
-      />
-      <div
-        className="absolute rounded-full blur-3xl opacity-40"
-        style={{
-          width: "450px", height: "450px",
-          top:   "35%", right: "10%",
-          background: "radial-gradient(circle, hsl(300 80% 60% / 0.3) 0%, transparent 70%)",
+          width: "520px", height: "520px",
+          top:   "-10%", left: "-8%",
+          background: "radial-gradient(circle, hsl(265 90% 55%) 0%, hsl(265 80% 45% / 0.4) 35%, transparent 70%)",
+          filter: "blur(70px)",
+          opacity: 0.7,
         }}
       />
 
-      {/* Subtle grain overlay */}
+      {/* Top-right magenta orb */}
       <div
-        className="absolute inset-0 opacity-[0.03]"
+        className="absolute rounded-full"
+        style={{
+          width: "420px", height: "420px",
+          top:   "8%", right: "-5%",
+          background: "radial-gradient(circle, hsl(300 90% 60%) 0%, hsl(310 85% 50% / 0.35) 35%, transparent 70%)",
+          filter: "blur(60px)",
+          opacity: 0.55,
+        }}
+      />
+
+      {/* Center-bottom blue orb */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: "600px", height: "600px",
+          bottom: "-15%", left: "20%",
+          background: "radial-gradient(circle, hsl(220 95% 55%) 0%, hsl(225 85% 45% / 0.35) 35%, transparent 70%)",
+          filter: "blur(80px)",
+          opacity: 0.6,
+        }}
+      />
+
+      {/* Middle-right violet accent (smaller, sharper) */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: "320px", height: "320px",
+          top: "45%", right: "15%",
+          background: "radial-gradient(circle, hsl(285 95% 65%) 0%, hsl(290 85% 55% / 0.4) 30%, transparent 65%)",
+          filter: "blur(50px)",
+          opacity: 0.5,
+        }}
+      />
+
+      {/* Small bright purple core — anchor point */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: "180px", height: "180px",
+          top: "25%", left: "35%",
+          background: "radial-gradient(circle, hsl(280 100% 70%) 0%, hsl(275 90% 60% / 0.5) 30%, transparent 65%)",
+          filter: "blur(35px)",
+          opacity: 0.7,
+        }}
+      />
+
+      {/* Subtle dot-grid texture overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-          backgroundSize: "32px 32px",
+          backgroundSize: "28px 28px",
         }}
       />
     </div>
