@@ -4,7 +4,7 @@ import { useState, useEffect, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
-import { Eye, EyeOff, CheckCircle2, ArrowLeft, Sparkles, Orbit, Zap } from "lucide-react"
+import { Eye, EyeOff, ArrowLeft, Sparkles, Orbit, Zap } from "lucide-react"
 import { useVipCheck } from "@/lib/use-vip-check"
 import { VipBlockedScreen } from "@/components/vip-blocked-screen"
 
@@ -16,13 +16,6 @@ import { VipBlockedScreen } from "@/components/vip-blocked-screen"
 // • Preference persists to localStorage.phoenix_login_style
 // • Phoenix Command branding + Trader Kizan footer credit
 // ─────────────────────────────────────────────────────────────────────
-
-const FEATURES = [
-  "Live MT5 bot sync — Gold Sentinel, Phoenix NQ, Phoenix Hybrid",
-  "Session intelligence with institutional kill zones",
-  "AI-powered market bias + multi-agent consensus",
-  "Real-time equity curve and drawdown tracking",
-]
 
 type LoginStyle = "aurora" | "orbs"
 
@@ -54,54 +47,42 @@ function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup"
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Style A — AURORA (deep horizon glow, atmospheric, default)
+// Style A — AURORA (planet horizon with rim-lit edge, default)
+//
+// Visual goal: a dark sphere occupies the bottom of the panel.
+// A bright purple/blue rim of light catches the planet's top edge —
+// like seeing Earth from orbit at the terminator line.
+// Stars scattered in the dark sky above.
 // ─────────────────────────────────────────────────────────────────────
 function AuroraBackdrop() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Pure black underlay */}
+      {/* Pure black space */}
       <div className="absolute inset-0 bg-black" />
 
-      {/* Horizon arc — purple glow rising from bottom */}
-      <div
-        className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-[50%] blur-3xl opacity-70"
-        style={{
-          width: "180%",
-          height: "60vh",
-          background: "radial-gradient(ellipse at center top, hsl(265 80% 55% / 0.35) 0%, hsl(280 75% 45% / 0.15) 35%, transparent 65%)",
-          transform: "translate(-50%, 50%)",
-        }}
-      />
-
-      {/* Thin glowing arc — adds a "planet horizon" feel */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 rounded-full"
-        style={{
-          bottom: "12%",
-          width: "120%",
-          height: "8px",
-          background: "linear-gradient(90deg, transparent 0%, hsl(280 90% 65% / 0.6) 50%, transparent 100%)",
-          boxShadow: "0 0 60px hsl(265 90% 60% / 0.7), 0 0 30px hsl(280 90% 65% / 0.5)",
-          filter: "blur(1px)",
-        }}
-      />
-
-      {/* Top fade */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-transparent to-transparent opacity-50" />
-
-      {/* Stars (CSS-only, low density) */}
+      {/* Stars — dense sky field */}
       <div className="absolute inset-0">
         {[
-          { top: "8%",  left: "12%", size: 1 },
-          { top: "14%", left: "78%", size: 2 },
-          { top: "22%", left: "35%", size: 1 },
-          { top: "18%", left: "55%", size: 1 },
-          { top: "5%",  left: "88%", size: 2 },
-          { top: "32%", left: "22%", size: 1 },
-          { top: "10%", left: "65%", size: 1 },
-          { top: "28%", left: "85%", size: 2 },
-          { top: "40%", left: "8%",  size: 1 },
-          { top: "6%",  left: "45%", size: 1 },
+          // Bright/larger stars near the top
+          { top: "4%",  left: "8%",  size: 2, opacity: 0.9 },
+          { top: "12%", left: "78%", size: 2, opacity: 0.8 },
+          { top: "8%",  left: "42%", size: 2, opacity: 0.7 },
+          { top: "20%", left: "88%", size: 2, opacity: 0.6 },
+          { top: "6%",  left: "65%", size: 2, opacity: 0.5 },
+          { top: "18%", left: "22%", size: 2, opacity: 0.7 },
+          // Smaller distant stars
+          { top: "3%",  left: "30%", size: 1, opacity: 0.5 },
+          { top: "10%", left: "55%", size: 1, opacity: 0.6 },
+          { top: "16%", left: "12%", size: 1, opacity: 0.5 },
+          { top: "22%", left: "48%", size: 1, opacity: 0.4 },
+          { top: "26%", left: "70%", size: 1, opacity: 0.4 },
+          { top: "30%", left: "5%",  size: 1, opacity: 0.5 },
+          { top: "34%", left: "92%", size: 1, opacity: 0.4 },
+          { top: "38%", left: "35%", size: 1, opacity: 0.3 },
+          { top: "14%", left: "95%", size: 1, opacity: 0.4 },
+          { top: "28%", left: "25%", size: 1, opacity: 0.4 },
+          { top: "32%", left: "60%", size: 1, opacity: 0.3 },
+          { top: "11%", left: "5%",  size: 1, opacity: 0.4 },
         ].map((s, i) => (
           <div
             key={i}
@@ -109,13 +90,147 @@ function AuroraBackdrop() {
             style={{
               top: s.top, left: s.left,
               width:  s.size, height: s.size,
-              opacity: 0.4 + Math.random() * 0.4,
-              animationDelay:    `${i * 0.7}s`,
-              animationDuration: `${3 + (i % 4)}s`,
+              opacity: s.opacity,
+              animationDelay:    `${i * 0.4}s`,
+              animationDuration: `${4 + (i % 5)}s`,
+              boxShadow: s.size >= 2 ? "0 0 4px hsla(0,0%,100%,0.6)" : "none",
             }}
           />
         ))}
       </div>
+
+      {/* Soft nebula haze in the sky */}
+      <div
+        className="absolute"
+        style={{
+          top: "-10%", left: "-20%", width: "70%", height: "60%",
+          background: "radial-gradient(ellipse, hsl(265 80% 45% / 0.18) 0%, transparent 60%)",
+          filter: "blur(40px)",
+        }}
+      />
+      <div
+        className="absolute"
+        style={{
+          top: "10%", right: "-15%", width: "60%", height: "50%",
+          background: "radial-gradient(ellipse, hsl(220 80% 50% / 0.12) 0%, transparent 60%)",
+          filter: "blur(40px)",
+        }}
+      />
+
+      {/* ─── THE PLANET ─────────────────────────────────────────
+          A massive dark sphere positioned so only the upper third
+          is visible. Sits at the bottom of the panel, extending
+          far beyond left+right edges so the curvature reads as
+          a planet, not a hill. */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          // Planet is much wider than the panel — only upper crescent visible
+          width: "200%",
+          height: "200%",
+          // Center the sphere so its top edge falls at ~55% down the panel
+          left:   "-50%",
+          bottom: "-150%",
+          // Dark planet surface — almost pure black with a subtle gradient
+          background: `
+            radial-gradient(circle at 50% 0%,
+              hsl(265 40% 12%) 0%,
+              hsl(265 30% 7%)  20%,
+              hsl(0 0% 0%)     50%
+            )
+          `,
+          // Soft shadow at the edge to anchor it
+          boxShadow: "inset 0 100px 200px hsla(265, 100%, 50%, 0.05)",
+        }}
+      />
+
+      {/* ─── RIM LIGHT — the bright glowing top edge of the planet
+          This is the signature effect. A thin, intensely bright crescent
+          where light hits the planet's atmosphere. */}
+
+      {/* Bright core of the rim — narrow + intense */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: "200%",
+          height: "200%",
+          left:   "-50%",
+          bottom: "-150%",
+          // Just an outline with a strong glow above the planet's surface
+          border: "3px solid transparent",
+          background: `
+            radial-gradient(circle at 50% 0%,
+              transparent 49.5%,
+              hsl(285 100% 80% / 0.95) 49.7%,
+              hsl(280 100% 70% / 0.7) 49.85%,
+              transparent 50.1%
+            )
+          `,
+          filter: "blur(0.5px)",
+        }}
+      />
+
+      {/* Outer glow halo — soft purple bloom above the rim */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: "200%",
+          height: "200%",
+          left:   "-50%",
+          bottom: "-150%",
+          background: `
+            radial-gradient(circle at 50% 0%,
+              transparent 48%,
+              hsl(280 95% 65% / 0.5) 50%,
+              hsl(265 90% 55% / 0.25) 52%,
+              hsl(265 80% 50% / 0.08) 56%,
+              transparent 62%
+            )
+          `,
+          filter: "blur(12px)",
+        }}
+      />
+
+      {/* Even softer outer glow that bleeds into the sky */}
+      <div
+        className="absolute rounded-full"
+        style={{
+          width: "200%",
+          height: "200%",
+          left:   "-50%",
+          bottom: "-150%",
+          background: `
+            radial-gradient(circle at 50% 0%,
+              transparent 47%,
+              hsl(280 80% 55% / 0.18) 51%,
+              hsl(265 70% 45% / 0.05) 60%,
+              transparent 72%
+            )
+          `,
+          filter: "blur(30px)",
+        }}
+      />
+
+      {/* Hot spot — one bright point on the rim where light is strongest
+          (creates the "lens flare from a star behind the planet" effect) */}
+      <div
+        className="absolute"
+        style={{
+          left:   "calc(50% + 80px)",
+          // Position right at the rim's height
+          top:    "calc(55% - 4px)",
+          width:  "8px",
+          height: "8px",
+          background: "white",
+          borderRadius: "50%",
+          boxShadow: `
+            0 0 8px hsla(0, 0%, 100%, 0.9),
+            0 0 24px hsla(285, 100%, 80%, 0.8),
+            0 0 60px hsla(280, 100%, 70%, 0.6),
+            0 0 100px hsla(265, 90%, 60%, 0.4)
+          `,
+        }}
+      />
     </div>
   )
 }
@@ -256,10 +371,10 @@ export default function LoginPage() {
       {loginStyle === "aurora" ? <AuroraBackdrop /> : <OrbsBackdrop />}
 
       {/* ── LEFT — Hero panel ─────────────────────────────────────── */}
-      <div className="relative z-10 hidden md:flex md:w-[58%] flex-col justify-between p-12 lg:p-16">
+      <div className="relative z-10 hidden md:flex md:w-[58%] flex-col p-10 lg:p-14">
 
         {/* Brand mark — top */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           <div className="w-11 h-11 rounded-xl flex items-center justify-center backdrop-blur-md"
             style={{
               background: "linear-gradient(135deg, hsl(265 85% 60% / 0.9) 0%, hsl(280 80% 50% / 0.9) 100%)",
@@ -273,9 +388,14 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Middle — headline */}
-        <div className="space-y-8 max-w-xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md"
+        {/* Headline — centered horizontally, positioned above the planet rim
+            (which sits at ~55% from top thanks to the AuroraBackdrop math).
+            Pushes itself ~30% from top so "Welcome" floats above the planet. */}
+        <div className="flex-1 flex flex-col items-center justify-center text-center"
+             style={{ paddingBottom: "20%" }}>
+
+          {/* Status pill */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md mb-8"
             style={{ borderColor: "hsl(280 85% 65% / 0.35)", background: "hsl(280 85% 65% / 0.08)" }}>
             <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "hsl(280 90% 70%)" }} />
             <span className="text-[10px] font-black tracking-[0.25em] uppercase" style={{ color: "hsl(280 90% 75%)" }}>
@@ -283,34 +403,26 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <h1 className="text-5xl lg:text-6xl font-black leading-[1.05] text-white">
-            Welcome to your<br />
-            <span style={{
-              background: "linear-gradient(120deg, hsl(280 90% 70%) 0%, hsl(220 90% 70%) 100%)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}>
-              command center.
-            </span>
+          {/* Big "Welcome" */}
+          <h1 className="font-black text-white tracking-tight leading-none"
+              style={{ fontSize: "clamp(4.5rem, 8vw, 7rem)" }}>
+            Welcome
           </h1>
 
-          <p className="text-base text-white/60 leading-relaxed max-w-md">
-            Live MT5 bot telemetry, institutional session intelligence, and AI-powered market bias —
-            all in one terminal.
+          {/* Smaller "to your command center." */}
+          <p className="mt-3 font-bold tracking-tight"
+             style={{
+               fontSize: "clamp(1.25rem, 2.2vw, 1.875rem)",
+               background: "linear-gradient(120deg, hsl(280 90% 75%) 0%, hsl(220 90% 75%) 100%)",
+               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+               backgroundClip: "text",
+             }}>
+            to your command center.
           </p>
-
-          <ul className="space-y-3 pt-2">
-            {FEATURES.map((f, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <CheckCircle2 className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: "hsl(280 80% 70%)" }} />
-                <span className="text-sm text-white/75">{f}</span>
-              </li>
-            ))}
-          </ul>
         </div>
 
         {/* Bottom — Trader Kizan credit + style toggle */}
-        <div className="flex items-end justify-between">
+        <div className="flex items-end justify-between flex-shrink-0">
 
           {/* Trader Kizan credit */}
           <div className="flex items-center gap-2.5">
