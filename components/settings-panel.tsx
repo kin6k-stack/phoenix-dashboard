@@ -17,7 +17,7 @@ interface SettingsPanelProps {
 // ── Theme swatches ──────────────────────────────────────────
 const THEMES: { id: Theme; label: string; description: string; bg: string; accent: string; border: string; gradient?: string }[] = [
   { id: "black-white", label: "Black / White", description: "True monochrome — invertible to white canvas",            bg: "#000000", accent: "#e5e5e5", border: "#1c1c1c" },
-  { id: "dark",        label: "Dark",          description: "Slate-grey base, balanced contrast",                       bg: "#1a1d23", accent: "#16a34a", border: "#2a2e36" },
+  { id: "dark",        label: "Green Lab",     description: "Slate base with emerald accents — the OG Phoenix lab look", bg: "#1a1d23", accent: "#16a34a", border: "#2a2e36" },
   { id: "midnight",    label: "Midnight",      description: "Deep navy with electric blue accents",                     bg: "#0c1018", accent: "#3b82f6", border: "#1a2030" },
   { id: "violet",      label: "Violet",        description: "Purple gradient — matches login aesthetic",                bg: "#0f0a18", accent: "#c084fc", border: "#241a36", gradient: "linear-gradient(135deg, #c084fc 0%, #e879f9 100%)" },
   { id: "gold",        label: "Gold",          description: "Light canvas with amber/gold accents",                     bg: "#f5f3ee", accent: "#f59e0b", border: "#e8e2d4", gradient: "linear-gradient(135deg, #f59e0b 0%, #f97316 100%)" },
