@@ -131,9 +131,14 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
               <div className="w-7 h-7 rounded-lg flex-shrink-0 flex items-center justify-center bg-primary">
                 <TrendingUp className="w-3.5 h-3.5 text-primary-foreground" />
               </div>
-              <span className="text-foreground text-[13px] font-black tracking-widest uppercase whitespace-nowrap">
-                Phoenix
-              </span>
+              <div className="flex flex-col leading-none overflow-hidden">
+                <span className="text-foreground text-[13px] font-black tracking-widest uppercase whitespace-nowrap">
+                  Phoenix
+                </span>
+                <span className="text-muted-foreground text-[9px] font-bold tracking-[0.25em] uppercase whitespace-nowrap mt-0.5">
+                  Command
+                </span>
+              </div>
             </div>
 
             {isMobile ? (
@@ -276,7 +281,7 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
           <div className="w-6 h-6 rounded flex items-center justify-center bg-primary">
             <TrendingUp className="w-3 h-3 text-primary-foreground" />
           </div>
-          <span className="text-foreground text-xs font-black tracking-widest uppercase">Phoenix</span>
+          <span className="text-foreground text-xs font-black tracking-widest uppercase">Phoenix Cmd</span>
         </div>
 
         <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10">
