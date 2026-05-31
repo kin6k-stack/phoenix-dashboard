@@ -71,13 +71,17 @@ export function AddTradeDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-card border border-border/80 shadow-2xl sm:max-w-[450px] text-foreground rounded-xl backdrop-blur-xl">
-        <DialogHeader className="pb-2 border-b border-border/40">
+      <DialogContent className="bg-card border border-border/80 shadow-2xl sm:max-w-[450px] text-foreground rounded-xl backdrop-blur-xl
+                                 max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-6 pt-6 pb-3 border-b border-border/40 flex-shrink-0">
           <DialogTitle className="uppercase tracking-widest text-xs font-black text-foreground flex items-center gap-2">
             <Activity size={14} className="text-primary"/>
             {existingTrade ? "Edit Position Log" : initialDraft ? "Copy from Bot — Review & Save" : "Log Execution"}
           </DialogTitle>
         </DialogHeader>
+
+        {/* Scrollable body — form + ledger live here, dialog never exceeds viewport */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pb-6">
 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
 
@@ -212,6 +216,8 @@ export function AddTradeDialog({
               })
             )}
           </div>
+        </div>
+
         </div>
       </DialogContent>
     </Dialog>

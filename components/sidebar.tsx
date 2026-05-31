@@ -35,7 +35,7 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
     label: "HISTORY",
     items: [
       { id: "pnl-calendar",   label: "P&L Calendar",   icon: Calendar },
-      { id: "signal-history", label: "Signal History", icon: History  },
+      { id: "signal-history", label: "Execution Ledger", icon: History  },
     ],
   },
   {
