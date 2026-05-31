@@ -3,21 +3,33 @@
 import { useState, useEffect, useCallback } from "react"
 
 // ── Types ─────────────────────────────────────────────────
-export type Theme     = "oled" | "dark" | "midnight" | "pink" | "light"
-export type Density   = "compact" | "default" | "expanded"
+export type Theme   = "black-white" | "dark" | "midnight" | "violet" | "light"
+export type Density = "compact" | "default" | "expanded"
 
 export interface PhoenixSettings {
   theme:      Theme
   density:    Density
   animations: boolean
+  invert:     boolean   // only meaningful when theme === "black-white"
 }
 
 const STORAGE_KEY = "phoenix_settings"
 
 const DEFAULT_SETTINGS: PhoenixSettings = {
-  theme:      "oled",
+  theme:      "black-white",
   density:    "default",
   animations: true,
+  invert:     false,
+}
+
+// ── Migration: handle old `oled` / `pink` values from existing users ──
+function migrateTheme(raw: string | undefined | null): Theme {
+  if (raw === "oled" || raw == null) return "black-white"   // OLED → Black/White (same look)
+  if (raw === "pink")                return "violet"        // Pink users → Violet (closest match)
+  if (raw === "black-white" || raw === "dark" || raw === "midnight" || raw === "violet" || raw === "light") {
+    return raw
+  }
+  return "black-white"
 }
 
 // ── Storage helpers ───────────────────────────────────────
@@ -26,11 +38,12 @@ function readSettings(): PhoenixSettings {
   try {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (!saved) return DEFAULT_SETTINGS
-    const parsed = JSON.parse(saved) as Partial<PhoenixSettings>
+    const parsed = JSON.parse(saved) as Partial<PhoenixSettings> & { theme?: string }
     return {
-      theme:      parsed.theme      ?? DEFAULT_SETTINGS.theme,
+      theme:      migrateTheme(parsed.theme),
       density:    parsed.density    ?? DEFAULT_SETTINGS.density,
       animations: parsed.animations !== false,
+      invert:     parsed.invert === true,
     }
   } catch {
     return DEFAULT_SETTINGS
@@ -53,11 +66,14 @@ function applySettings(settings: PhoenixSettings) {
   html.setAttribute("data-density", settings.density)
   if (settings.animations) html.classList.remove("no-animations")
   else                     html.classList.add("no-animations")
+
+  // Invert only applies in Black/White mode; clear it on other themes
+  if (settings.theme === "black-white" && settings.invert) html.classList.add("invert-bw")
+  else                                                     html.classList.remove("invert-bw")
 }
 
 // ── Hook ──────────────────────────────────────────────────
 export function useTheme() {
-  // Lazy init from localStorage — but only on client
   const [settings, setSettings] = useState<PhoenixSettings>(DEFAULT_SETTINGS)
   const [hydrated, setHydrated] = useState(false)
 
@@ -78,14 +94,17 @@ export function useTheme() {
   const setTheme      = useCallback((theme: Theme)         => update({ theme }),      [update])
   const setDensity    = useCallback((density: Density)     => update({ density }),    [update])
   const setAnimations = useCallback((animations: boolean)  => update({ animations }), [update])
+  const setInvert     = useCallback((invert: boolean)      => update({ invert }),     [update])
 
   return {
     theme:      settings.theme,
     density:    settings.density,
     animations: settings.animations,
+    invert:     settings.invert,
     setTheme,
     setDensity,
     setAnimations,
+    setInvert,
     hydrated,
   }
 }

@@ -3,7 +3,8 @@
 /* ═══════════════════════════════════════════════════════════════════
    PHOENIX — Multi-theme system aligned with TradeX
    Activated via `data-theme` attribute on <html>.
-   Themes: oled (default), dark, midnight, pink, light
+   Themes: black-white (default), dark, midnight, violet, light
+   Black/White supports invert: add `.invert-bw` class to <html>
    Density: default, compact, expanded
    Animations: toggle via `.no-animations` class on <html>
    ═══════════════════════════════════════════════════════════════════ */
@@ -45,8 +46,8 @@
     --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
   }
 
-  /* ── OLED (pure black, default) ───────────────────────────── */
-  html[data-theme="oled"] {
+  /* ── Black/White (pure black, default — formerly OLED) ───── */
+  html[data-theme="black-white"] {
     --background:        0 0% 0%;
     --foreground:        0 0% 95%;
     --card:              0 0% 4%;
@@ -60,6 +61,24 @@
     --primary:           142 71% 45%;
     --ring:              142 71% 45%;
     --accent:            217 91% 60%;
+  }
+
+  /* ── Black/White INVERT (white bg + black text) ──────────── */
+  /* Activated by adding `.invert-bw` class to <html> alongside data-theme="black-white" */
+  html[data-theme="black-white"].invert-bw {
+    --background:        0 0% 100%;
+    --foreground:        0 0% 5%;
+    --card:              0 0% 96%;
+    --popover:           0 0% 96%;
+    --secondary:         0 0% 92%;
+    --muted:             0 0% 86%;
+    --muted-foreground:  0 0% 35%;
+    --border:            0 0% 88%;
+    --input:             0 0% 88%;
+    --sidebar-bg:        0 0% 100%;
+    --primary:           142 71% 35%;
+    --ring:              142 71% 35%;
+    --accent:            217 91% 50%;
   }
 
   /* ── Dark (slate-blue, TradeX default) ────────────────────── */
@@ -104,29 +123,29 @@
     --chart-purple:      252 68% 68%;
   }
 
-  /* ── Pink (cyberpunk pink-purple) ─────────────────────────── */
-  html[data-theme="pink"] {
-    --background:        340 28% 7%;
-    --foreground:        340 15% 96%;
-    --card:              340 22% 10%;
-    --card-foreground:   340 15% 96%;
-    --popover:           340 22% 10%;
-    --popover-foreground: 340 15% 96%;
-    --primary:           330 85% 68%;
-    --primary-foreground: 340 28% 7%;
-    --secondary:         340 18% 15%;
-    --secondary-foreground: 340 15% 96%;
-    --muted:             340 14% 20%;
-    --muted-foreground:  340 10% 58%;
-    --accent:            295 65% 62%;
-    --accent-foreground: 340 28% 7%;
+  /* ── Violet (gradient-style purple, neon accents) ─────────── */
+  html[data-theme="violet"] {
+    --background:        265 35% 6%;       /* deep midnight violet */
+    --foreground:        270 20% 96%;
+    --card:              265 30% 9%;
+    --card-foreground:   270 20% 96%;
+    --popover:           265 30% 9%;
+    --popover-foreground: 270 20% 96%;
+    --primary:           280 85% 65%;      /* bright violet (Pass C user pick) */
+    --primary-foreground: 0 0% 100%;
+    --secondary:         265 25% 14%;
+    --secondary-foreground: 270 20% 96%;
+    --muted:             265 20% 22%;
+    --muted-foreground:  265 15% 65%;
+    --accent:            220 90% 65%;      /* electric blue accent */
+    --accent-foreground: 0 0% 100%;
     --destructive:       0 84% 60%;
-    --border:            340 14% 17%;
-    --input:             340 14% 17%;
-    --ring:              330 85% 68%;
-    --sidebar-bg:        340 28% 5%;
-    --chart-blue:        295 65% 62%;
-    --chart-purple:      330 85% 68%;
+    --border:            265 22% 18%;
+    --input:             265 22% 18%;
+    --ring:              280 85% 65%;
+    --sidebar-bg:        265 38% 4%;
+    --chart-blue:        220 90% 65%;
+    --chart-purple:      280 85% 65%;
   }
 
   /* ── Light (high-contrast for daylight) ───────────────────── */

@@ -9,23 +9,31 @@ export const metadata: Metadata = {
   description: "Institutional-grade algorithmic trading dashboard",
 }
 
-// This script runs synchronously in <head> BEFORE React hydrates.
-// It reads localStorage and applies the saved theme/density/animation
+// Runs synchronously in <head> BEFORE React hydrates.
+// Reads localStorage and applies saved theme/density/animation/invert
 // settings to <html> so the page never flashes the wrong theme.
+//
+// Handles migration of legacy theme names:
+//   "oled" → "black-white" (same look, renamed)
+//   "pink" → "violet" (closest match)
 const themeInitScript = `
 (function() {
   try {
     var saved = localStorage.getItem('phoenix_settings');
     var settings = saved ? JSON.parse(saved) : {};
-    var theme = settings.theme || 'oled';
+    var theme = settings.theme;
+    if (theme === 'oled' || !theme) theme = 'black-white';
+    else if (theme === 'pink')     theme = 'violet';
     var density = settings.density || 'default';
     var animations = settings.animations !== false;
+    var invert = settings.invert === true;
     var html = document.documentElement;
     html.setAttribute('data-theme', theme);
     html.setAttribute('data-density', density);
     if (!animations) html.classList.add('no-animations');
+    if (theme === 'black-white' && invert) html.classList.add('invert-bw');
   } catch (e) {
-    document.documentElement.setAttribute('data-theme', 'oled');
+    document.documentElement.setAttribute('data-theme', 'black-white');
     document.documentElement.setAttribute('data-density', 'default');
   }
 })();
@@ -39,7 +47,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      data-theme="oled"
+      data-theme="black-white"
       data-density="default"
       className={`${GeistSans.variable} ${GeistMono.variable}`}
     >

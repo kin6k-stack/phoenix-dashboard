@@ -5,7 +5,7 @@ import { signOut } from "firebase/auth"
 import { auth } from "@/lib/firebase"
 import { useRouter } from "next/navigation"
 import {
-  X, Palette, Maximize2, Sparkles, LogOut, Check, Monitor, Moon,
+  X, Palette, Maximize2, Sparkles, LogOut, Check, Moon, RotateCcw,
 } from "lucide-react"
 import { useTheme, type Theme, type Density } from "@/lib/use-theme"
 
@@ -16,11 +16,11 @@ interface SettingsPanelProps {
 
 // ── Theme swatches ──────────────────────────────────────────
 const THEMES: { id: Theme; label: string; description: string; bg: string; accent: string; border: string }[] = [
-  { id: "oled",     label: "OLED",      description: "Pure black — easiest on eyes at night",   bg: "#000000", accent: "#16a34a", border: "#1c1c1c" },
-  { id: "dark",     label: "Dark",      description: "Slate-grey base, balanced contrast",        bg: "#1a1d23", accent: "#16a34a", border: "#2a2e36" },
-  { id: "midnight", label: "Midnight",  description: "Deep navy, blue primary accents",           bg: "#0c1018", accent: "#3b82f6", border: "#1a2030" },
-  { id: "pink",     label: "Pink",      description: "Cyberpunk pink-purple, after-hours vibe",   bg: "#170a10", accent: "#e879b8", border: "#2a1820" },
-  { id: "light",    label: "Light",     description: "High-contrast white, for daylight trading", bg: "#f5f7fa", accent: "#15803d", border: "#cdd5df" },
+  { id: "black-white", label: "Black / White", description: "Pure black canvas — invertible to pure white",          bg: "#000000", accent: "#16a34a", border: "#1c1c1c" },
+  { id: "dark",        label: "Dark",          description: "Slate-grey base, balanced contrast",                     bg: "#1a1d23", accent: "#16a34a", border: "#2a2e36" },
+  { id: "midnight",    label: "Midnight",      description: "Deep navy with electric blue accents",                   bg: "#0c1018", accent: "#3b82f6", border: "#1a2030" },
+  { id: "violet",      label: "Violet",        description: "Bright violet gradient — matches login aesthetic",       bg: "#0f0a18", accent: "#c084fc", border: "#241a36" },
+  { id: "light",       label: "Light",         description: "High-contrast white for daylight trading",               bg: "#f5f7fa", accent: "#15803d", border: "#cdd5df" },
 ]
 
 const DENSITIES: { id: Density; label: string; description: string }[] = [
@@ -30,7 +30,10 @@ const DENSITIES: { id: Density; label: string; description: string }[] = [
 ]
 
 export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
-  const { theme, density, animations, setTheme, setDensity, setAnimations } = useTheme()
+  const {
+    theme, density, animations, invert,
+    setTheme, setDensity, setAnimations, setInvert,
+  } = useTheme()
   const router = useRouter()
 
   // ESC to close
@@ -59,6 +62,10 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   }
 
   if (!open) return null
+
+  // For the Black/White swatch preview, flip colors if invert is active
+  const bwSwatchBg     = invert ? "#ffffff" : "#000000"
+  const bwSwatchBorder = invert ? "#e5e5e5" : "#1c1c1c"
 
   return (
     <>
@@ -102,6 +109,9 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             <div className="grid grid-cols-1 gap-2">
               {THEMES.map(t => {
                 const active = theme === t.id
+                const useBwOverride = t.id === "black-white"
+                const swatchBg     = useBwOverride ? bwSwatchBg     : t.bg
+                const swatchBorder = useBwOverride ? bwSwatchBorder : t.border
                 return (
                   <button
                     key={t.id}
@@ -112,7 +122,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                         : "border-border bg-background/40 hover:bg-white/[0.03] hover:border-border"}`}>
                     <div
                       className="w-12 h-12 rounded flex-shrink-0 border relative overflow-hidden"
-                      style={{ background: t.bg, borderColor: t.border }}>
+                      style={{ background: swatchBg, borderColor: swatchBorder }}>
                       <div
                         className="absolute bottom-1.5 left-1.5 w-2 h-2 rounded-full"
                         style={{ background: t.accent }}
@@ -131,6 +141,28 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 )
               })}
             </div>
+
+            {/* Invert toggle — only when Black/White is active */}
+            {theme === "black-white" && (
+              <button
+                onClick={() => setInvert(!invert)}
+                role="switch"
+                aria-checked={invert}
+                className="w-full flex items-center justify-between p-2.5 rounded-lg border border-border bg-background/40 hover:bg-white/[0.03] transition-colors">
+                <div className="flex items-center gap-2.5">
+                  <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" />
+                  <div className="text-left">
+                    <p className="text-xs font-black uppercase tracking-widest text-foreground">Invert</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                      {invert ? "White canvas, black text" : "Black canvas, white text"}
+                    </p>
+                  </div>
+                </div>
+                <div className={`relative w-9 h-5 rounded-full transition-colors ${invert ? "bg-primary" : "bg-muted"}`}>
+                  <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${invert ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+                </div>
+              </button>
+            )}
           </section>
 
           {/* DENSITY */}
@@ -190,7 +222,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
 
           {/* ABOUT */}
           <section className="pt-2 border-t border-border space-y-1.5">
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Phoenix Trading Ecosystem</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Phoenix Command</p>
             <p className="text-[10px] text-muted-foreground/60 leading-snug">
               Settings are saved to this browser. Sign out below to end your session.
             </p>

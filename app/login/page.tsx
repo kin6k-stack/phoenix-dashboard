@@ -4,7 +4,7 @@ import { useState, useEffect, FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { useAuth } from "@/lib/auth-context"
-import { Eye, EyeOff, ArrowLeft, Sparkles, Orbit, Zap } from "lucide-react"
+import { Eye, EyeOff, ArrowLeft, Sparkles, Orbit } from "lucide-react"
 import { useVipCheck } from "@/lib/use-vip-check"
 import { VipBlockedScreen } from "@/components/vip-blocked-screen"
 
@@ -449,12 +449,18 @@ export default function LoginPage() {
 
         {/* Brand mark — top */}
         <div className="flex items-center gap-3 flex-shrink-0">
-          <div className="w-11 h-11 rounded-xl flex items-center justify-center backdrop-blur-md"
+          <div className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center"
             style={{
-              background: "linear-gradient(135deg, hsl(265 85% 60% / 0.9) 0%, hsl(280 80% 50% / 0.9) 100%)",
               boxShadow: "0 0 28px hsl(270 80% 60% / 0.45)",
+              border: "1px solid hsl(280 60% 40% / 0.4)",
             }}>
-            <Zap className="w-5 h-5 text-white" fill="currentColor" />
+            <Image
+              src="/phoenix-logo.jpg"
+              alt="Phoenix"
+              width={44} height={44}
+              className="w-full h-full object-cover"
+              priority
+            />
           </div>
           <div className="flex flex-col leading-none">
             <span className="text-white font-black text-base tracking-[0.2em] uppercase">Phoenix</span>
@@ -531,12 +537,17 @@ export default function LoginPage() {
 
           {/* Mobile branding */}
           <div className="md:hidden mb-10 flex flex-col items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+            <div className="w-10 h-10 rounded-xl overflow-hidden"
               style={{
-                background: "linear-gradient(135deg, hsl(265 85% 60%) 0%, hsl(280 80% 50%) 100%)",
                 boxShadow: "0 0 24px hsl(270 80% 60% / 0.45)",
+                border: "1px solid hsl(280 60% 40% / 0.4)",
               }}>
-              <Zap className="w-5 h-5 text-white" fill="currentColor" />
+              <Image
+                src="/phoenix-logo.jpg"
+                alt="Phoenix"
+                width={40} height={40}
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="text-center leading-none">
               <p className="text-white font-black text-base tracking-[0.2em] uppercase">Phoenix</p>
