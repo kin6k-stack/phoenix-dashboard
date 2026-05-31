@@ -162,6 +162,17 @@ function AuroraBackdrop() {
             <feGaussianBlur stdDeviation="40" />
           </filter>
 
+          {/* Massive light-burst filter for the "sunrise behind planet" bloom */}
+          <filter id="sunBurst" x="-200%" y="-200%" width="500%" height="500%">
+            <feGaussianBlur stdDeviation="60" result="b1" />
+            <feGaussianBlur stdDeviation="120" result="b2" in="SourceGraphic" />
+            <feMerge>
+              <feMergeNode in="b2" />
+              <feMergeNode in="b1" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+
           {/* Hot-spot lens flare filter */}
           <filter id="hotSpot" x="-100%" y="-100%" width="300%" height="300%">
             <feGaussianBlur stdDeviation="3" result="b1" />
@@ -174,7 +185,26 @@ function AuroraBackdrop() {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+
+          {/* Radial gradient for the sunrise burst */}
+          <radialGradient id="sunBurstGradient" cx="50%" cy="100%" r="80%">
+            <stop offset="0%"   stopColor="hsl(290 100% 90%)" stopOpacity="1" />
+            <stop offset="8%"   stopColor="hsl(285 100% 80%)" stopOpacity="0.9" />
+            <stop offset="20%"  stopColor="hsl(280 95% 65%)" stopOpacity="0.6" />
+            <stop offset="40%"  stopColor="hsl(270 85% 50%)" stopOpacity="0.25" />
+            <stop offset="70%"  stopColor="hsl(265 70% 40%)" stopOpacity="0.05" />
+            <stop offset="100%" stopColor="transparent" stopOpacity="0" />
+          </radialGradient>
         </defs>
+
+        {/* ─── SUNRISE BURST — the bright bloom that emanates upward
+            from the rim's apex, lighting up the sky.
+            This is the "sun rising behind the planet" effect. */}
+        <ellipse
+          cx="500" cy="490" rx="700" ry="500"
+          fill="url(#sunBurstGradient)"
+          filter="url(#sunBurst)"
+        />
 
         {/* Outer halo — soft purple glow that bleeds into the sky */}
         <ellipse
@@ -194,7 +224,18 @@ function AuroraBackdrop() {
           d="M -200 600 Q 500 350, 1200 600"
           fill="none"
           stroke="url(#rimLight)"
-          strokeWidth="3"
+          strokeWidth="4"
+          filter="url(#rimGlow)"
+        />
+
+        {/* Inner brighter rim core — sits on top for extra punch at apex */}
+        <path
+          d="M 150 540 Q 500 365, 850 540"
+          fill="none"
+          stroke="hsl(290 100% 92%)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          opacity="0.9"
           filter="url(#rimGlow)"
         />
 
