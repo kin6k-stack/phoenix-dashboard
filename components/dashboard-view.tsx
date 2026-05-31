@@ -128,13 +128,19 @@ function DistributionTooltip({ active, payload }: any) {
   const name: string = datum.name
   const value: number = datum.value
   const isWin = name === "Wins"
+  // Read the active theme's win/loss tokens directly so the tooltip dot
+  // matches the donut cell color (critical for Black/White theme where the
+  // semantic emerald/rose would conflict with the monochrome aesthetic).
+  const dotColor = typeof window !== "undefined"
+    ? getComputedStyle(document.documentElement).getPropertyValue(isWin ? "--chart-win" : "--chart-loss").trim()
+    : (isWin ? "#34d399" : "#fb7185")
   return (
     <div className="px-3 py-2 rounded-lg border bg-card/95 border-border backdrop-blur-md shadow-xl">
       <div className="text-[8.5px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-1.5">
         Distribution
       </div>
       <div className="flex items-center gap-2">
-        <div className={`w-1.5 h-1.5 rounded-full ${isWin ? "bg-emerald-400" : "bg-rose-400"}`} />
+        <div className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground">{name}</span>
       </div>
       <div className="mt-1 text-base font-black font-mono text-foreground tabular-nums">
