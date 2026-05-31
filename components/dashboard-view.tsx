@@ -4,129 +4,90 @@ import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { TrendingUp, DollarSign, Target, Activity, BarChart3, Zap } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, CartesianGrid } from "recharts"
-import { useTheme, type Theme } from "@/lib/use-theme"
+import { useTheme } from "@/lib/use-theme"
 
 // ─────────────────────────────────────────────────────────────────────
-// Per-theme visual palette for charts.
+// Pass D v2 — CSS-variable driven chart palette
 //
-// Trading semantic colors (win/loss/warning) stay the same across all
-// themes — that's a trader UX convention. But the PRIMARY chart accent
-// (equity stroke, bar fill, neutral elements) shifts per theme.
+// All chart colors now live in globals.css as --chart-* CSS variables
+// per [data-theme]. This component just:
+//   1. Reads them at render time (so SVG attrs like stroke="..." work)
+//   2. Re-reads them whenever the theme changes
+//   3. Uses var(--chart-*) directly in CSS-aware spots (filters, glows)
+//
+// Benefits over Pass D v1:
+//   • Theme switching animates smoothly (no JS palette swap)
+//   • Future themes = CSS edits only, no JS code change
+//   • Cleaner separation: design tokens in CSS, logic in TS
 // ─────────────────────────────────────────────────────────────────────
-interface ThemePalette {
-  equityStroke:     string
-  equityFillStart:  string
-  equityFillEnd:    string
-  equityGlow:       string
-  winColor:         string
-  lossColor:        string
-  winGlow:          string
-  lossGlow:         string
-  barFill:          string
-  barGlow:          string
-  gridStroke:       string
-  axisText:         string
+
+interface ChartTokens {
+  primary:     string
+  fillStart:   string
+  fillEnd:     string
+  glow:        string
+  grid:        string
+  axisText:    string
+  barFill:     string
+  barGlow:     string
+  win:         string
+  loss:        string
+  winGlow:     string
+  lossGlow:    string
+  stroke1:     string
+  stroke2:     string
+  stroke3:     string
+  hasGradientStroke: boolean
 }
 
-function getPalette(theme: Theme, invert: boolean): ThemePalette {
-  switch (theme) {
-    case "violet":
-      return {
-        equityStroke:     "#c084fc",
-        equityFillStart:  "rgba(192,132,252,0.45)",
-        equityFillEnd:    "rgba(232,121,249,0.05)",
-        equityGlow:       "rgba(192,132,252,0.6)",
-        winColor:         "#a78bfa",
-        lossColor:        "#fb7185",
-        winGlow:          "rgba(167,139,250,0.6)",
-        lossGlow:         "rgba(251,113,133,0.5)",
-        barFill:          "#c084fc",
-        barGlow:          "rgba(192,132,252,0.4)",
-        gridStroke:       "hsla(280, 30%, 50%, 0.15)",
-        axisText:         "hsl(280 15% 60%)",
-      }
-    case "gold":
-      return {
-        equityStroke:     "#f59e0b",
-        equityFillStart:  "rgba(245,158,11,0.4)",
-        equityFillEnd:    "rgba(249,115,22,0.05)",
-        equityGlow:       "rgba(245,158,11,0.5)",
-        winColor:         "#16a34a",
-        lossColor:        "#dc2626",
-        winGlow:          "rgba(22,163,74,0.4)",
-        lossGlow:         "rgba(220,38,38,0.4)",
-        barFill:          "#f59e0b",
-        barGlow:          "rgba(245,158,11,0.4)",
-        gridStroke:       "hsla(38, 30%, 50%, 0.18)",
-        axisText:         "hsl(30 15% 35%)",
-      }
-    case "midnight":
-      return {
-        equityStroke:     "#60a5fa",
-        equityFillStart:  "rgba(96,165,250,0.4)",
-        equityFillEnd:    "rgba(96,165,250,0.02)",
-        equityGlow:       "rgba(96,165,250,0.5)",
-        winColor:         "#34d399",
-        lossColor:        "#fb7185",
-        winGlow:          "rgba(52,211,153,0.5)",
-        lossGlow:         "rgba(251,113,133,0.5)",
-        barFill:          "#818cf8",
-        barGlow:          "rgba(129,140,248,0.4)",
-        gridStroke:       "hsla(220, 30%, 40%, 0.15)",
-        axisText:         "hsl(220 20% 60%)",
-      }
-    case "black-white":
-      if (invert) {
-        return {
-          equityStroke:     "#1c1c1c",
-          equityFillStart:  "rgba(28,28,28,0.18)",
-          equityFillEnd:    "rgba(28,28,28,0.02)",
-          equityGlow:       "rgba(0,0,0,0.3)",
-          winColor:         "#16a34a",
-          lossColor:        "#dc2626",
-          winGlow:          "rgba(22,163,74,0.3)",
-          lossGlow:         "rgba(220,38,38,0.3)",
-          barFill:          "#404040",
-          barGlow:          "rgba(0,0,0,0.2)",
-          gridStroke:       "hsla(0, 0%, 70%, 0.4)",
-          axisText:         "hsl(0 0% 35%)",
-        }
-      }
-      return {
-        equityStroke:     "#e5e5e5",
-        equityFillStart:  "rgba(229,229,229,0.25)",
-        equityFillEnd:    "rgba(229,229,229,0.02)",
-        equityGlow:       "rgba(255,255,255,0.4)",
-        winColor:         "#34d399",
-        lossColor:        "#fb7185",
-        winGlow:          "rgba(52,211,153,0.4)",
-        lossGlow:         "rgba(251,113,133,0.4)",
-        barFill:          "#a3a3a3",
-        barGlow:          "rgba(255,255,255,0.2)",
-        gridStroke:       "hsla(0, 0%, 40%, 0.2)",
-        axisText:         "hsl(0 0% 60%)",
-      }
-    case "dark":
-    default:
-      return {
-        equityStroke:     "#34d399",
-        equityFillStart:  "rgba(52,211,153,0.4)",
-        equityFillEnd:    "rgba(52,211,153,0.02)",
-        equityGlow:       "rgba(52,211,153,0.5)",
-        winColor:         "#34d399",
-        lossColor:        "#fb7185",
-        winGlow:          "rgba(52,211,153,0.5)",
-        lossGlow:         "rgba(251,113,133,0.5)",
-        barFill:          "#818cf8",
-        barGlow:          "rgba(129,140,248,0.4)",
-        gridStroke:       "hsla(220, 13%, 40%, 0.15)",
-        axisText:         "hsl(0 0% 55%)",
-      }
+const FALLBACK_TOKENS: ChartTokens = {
+  primary:     "#e5e5e5",
+  fillStart:   "rgba(229,229,229,0.25)",
+  fillEnd:     "rgba(229,229,229,0.02)",
+  glow:        "rgba(255,255,255,0.4)",
+  grid:        "hsla(0,0%,40%,0.2)",
+  axisText:    "hsl(0 0% 60%)",
+  barFill:     "#a3a3a3",
+  barGlow:     "rgba(255,255,255,0.2)",
+  win:         "#34d399",
+  loss:        "#fb7185",
+  winGlow:     "rgba(52,211,153,0.4)",
+  lossGlow:    "rgba(251,113,133,0.4)",
+  stroke1:     "",
+  stroke2:     "",
+  stroke3:     "",
+  hasGradientStroke: false,
+}
+
+// Read CSS variable values from <html>'s computed style.
+// Returns trimmed value, or empty string if not defined.
+function readVar(name: string): string {
+  if (typeof window === "undefined") return ""
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+}
+
+function readTokens(): ChartTokens {
+  const s1 = readVar("--chart-stroke-1")
+  const s2 = readVar("--chart-stroke-2")
+  const s3 = readVar("--chart-stroke-3")
+  return {
+    primary:    readVar("--chart-primary")    || FALLBACK_TOKENS.primary,
+    fillStart:  readVar("--chart-fill-start") || FALLBACK_TOKENS.fillStart,
+    fillEnd:    readVar("--chart-fill-end")   || FALLBACK_TOKENS.fillEnd,
+    glow:       readVar("--chart-glow")       || FALLBACK_TOKENS.glow,
+    grid:       readVar("--chart-grid")       || FALLBACK_TOKENS.grid,
+    axisText:   readVar("--chart-axis-text")  || FALLBACK_TOKENS.axisText,
+    barFill:    readVar("--chart-bar-fill")   || FALLBACK_TOKENS.barFill,
+    barGlow:    readVar("--chart-bar-glow")   || FALLBACK_TOKENS.barGlow,
+    win:        readVar("--chart-win")        || FALLBACK_TOKENS.win,
+    loss:       readVar("--chart-loss")       || FALLBACK_TOKENS.loss,
+    winGlow:    readVar("--chart-win-glow")   || FALLBACK_TOKENS.winGlow,
+    lossGlow:   readVar("--chart-loss-glow")  || FALLBACK_TOKENS.lossGlow,
+    stroke1:    s1,
+    stroke2:    s2,
+    stroke3:    s3,
+    hasGradientStroke: Boolean(s1 && s2 && s3),
   }
-}
-
-function hasGradientStroke(theme: Theme): boolean {
-  return theme === "violet" || theme === "gold"
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -136,7 +97,6 @@ function ChartTooltip({ active, payload, label, valuePrefix = "", labelHeader }:
   if (!active || !payload?.length) return null
   const value: number = payload[0].value
   const isPositive = value >= 0
-
   return (
     <div className="px-3 py-2 rounded-lg border bg-card/95 border-border backdrop-blur-md shadow-xl"
          style={{ minWidth: 140 }}>
@@ -189,10 +149,14 @@ function DistributionTooltip({ active, payload }: any) {
 // ─────────────────────────────────────────────────────────────────────
 export function DashboardView({ trades = [] }: { trades: any[] }) {
   const { theme, invert } = useTheme()
-  const [palette, setPalette] = useState<ThemePalette>(() => getPalette("black-white", false))
+  const [tokens, setTokens] = useState<ChartTokens>(FALLBACK_TOKENS)
 
+  // Re-read CSS vars whenever theme/invert changes (after the DOM applies them)
   useEffect(() => {
-    setPalette(getPalette(theme, invert))
+    // Small RAF delay so we read the new values AFTER the data-theme switch
+    // has propagated through the cascade.
+    const id = requestAnimationFrame(() => setTokens(readTokens()))
+    return () => cancelAnimationFrame(id)
   }, [theme, invert])
 
   const totalPnl = trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0)
@@ -239,8 +203,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
   }, {})
   const weeklyData = Object.entries(weeklyMap).map(([name, pnl]) => ({ name, pnl: Number(Number(pnl).toFixed(2)) }))
 
-  const useGradientStroke = hasGradientStroke(theme)
-  const strokeUrl = useGradientStroke ? "url(#equityStrokeGradient)" : palette.equityStroke
+  const strokeUrl = tokens.hasGradientStroke ? "url(#equityStrokeGradient)" : tokens.primary
 
   const RADIAN = Math.PI / 180
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -290,7 +253,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
 
         <Card className="lg:col-span-2 p-3 sm:p-4 lg:p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md">
           <h3 className="text-xs sm:text-sm font-black flex items-center gap-2 uppercase tracking-widest text-foreground mb-3 sm:mb-4">
-            <TrendingUp size={14} style={{ color: palette.equityStroke, filter: `drop-shadow(0 0 5px ${palette.equityGlow})` }} />
+            <TrendingUp size={14} style={{ color: tokens.primary, filter: `drop-shadow(0 0 5px ${tokens.glow})` }} />
             <span className="truncate">System Equity Curve</span>
           </h3>
           <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
@@ -303,30 +266,20 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                 <AreaChart data={equityData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="equityAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor={palette.equityFillStart} />
-                      <stop offset="95%" stopColor={palette.equityFillEnd}   />
+                      <stop offset="5%"  stopColor={tokens.fillStart} />
+                      <stop offset="95%" stopColor={tokens.fillEnd}   />
                     </linearGradient>
-                    {useGradientStroke && (
+                    {tokens.hasGradientStroke && (
                       <linearGradient id="equityStrokeGradient" x1="0" y1="0" x2="1" y2="0">
-                        {theme === "violet" ? (
-                          <>
-                            <stop offset="0%"   stopColor="#a78bfa" />
-                            <stop offset="50%"  stopColor="#c084fc" />
-                            <stop offset="100%" stopColor="#e879f9" />
-                          </>
-                        ) : (
-                          <>
-                            <stop offset="0%"   stopColor="#f59e0b" />
-                            <stop offset="50%"  stopColor="#fb923c" />
-                            <stop offset="100%" stopColor="#f97316" />
-                          </>
-                        )}
+                        <stop offset="0%"   stopColor={tokens.stroke1} />
+                        <stop offset="50%"  stopColor={tokens.stroke2} />
+                        <stop offset="100%" stopColor={tokens.stroke3} />
                       </linearGradient>
                     )}
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={palette.gridStroke} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tokens.grid} />
                   <XAxis dataKey="date" hide />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: palette.axisText, fontWeight: 'bold' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: tokens.axisText, fontWeight: 'bold' }} />
                   <Tooltip
                     content={({ active, payload, label }) => (
                       <ChartTooltip active={active} payload={payload} label={label} labelHeader="Equity" valuePrefix="$" />
@@ -336,7 +289,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                     type="monotone" dataKey="value"
                     stroke={strokeUrl} strokeWidth={2.5}
                     fill="url(#equityAreaGradient)"
-                    style={{ filter: `drop-shadow(0 4px 8px ${palette.equityGlow})` }}
+                    style={{ filter: `drop-shadow(0 4px 8px ${tokens.glow})` }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -346,7 +299,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
 
         <Card className="p-3 sm:p-4 lg:p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md flex flex-col">
           <h3 className="text-xs sm:text-sm font-black mb-2 flex items-center gap-2 uppercase tracking-widest text-foreground">
-            <Target size={14} style={{ color: palette.winColor, filter: `drop-shadow(0 0 5px ${palette.winGlow})` }} />
+            <Target size={14} style={{ color: tokens.win, filter: `drop-shadow(0 0 5px ${tokens.winGlow})` }} />
             Distribution
           </h3>
           <div className="flex-1 min-h-[180px] sm:min-h-[200px] lg:min-h-[220px] relative">
@@ -356,8 +309,8 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                   data={[{name: 'Wins', value: wins}, {name: 'Losses', value: losses}]}
                   dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={6}
                   labelLine={false} label={renderCustomizedLabel}>
-                  <Cell fill={palette.winColor}  style={{ filter: `drop-shadow(0px 0px 6px ${palette.winGlow})` }} />
-                  <Cell fill={palette.lossColor} style={{ filter: `drop-shadow(0px 0px 6px ${palette.lossGlow})` }} />
+                  <Cell fill={tokens.win}  style={{ filter: `drop-shadow(0px 0px 6px ${tokens.winGlow})` }} />
+                  <Cell fill={tokens.loss} style={{ filter: `drop-shadow(0px 0px 6px ${tokens.lossGlow})` }} />
                 </Pie>
                 <Tooltip content={<DistributionTooltip />} />
               </PieChart>
@@ -370,12 +323,12 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
 
           <div className="flex items-center justify-around pt-2 mt-1 border-t border-border/30">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ background: palette.winColor }} />
+              <div className="w-2 h-2 rounded-full" style={{ background: tokens.win }} />
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Wins</span>
               <span className="text-[11px] font-black text-foreground font-mono">{wins}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ background: palette.lossColor }} />
+              <div className="w-2 h-2 rounded-full" style={{ background: tokens.loss }} />
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Losses</span>
               <span className="text-[11px] font-black text-foreground font-mono">{losses}</span>
             </div>
@@ -388,7 +341,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
 
         <Card className="p-3 sm:p-4 lg:p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md">
           <h3 className="text-xs sm:text-sm font-black mb-3 sm:mb-4 flex items-center gap-2 uppercase tracking-widest text-foreground">
-            <BarChart3 size={14} style={{ color: palette.barFill, filter: `drop-shadow(0 0 5px ${palette.barGlow})` }} />
+            <BarChart3 size={14} style={{ color: tokens.barFill, filter: `drop-shadow(0 0 5px ${tokens.barGlow})` }} />
             Weekly P&L
           </h3>
           <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
@@ -398,17 +351,17 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
             <div className="h-[110px] sm:h-[130px] px-2 pt-2 pb-1">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyData} margin={{ top: 0, right: 5, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={palette.gridStroke} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 9, fill: palette.axisText, fontWeight: 'bold'}} dy={5} />
-                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fill: palette.axisText, fontWeight: 'bold'}} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tokens.grid} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 9, fill: tokens.axisText, fontWeight: 'bold'}} dy={5} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fontSize: 9, fill: tokens.axisText, fontWeight: 'bold'}} />
                   <Tooltip
-                    cursor={{ fill: palette.gridStroke, opacity: 0.4 }}
+                    cursor={{ fill: tokens.grid, opacity: 0.4 }}
                     content={({ active, payload, label }) => (
                       <ChartTooltip active={active} payload={payload} label={label} labelHeader="Weekly P&L" valuePrefix="$" />
                     )}
                   />
-                  <Bar dataKey="pnl" fill={palette.barFill} radius={[4, 4, 0, 0]}
-                       style={{ filter: `drop-shadow(0 0 4px ${palette.barGlow})` }} />
+                  <Bar dataKey="pnl" fill={tokens.barFill} radius={[4, 4, 0, 0]}
+                       style={{ filter: `drop-shadow(0 0 4px ${tokens.barGlow})` }} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

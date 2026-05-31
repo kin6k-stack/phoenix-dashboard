@@ -69,6 +69,19 @@
     --chart-blue:        0 0% 70%;
     --chart-purple:      0 0% 60%;
     --chart-amber:       38 92% 50%;     /* warnings keep amber */
+    /* ── Pass D v2 chart tokens — true monochrome ── */
+    --chart-primary:     #e5e5e5;
+    --chart-fill-start:  rgba(229,229,229,0.25);
+    --chart-fill-end:    rgba(229,229,229,0.02);
+    --chart-glow:        rgba(255,255,255,0.4);
+    --chart-grid:        hsla(0, 0%, 40%, 0.2);
+    --chart-axis-text:   hsl(0 0% 60%);
+    --chart-bar-fill:    #a3a3a3;
+    --chart-bar-glow:    rgba(255,255,255,0.2);
+    --chart-win:         #34d399;
+    --chart-loss:        #fb7185;
+    --chart-win-glow:    rgba(52,211,153,0.4);
+    --chart-loss-glow:   rgba(251,113,133,0.4);
   }
 
   /* ── Black/White INVERT (white canvas, black text — greys stay) ──── */
@@ -91,6 +104,19 @@
     --ring:              0 0% 30%;
     --chart-blue:        0 0% 30%;
     --chart-purple:      0 0% 40%;
+    /* ── Pass D v2 chart tokens — inverted monochrome ── */
+    --chart-primary:     #1c1c1c;
+    --chart-fill-start:  rgba(28,28,28,0.18);
+    --chart-fill-end:    rgba(28,28,28,0.02);
+    --chart-glow:        rgba(0,0,0,0.3);
+    --chart-grid:        hsla(0, 0%, 70%, 0.4);
+    --chart-axis-text:   hsl(0 0% 35%);
+    --chart-bar-fill:    #404040;
+    --chart-bar-glow:    rgba(0,0,0,0.2);
+    --chart-win:         #16a34a;
+    --chart-loss:        #dc2626;
+    --chart-win-glow:    rgba(22,163,74,0.3);
+    --chart-loss-glow:   rgba(220,38,38,0.3);
   }
 
   /* Hide any colored primary glow effects in monochrome mode */
@@ -116,6 +142,19 @@
     --primary:           142 71% 45%;
     --ring:              142 71% 45%;
     --accent:            217 91% 60%;
+    /* ── Pass D v2 chart tokens — Dark (emerald accent) ── */
+    --chart-primary:     #34d399;
+    --chart-fill-start:  rgba(52,211,153,0.4);
+    --chart-fill-end:    rgba(52,211,153,0.02);
+    --chart-glow:        rgba(52,211,153,0.5);
+    --chart-grid:        hsla(220, 13%, 40%, 0.15);
+    --chart-axis-text:   hsl(0 0% 55%);
+    --chart-bar-fill:    #818cf8;
+    --chart-bar-glow:    rgba(129,140,248,0.4);
+    --chart-win:         #34d399;
+    --chart-loss:        #fb7185;
+    --chart-win-glow:    rgba(52,211,153,0.5);
+    --chart-loss-glow:   rgba(251,113,133,0.5);
   }
 
   /* ── Midnight (deep navy, blue primary) ───────────────────── */
@@ -141,6 +180,19 @@
     --sidebar-bg:        230 25% 4%;
     --chart-blue:        215 90% 62%;
     --chart-purple:      252 68% 68%;
+    /* ── Pass D v2 chart tokens — Midnight (blue accent) ── */
+    --chart-primary:     #60a5fa;
+    --chart-fill-start:  rgba(96,165,250,0.4);
+    --chart-fill-end:    rgba(96,165,250,0.02);
+    --chart-glow:        rgba(96,165,250,0.5);
+    --chart-grid:        hsla(220, 30%, 40%, 0.15);
+    --chart-axis-text:   hsl(220 20% 60%);
+    --chart-bar-fill:    #818cf8;
+    --chart-bar-glow:    rgba(129,140,248,0.4);
+    --chart-win:         #34d399;
+    --chart-loss:        #fb7185;
+    --chart-win-glow:    rgba(52,211,153,0.5);
+    --chart-loss-glow:   rgba(251,113,133,0.5);
   }
 
   /* ── Violet (gradient-style purple, neon accents) ─────────── */
@@ -166,6 +218,23 @@
     --sidebar-bg:        265 38% 4%;
     --chart-blue:        220 90% 65%;
     --chart-purple:      280 85% 65%;
+    /* ── Pass D v2 chart tokens — Violet (purple gradient + glow) ── */
+    --chart-primary:     #c084fc;
+    --chart-fill-start:  rgba(192,132,252,0.45);
+    --chart-fill-end:    rgba(232,121,249,0.05);
+    --chart-glow:        rgba(192,132,252,0.6);
+    --chart-grid:        hsla(280, 30%, 50%, 0.15);
+    --chart-axis-text:   hsl(280 15% 60%);
+    --chart-bar-fill:    #c084fc;
+    --chart-bar-glow:    rgba(192,132,252,0.4);
+    --chart-win:         #a78bfa;
+    --chart-loss:        #fb7185;
+    --chart-win-glow:    rgba(167,139,250,0.6);
+    --chart-loss-glow:   rgba(251,113,133,0.5);
+    /* Gradient stroke stops — 3 colors for the equity line */
+    --chart-stroke-1:    #a78bfa;
+    --chart-stroke-2:    #c084fc;
+    --chart-stroke-3:    #e879f9;
   }
 
   /* ── Gold (premium light canvas with gold accents — replaces Light) ─── */
@@ -194,6 +263,23 @@
     --chart-amber:       32 85% 50%;
     --chart-red:         0 75% 50%;
     --chart-purple:      30 25% 25%;       /* dark brown for variety */
+    /* ── Pass D v2 chart tokens — Gold (amber gradient + glow) ── */
+    --chart-primary:     #f59e0b;
+    --chart-fill-start:  rgba(245,158,11,0.4);
+    --chart-fill-end:    rgba(249,115,22,0.05);
+    --chart-glow:        rgba(245,158,11,0.5);
+    --chart-grid:        hsla(38, 30%, 50%, 0.18);
+    --chart-axis-text:   hsl(30 15% 35%);
+    --chart-bar-fill:    #f59e0b;
+    --chart-bar-glow:    rgba(245,158,11,0.4);
+    --chart-win:         #16a34a;
+    --chart-loss:        #dc2626;
+    --chart-win-glow:    rgba(22,163,74,0.4);
+    --chart-loss-glow:   rgba(220,38,38,0.4);
+    /* Gradient stroke stops */
+    --chart-stroke-1:    #f59e0b;
+    --chart-stroke-2:    #fb923c;
+    --chart-stroke-3:    #f97316;
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -337,6 +423,28 @@ html, body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Smooth theme switching — animates color shifts instead of snapping */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Apply theme-shift transition to all themed surface containers.
+   Recharts SVG elements transition automatically since they read CSS vars. */
+.bg-card, .bg-background, .bg-popover, .bg-primary, .bg-secondary,
+.bg-muted, .text-foreground, .text-muted-foreground, .border-border,
+[data-theme] * {
+  transition: background-color 0.3s ease,
+              border-color 0.3s ease,
+              color 0.25s ease,
+              fill 0.3s ease,
+              stroke 0.3s ease;
+}
+
+/* Don't transition things that should be instant (hover states, animations) */
+.no-transition,
+[role="dialog"],
+[data-state="open"],
+[data-state="closed"] {
+  transition: none !important;
 }
 
 /* ── Density system ─────────────────────────────────────────── */
