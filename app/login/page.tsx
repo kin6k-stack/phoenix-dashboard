@@ -82,8 +82,10 @@ interface LoginPalette {
   liveBadgeBg:    string  // live badge background (with alpha)
   liveBadgeDot:   string  // pulsing dot in live badge
   liveBadgeText:  string  // live badge text color
-  accentTextA:    string  // "to your command center" gradient start
-  accentTextB:    string  // "to your command center" gradient end
+  accentTextA:    string  // "to your command center" tight glow (full opacity)
+  accentTextB:    string  // "to your command center" wide ambient glow base
+  accentTextGlowMid:  string  // mid-range glow (50% opacity hsl)
+  accentTextGlowWide: string  // wide ambient glow (35% opacity hsl)
   inputFocus:     string  // input border on focus (with alpha)
   badgeBoxShadow: string  // phoenix logo glow (with alpha)
   badgeBorder:    string  // small badge borders elsewhere (with alpha)
@@ -159,8 +161,10 @@ function getLoginPalette(theme: LoginTheme): LoginPalette {
         liveBadgeBg:    "hsl(38 85% 60% / 0.1)",
         liveBadgeDot:   "hsl(38 95% 65%)",
         liveBadgeText:  "hsl(40 90% 75%)",
-        accentTextA:    "hsl(48 95% 75%)",
-        accentTextB:    "hsl(25 90% 62%)",
+        accentTextA:    "hsl(45 100% 65%)",
+        accentTextB:    "hsl(30 95% 55%)",
+        accentTextGlowMid:  "hsl(45 100% 65% / 0.5)",
+        accentTextGlowWide: "hsl(30 95% 55% / 0.35)",
         inputFocus:     "hsl(38 80% 60% / 0.5)",
         badgeBoxShadow: "hsl(38 85% 60% / 0.45)",
         badgeBorder:    "hsl(38 70% 45% / 0.4)",
@@ -211,8 +215,10 @@ function getLoginPalette(theme: LoginTheme): LoginPalette {
         liveBadgeBg:    "hsl(215 85% 65% / 0.1)",
         liveBadgeDot:   "hsl(215 95% 65%)",
         liveBadgeText:  "hsl(210 90% 78%)",
-        accentTextA:    "hsl(190 95% 75%)",
-        accentTextB:    "hsl(235 90% 72%)",
+        accentTextA:    "hsl(210 100% 70%)",
+        accentTextB:    "hsl(230 100% 65%)",
+        accentTextGlowMid:  "hsl(210 100% 70% / 0.5)",
+        accentTextGlowWide: "hsl(230 100% 65% / 0.35)",
         inputFocus:     "hsl(215 80% 65% / 0.5)",
         badgeBoxShadow: "hsl(215 85% 65% / 0.45)",
         badgeBorder:    "hsl(220 70% 45% / 0.4)",
@@ -263,8 +269,10 @@ function getLoginPalette(theme: LoginTheme): LoginPalette {
         liveBadgeBg:    "hsl(142 75% 55% / 0.1)",
         liveBadgeDot:   "hsl(142 80% 55%)",
         liveBadgeText:  "hsl(142 80% 75%)",
-        accentTextA:    "hsl(135 80% 70%)",
-        accentTextB:    "hsl(180 85% 65%)",
+        accentTextA:    "hsl(142 100% 65%)",
+        accentTextB:    "hsl(165 100% 60%)",
+        accentTextGlowMid:  "hsl(142 100% 65% / 0.5)",
+        accentTextGlowWide: "hsl(165 100% 60% / 0.35)",
         inputFocus:     "hsl(142 70% 50% / 0.5)",
         badgeBoxShadow: "hsl(142 75% 55% / 0.45)",
         badgeBorder:    "hsl(142 60% 40% / 0.4)",
@@ -317,8 +325,10 @@ function getLoginPalette(theme: LoginTheme): LoginPalette {
         liveBadgeBg:    "hsl(0 0% 70% / 0.08)",
         liveBadgeDot:   "hsl(0 0% 80%)",
         liveBadgeText:  "hsl(0 0% 85%)",
-        accentTextA:    "hsl(0 0% 82%)",
-        accentTextB:    "hsl(0 0% 58%)",
+        accentTextA:    "hsl(0 0% 85%)",
+        accentTextB:    "hsl(0 0% 60%)",
+        accentTextGlowMid:  "hsl(0 0% 85% / 0.5)",
+        accentTextGlowWide: "hsl(0 0% 60% / 0.35)",
         inputFocus:     "hsl(0 0% 70% / 0.5)",
         badgeBoxShadow: "hsl(0 0% 75% / 0.35)",
         badgeBorder:    "hsl(0 0% 55% / 0.4)",
@@ -371,8 +381,10 @@ function getLoginPalette(theme: LoginTheme): LoginPalette {
         liveBadgeBg:    "hsl(280 85% 65% / 0.08)",
         liveBadgeDot:   "hsl(280 90% 70%)",
         liveBadgeText:  "hsl(280 90% 75%)",
-        accentTextA:    "hsl(280 90% 75%)",
-        accentTextB:    "hsl(220 90% 75%)",
+        accentTextA:    "hsl(280 100% 75%)",
+        accentTextB:    "hsl(220 100% 70%)",
+        accentTextGlowMid:  "hsl(280 100% 75% / 0.5)",
+        accentTextGlowWide: "hsl(220 100% 70% / 0.35)",
         inputFocus:     "hsl(280 80% 65% / 0.5)",
         badgeBoxShadow: "hsl(270 80% 60% / 0.45)",
         badgeBorder:    "hsl(280 60% 40% / 0.4)",
@@ -855,13 +867,21 @@ export default function LoginPage() {
             Welcome
           </h1>
 
-          {/* Smaller "to your command center." */}
+          {/* Smaller "to your command center."
+              Solid white text — gradient-clip on a large bold heading
+              just creates a filled neon block regardless of stops.
+              Theme color expressed via text-shadow glow instead. */}
           <p className="mt-3 font-bold tracking-tight"
              style={{
                fontSize: "clamp(1.25rem, 2.2vw, 1.875rem)",
-               background: `linear-gradient(90deg, ${p.accentTextA} 0%, ${p.accentTextB} 100%)`,
-               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-               backgroundClip: "text",
+               color: "white",
+               // Three-layer glow: tight full-opacity bloom, mid fade, wide ambient
+               // accentTextA/B are full-sat hsl() strings — alpha added via CSS / notation
+               textShadow: [
+                 `0 0 25px ${p.accentTextA}`,
+                 `0 0 55px ${p.accentTextGlowMid}`,
+                 `0 0 90px ${p.accentTextGlowWide}`,
+               ].join(", "),
              }}>
             to your command center.
           </p>
