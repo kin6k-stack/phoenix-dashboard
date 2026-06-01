@@ -19,6 +19,367 @@ import { VipBlockedScreen } from "@/components/vip-blocked-screen"
 
 type LoginStyle = "aurora" | "orbs"
 
+// ─────────────────────────────────────────────────────────────────────
+// Pass N — Login mirrors the user's saved dashboard theme
+//
+// Reads `phoenix_settings.theme` from localStorage at mount, derives a
+// palette of color "slots" that the existing Aurora/Orbs JSX consumes.
+//
+// Composition is unchanged from the working Pass L version — only the
+// COLOR VALUES per slot change per theme. No layer geometry shifts.
+//
+// Themes:
+//   violet     → original purple/magenta/blue (default fallback)
+//   gold       → amber/bronze
+//   midnight   → deep blue / cyan
+//   dark       → emerald / teal (Green Lab)
+//   black-white→ greyscale (Phoenix + Trader Kizan logos stay full color)
+// ─────────────────────────────────────────────────────────────────────
+
+type LoginTheme = "violet" | "gold" | "midnight" | "dark" | "black-white"
+
+interface LoginPalette {
+  haloUpper:      string  // upper-sky ambient ellipse fill (rgba/hsla with alpha)
+  nebulaA:        string  // soft sky bloom stop 1
+  nebulaB:        string  // soft sky bloom stop 2
+  nebulaC:        string  // soft sky bloom stop 3 (low alpha)
+  rim1:           string  // rim inset 0 3px (brightest)
+  rim2:           string  // rim inset 0 6px
+  rim3:           string  // rim inset 0 14px
+  rim4:           string  // rim inset 0 24px (deepest)
+  bleedLeftA:     string  // left rim bleed sweep main
+  bleedLeftB:     string  // left rim bleed sweep tail
+  bleedRightA:    string  // right rim bleed sweep main
+  bleedRightB:    string  // right rim bleed sweep tail
+  hotspot1:       string  // sunburst inner 4%
+  hotspot2:       string  // sunburst 10%
+  hotspot3:       string  // sunburst 20% (with alpha)
+  hotspot4:       string  // sunburst 35% (with alpha)
+  hotspot5:       string  // sunburst 55% (with alpha)
+  halo1:          string  // hotspot wide halo (with alpha)
+  halo2:          string  // hotspot wide halo mid (with alpha)
+  halo3:          string  // hotspot wide halo outer (with alpha)
+  core1:          string  // core glow 30px shadow
+  core2:          string  // core glow 60px shadow
+  core3:          string  // core glow 120px shadow
+  core4:          string  // core glow 200px shadow (with alpha)
+  orb1:           string  // orb 1 (top-left, primary)
+  orb1Tail:       string  // orb 1 tail color (with alpha)
+  orb2:           string  // orb 2 (top-right, secondary)
+  orb2Tail:       string  // orb 2 tail (with alpha)
+  orb3:           string  // orb 3 (bottom-left, accent)
+  orb3Tail:       string  // orb 3 tail (with alpha)
+  orb4:           string  // orb 4 (middle-right)
+  orb4Tail:       string  // orb 4 tail (with alpha)
+  orb5:           string  // orb 5 (small center, brightest)
+  orb5Tail:       string  // orb 5 tail (with alpha)
+  buttonGradStart:string  // sign in button gradient start
+  buttonGradEnd:  string  // sign in button gradient end
+  buttonGradStartBusy: string
+  buttonGradEndBusy:   string
+  buttonShadow:   string  // sign in button glow (with alpha)
+  liveBadgeBorder:string  // live badge border (with alpha)
+  liveBadgeBg:    string  // live badge background (with alpha)
+  liveBadgeDot:   string  // pulsing dot in live badge
+  liveBadgeText:  string  // live badge text color
+  accentTextA:    string  // "to your command center" gradient start
+  accentTextB:    string  // "to your command center" gradient end
+  inputFocus:     string  // input border on focus (with alpha)
+  badgeBoxShadow: string  // phoenix logo glow (with alpha)
+  badgeBorder:    string  // small badge borders elsewhere (with alpha)
+}
+
+function useLoginTheme(): { theme: LoginTheme; hydrated: boolean } {
+  const [theme, setTheme] = useState<LoginTheme>("violet")
+  const [hydrated, setHydrated] = useState(false)
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const raw = localStorage.getItem("phoenix_settings")
+      const parsed = raw ? JSON.parse(raw) : {}
+      let t = parsed.theme as string
+      // Migrate legacy names + sanitize
+      if (t === "oled" || !t) t = "black-white"
+      else if (t === "pink")  t = "violet"
+      else if (t === "light") t = "gold"
+      if (!["violet","gold","midnight","dark","black-white"].includes(t)) t = "violet"
+      setTheme(t as LoginTheme)
+    } catch {
+      setTheme("violet")
+    }
+    setHydrated(true)
+  }, [])
+  return { theme, hydrated }
+}
+
+function getLoginPalette(theme: LoginTheme): LoginPalette {
+  switch (theme) {
+    case "gold":
+      return {
+        haloUpper:      "hsl(28 60% 25% / 0.4)",
+        nebulaA:        "hsl(38 80% 55% / 0.35)",
+        nebulaB:        "hsl(33 75% 45% / 0.2)",
+        nebulaC:        "hsl(28 65% 35% / 0.08)",
+        rim1:           "hsl(45 100% 92%)",
+        rim2:           "hsla(42, 100%, 78%, 0.85)",
+        rim3:           "hsla(38, 100%, 65%, 0.5)",
+        rim4:           "hsla(33, 90%, 55%, 0.25)",
+        bleedLeftA:     "hsl(38 95% 60% / 0.5)",
+        bleedLeftB:     "hsl(33 85% 50% / 0.2)",
+        bleedRightA:    "hsl(50 95% 70% / 0.45)",
+        bleedRightB:    "hsl(48 85% 60% / 0.2)",
+        hotspot1:       "hsl(45 100% 92%)",
+        hotspot2:       "hsl(42 100% 80%)",
+        hotspot3:       "hsl(38 95% 65% / 0.7)",
+        hotspot4:       "hsl(33 85% 50% / 0.35)",
+        hotspot5:       "hsl(28 70% 40% / 0.1)",
+        halo1:          "hsl(38 100% 70% / 0.4)",
+        halo2:          "hsl(33 90% 55% / 0.2)",
+        halo3:          "hsl(28 80% 45% / 0.08)",
+        core1:          "hsl(45 100% 90%)",
+        core2:          "hsl(42 100% 75%)",
+        core3:          "hsl(35 100% 60%)",
+        core4:          "hsl(30 100% 50% / 0.5)",
+        orb1:           "hsl(38 92% 50%)",
+        orb1Tail:       "hsl(38 85% 40% / 0.4)",
+        orb2:           "hsl(28 92% 55%)",
+        orb2Tail:       "hsl(28 85% 45% / 0.35)",
+        orb3:           "hsl(45 90% 55%)",
+        orb3Tail:       "hsl(50 85% 45% / 0.35)",
+        orb4:           "hsl(33 95% 60%)",
+        orb4Tail:       "hsl(33 85% 50% / 0.4)",
+        orb5:           "hsl(42 100% 70%)",
+        orb5Tail:       "hsl(38 90% 55% / 0.5)",
+        buttonGradStart:"hsl(38 92% 50%)",
+        buttonGradEnd:  "hsl(28 92% 55%)",
+        buttonGradStartBusy: "hsl(38 60% 40%)",
+        buttonGradEndBusy:   "hsl(28 55% 35%)",
+        buttonShadow:   "hsl(38 90% 50% / 0.35)",
+        liveBadgeBorder:"hsl(38 85% 60% / 0.45)",
+        liveBadgeBg:    "hsl(38 85% 60% / 0.1)",
+        liveBadgeDot:   "hsl(38 95% 65%)",
+        liveBadgeText:  "hsl(40 90% 75%)",
+        accentTextA:    "hsl(42 90% 65%)",
+        accentTextB:    "hsl(28 88% 58%)",
+        inputFocus:     "hsl(38 80% 60% / 0.5)",
+        badgeBoxShadow: "hsl(38 85% 60% / 0.45)",
+        badgeBorder:    "hsl(38 70% 45% / 0.4)",
+      }
+
+    case "midnight":
+      return {
+        haloUpper:      "hsl(220 70% 20% / 0.4)",
+        nebulaA:        "hsl(220 80% 50% / 0.35)",
+        nebulaB:        "hsl(215 70% 40% / 0.2)",
+        nebulaC:        "hsl(210 60% 30% / 0.08)",
+        rim1:           "hsl(200 100% 92%)",
+        rim2:           "hsla(205, 100%, 78%, 0.85)",
+        rim3:           "hsla(215, 100%, 65%, 0.5)",
+        rim4:           "hsla(225, 90%, 55%, 0.25)",
+        bleedLeftA:     "hsl(220 95% 60% / 0.5)",
+        bleedLeftB:     "hsl(225 85% 50% / 0.2)",
+        bleedRightA:    "hsl(195 95% 70% / 0.45)",
+        bleedRightB:    "hsl(200 85% 60% / 0.2)",
+        hotspot1:       "hsl(200 100% 92%)",
+        hotspot2:       "hsl(205 100% 80%)",
+        hotspot3:       "hsl(215 95% 65% / 0.7)",
+        hotspot4:       "hsl(225 85% 50% / 0.35)",
+        hotspot5:       "hsl(235 70% 40% / 0.1)",
+        halo1:          "hsl(220 100% 70% / 0.4)",
+        halo2:          "hsl(215 90% 55% / 0.2)",
+        halo3:          "hsl(210 80% 45% / 0.08)",
+        core1:          "hsl(200 100% 90%)",
+        core2:          "hsl(205 100% 75%)",
+        core3:          "hsl(215 100% 60%)",
+        core4:          "hsl(225 100% 50% / 0.5)",
+        orb1:           "hsl(220 95% 55%)",
+        orb1Tail:       "hsl(225 85% 45% / 0.4)",
+        orb2:           "hsl(195 90% 60%)",
+        orb2Tail:       "hsl(200 85% 50% / 0.35)",
+        orb3:           "hsl(240 95% 55%)",
+        orb3Tail:       "hsl(245 85% 45% / 0.35)",
+        orb4:           "hsl(210 95% 60%)",
+        orb4Tail:       "hsl(215 85% 50% / 0.4)",
+        orb5:           "hsl(200 100% 70%)",
+        orb5Tail:       "hsl(205 90% 60% / 0.5)",
+        buttonGradStart:"hsl(220 90% 60%)",
+        buttonGradEnd:  "hsl(195 85% 55%)",
+        buttonGradStartBusy: "hsl(220 60% 40%)",
+        buttonGradEndBusy:   "hsl(195 55% 35%)",
+        buttonShadow:   "hsl(220 85% 50% / 0.35)",
+        liveBadgeBorder:"hsl(215 85% 65% / 0.45)",
+        liveBadgeBg:    "hsl(215 85% 65% / 0.1)",
+        liveBadgeDot:   "hsl(215 95% 65%)",
+        liveBadgeText:  "hsl(210 90% 78%)",
+        accentTextA:    "hsl(215 88% 70%)",
+        accentTextB:    "hsl(195 85% 62%)",
+        inputFocus:     "hsl(215 80% 65% / 0.5)",
+        badgeBoxShadow: "hsl(215 85% 65% / 0.45)",
+        badgeBorder:    "hsl(220 70% 45% / 0.4)",
+      }
+
+    case "dark": // Green Lab
+      return {
+        haloUpper:      "hsl(150 60% 20% / 0.4)",
+        nebulaA:        "hsl(142 70% 40% / 0.35)",
+        nebulaB:        "hsl(150 65% 35% / 0.2)",
+        nebulaC:        "hsl(160 55% 25% / 0.08)",
+        rim1:           "hsl(155 90% 92%)",
+        rim2:           "hsla(150, 95%, 78%, 0.85)",
+        rim3:           "hsla(145, 95%, 60%, 0.5)",
+        rim4:           "hsla(142, 80%, 45%, 0.25)",
+        bleedLeftA:     "hsl(142 90% 50% / 0.5)",
+        bleedLeftB:     "hsl(142 80% 40% / 0.2)",
+        bleedRightA:    "hsl(170 85% 60% / 0.45)",
+        bleedRightB:    "hsl(170 80% 50% / 0.2)",
+        hotspot1:       "hsl(155 90% 92%)",
+        hotspot2:       "hsl(150 90% 80%)",
+        hotspot3:       "hsl(145 85% 60% / 0.7)",
+        hotspot4:       "hsl(142 75% 45% / 0.35)",
+        hotspot5:       "hsl(140 60% 35% / 0.1)",
+        halo1:          "hsl(150 85% 65% / 0.4)",
+        halo2:          "hsl(145 75% 50% / 0.2)",
+        halo3:          "hsl(142 65% 40% / 0.08)",
+        core1:          "hsl(150 95% 88%)",
+        core2:          "hsl(148 90% 72%)",
+        core3:          "hsl(145 85% 55%)",
+        core4:          "hsl(142 80% 45% / 0.5)",
+        orb1:           "hsl(142 75% 50%)",
+        orb1Tail:       "hsl(142 70% 40% / 0.4)",
+        orb2:           "hsl(160 75% 55%)",
+        orb2Tail:       "hsl(160 70% 45% / 0.35)",
+        orb3:           "hsl(180 75% 50%)",
+        orb3Tail:       "hsl(180 70% 40% / 0.35)",
+        orb4:           "hsl(150 80% 60%)",
+        orb4Tail:       "hsl(150 70% 50% / 0.4)",
+        orb5:           "hsl(135 85% 65%)",
+        orb5Tail:       "hsl(135 75% 55% / 0.5)",
+        buttonGradStart:"hsl(142 71% 45%)",
+        buttonGradEnd:  "hsl(160 75% 50%)",
+        buttonGradStartBusy: "hsl(142 45% 35%)",
+        buttonGradEndBusy:   "hsl(160 45% 35%)",
+        buttonShadow:   "hsl(142 70% 40% / 0.35)",
+        liveBadgeBorder:"hsl(142 75% 55% / 0.45)",
+        liveBadgeBg:    "hsl(142 75% 55% / 0.1)",
+        liveBadgeDot:   "hsl(142 80% 55%)",
+        liveBadgeText:  "hsl(142 80% 75%)",
+        accentTextA:    "hsl(142 75% 62%)",
+        accentTextB:    "hsl(165 72% 58%)",
+        inputFocus:     "hsl(142 70% 50% / 0.5)",
+        badgeBoxShadow: "hsl(142 75% 55% / 0.45)",
+        badgeBorder:    "hsl(142 60% 40% / 0.4)",
+      }
+
+    case "black-white":
+      // Pure greyscale. Hue and saturation locked to 0. Lightness preserved
+      // to keep depth (rim still brighter than bleed, etc).
+      return {
+        haloUpper:      "hsl(0 0% 25% / 0.4)",
+        nebulaA:        "hsl(0 0% 55% / 0.35)",
+        nebulaB:        "hsl(0 0% 45% / 0.2)",
+        nebulaC:        "hsl(0 0% 35% / 0.08)",
+        rim1:           "hsl(0 0% 95%)",
+        rim2:           "hsla(0, 0%, 82%, 0.85)",
+        rim3:           "hsla(0, 0%, 70%, 0.5)",
+        rim4:           "hsla(0, 0%, 55%, 0.25)",
+        bleedLeftA:     "hsl(0 0% 70% / 0.5)",
+        bleedLeftB:     "hsl(0 0% 55% / 0.2)",
+        bleedRightA:    "hsl(0 0% 75% / 0.45)",
+        bleedRightB:    "hsl(0 0% 60% / 0.2)",
+        hotspot1:       "hsl(0 0% 95%)",
+        hotspot2:       "hsl(0 0% 85%)",
+        hotspot3:       "hsl(0 0% 70% / 0.7)",
+        hotspot4:       "hsl(0 0% 55% / 0.35)",
+        hotspot5:       "hsl(0 0% 40% / 0.1)",
+        halo1:          "hsl(0 0% 75% / 0.4)",
+        halo2:          "hsl(0 0% 60% / 0.2)",
+        halo3:          "hsl(0 0% 45% / 0.08)",
+        core1:          "hsl(0 0% 95%)",
+        core2:          "hsl(0 0% 82%)",
+        core3:          "hsl(0 0% 68%)",
+        core4:          "hsl(0 0% 55% / 0.5)",
+        orb1:           "hsl(0 0% 78%)",
+        orb1Tail:       "hsl(0 0% 60% / 0.4)",
+        orb2:           "hsl(0 0% 70%)",
+        orb2Tail:       "hsl(0 0% 55% / 0.35)",
+        orb3:           "hsl(0 0% 65%)",
+        orb3Tail:       "hsl(0 0% 50% / 0.35)",
+        orb4:           "hsl(0 0% 82%)",
+        orb4Tail:       "hsl(0 0% 65% / 0.4)",
+        orb5:           "hsl(0 0% 90%)",
+        orb5Tail:       "hsl(0 0% 75% / 0.5)",
+        buttonGradStart:"hsl(0 0% 88%)",
+        buttonGradEnd:  "hsl(0 0% 65%)",
+        buttonGradStartBusy: "hsl(0 0% 45%)",
+        buttonGradEndBusy:   "hsl(0 0% 35%)",
+        buttonShadow:   "hsl(0 0% 70% / 0.25)",
+        liveBadgeBorder:"hsl(0 0% 70% / 0.4)",
+        liveBadgeBg:    "hsl(0 0% 70% / 0.08)",
+        liveBadgeDot:   "hsl(0 0% 80%)",
+        liveBadgeText:  "hsl(0 0% 85%)",
+        accentTextA:    "hsl(0 0% 82%)",
+        accentTextB:    "hsl(0 0% 58%)",
+        inputFocus:     "hsl(0 0% 70% / 0.5)",
+        badgeBoxShadow: "hsl(0 0% 75% / 0.35)",
+        badgeBorder:    "hsl(0 0% 55% / 0.4)",
+      }
+
+    case "violet":
+    default:
+      // Original colors from Pass L — purple/magenta/blue
+      return {
+        haloUpper:      "hsl(265 60% 25% / 0.4)",
+        nebulaA:        "hsl(280 80% 55% / 0.35)",
+        nebulaB:        "hsl(270 70% 45% / 0.2)",
+        nebulaC:        "hsl(260 60% 35% / 0.08)",
+        rim1:           "hsl(290 100% 92%)",
+        rim2:           "hsla(285, 100%, 78%, 0.85)",
+        rim3:           "hsla(280, 100%, 65%, 0.5)",
+        rim4:           "hsla(265, 90%, 55%, 0.25)",
+        bleedLeftA:     "hsl(280 95% 60% / 0.5)",
+        bleedLeftB:     "hsl(270 85% 50% / 0.2)",
+        bleedRightA:    "hsl(200 95% 70% / 0.45)",
+        bleedRightB:    "hsl(210 85% 60% / 0.2)",
+        hotspot1:       "hsl(290 100% 92%)",
+        hotspot2:       "hsl(285 100% 80%)",
+        hotspot3:       "hsl(280 95% 65% / 0.7)",
+        hotspot4:       "hsl(270 85% 50% / 0.35)",
+        hotspot5:       "hsl(260 70% 40% / 0.1)",
+        halo1:          "hsl(280 100% 70% / 0.4)",
+        halo2:          "hsl(270 90% 55% / 0.2)",
+        halo3:          "hsl(260 80% 45% / 0.08)",
+        core1:          "hsl(290 100% 90%)",
+        core2:          "hsl(285 100% 75%)",
+        core3:          "hsl(275 100% 60%)",
+        core4:          "hsl(265 100% 50% / 0.5)",
+        orb1:           "hsl(265 90% 55%)",
+        orb1Tail:       "hsl(265 80% 45% / 0.4)",
+        orb2:           "hsl(300 90% 60%)",
+        orb2Tail:       "hsl(310 85% 50% / 0.35)",
+        orb3:           "hsl(220 95% 55%)",
+        orb3Tail:       "hsl(225 85% 45% / 0.35)",
+        orb4:           "hsl(285 95% 65%)",
+        orb4Tail:       "hsl(290 85% 55% / 0.4)",
+        orb5:           "hsl(280 100% 70%)",
+        orb5Tail:       "hsl(275 90% 60% / 0.5)",
+        buttonGradStart:"hsl(265 85% 60%)",
+        buttonGradEnd:  "hsl(280 80% 50%)",
+        buttonGradStartBusy: "hsl(265 60% 45%)",
+        buttonGradEndBusy:   "hsl(280 55% 40%)",
+        buttonShadow:   "hsl(270 80% 50% / 0.35)",
+        liveBadgeBorder:"hsl(280 85% 65% / 0.35)",
+        liveBadgeBg:    "hsl(280 85% 65% / 0.08)",
+        liveBadgeDot:   "hsl(280 90% 70%)",
+        liveBadgeText:  "hsl(280 90% 75%)",
+        accentTextA:    "hsl(280 90% 75%)",
+        accentTextB:    "hsl(220 90% 75%)",
+        inputFocus:     "hsl(280 80% 65% / 0.5)",
+        badgeBoxShadow: "hsl(270 80% 60% / 0.45)",
+        badgeBorder:    "hsl(280 60% 40% / 0.4)",
+      }
+  }
+}
+
 function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup" | "reset"): string {
   switch (code) {
     case "auth/user-not-found":
@@ -54,7 +415,7 @@ function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup"
 // emerges from the bloom showing through the gap between the planet's
 // edge and the surrounding darkness.
 // ─────────────────────────────────────────────────────────────────────
-function AuroraBackdrop() {
+function AuroraBackdrop({ p }: { p: LoginPalette }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* Deep space — true black */}
@@ -65,7 +426,7 @@ function AuroraBackdrop() {
         className="absolute"
         style={{
           top: "0%", left: "20%", width: "60%", height: "40%",
-          background: "radial-gradient(ellipse at center, hsl(265 60% 25% / 0.4) 0%, transparent 65%)",
+          background: `radial-gradient(ellipse at center, ${p.haloUpper} 0%, transparent 65%)`,
           filter: "blur(40px)",
         }}
       />
@@ -114,9 +475,9 @@ function AuroraBackdrop() {
           height: "1400px",
           transform: "translate(-50%, 20%)",
           background: `radial-gradient(circle at center,
-            hsl(280 80% 55% / 0.35) 0%,
-            hsl(270 70% 45% / 0.2)  20%,
-            hsl(260 60% 35% / 0.08) 40%,
+            ${p.nebulaA} 0%,
+            ${p.nebulaB}  20%,
+            ${p.nebulaC} 40%,
             transparent 60%
           )`,
           filter: "blur(60px)",
@@ -148,10 +509,10 @@ function AuroraBackdrop() {
           borderRadius: "50%",
           // Multi-layer inset shadows create the rim from purple-left → bright-center → blue-right
           boxShadow: `
-            inset 0 3px 0 hsl(290 100% 92%),
-            inset 0 6px 12px hsla(285, 100%, 78%, 0.85),
-            inset 0 14px 30px hsla(280, 100%, 65%, 0.5),
-            inset 0 24px 60px hsla(265, 90%, 55%, 0.25)
+            inset 0 3px 0 ${p.rim1},
+            inset 0 6px 12px ${p.rim2},
+            inset 0 14px 30px ${p.rim3},
+            inset 0 24px 60px ${p.rim4}
           `,
           opacity: 1,
         }}
@@ -166,8 +527,8 @@ function AuroraBackdrop() {
           transform: "translate(calc(-50% - 80px), 5%)",
           background: `radial-gradient(circle at center,
             transparent 41%,
-            hsl(280 95% 60% / 0.5) 43%,
-            hsl(270 85% 50% / 0.2) 47%,
+            ${p.bleedLeftA} 43%,
+            ${p.bleedLeftB} 47%,
             transparent 55%
           )`,
           borderRadius: "50%",
@@ -187,8 +548,8 @@ function AuroraBackdrop() {
           transform: "translate(calc(-50% + 80px), 5%)",
           background: `radial-gradient(circle at center,
             transparent 41%,
-            hsl(200 95% 70% / 0.45) 43%,
-            hsl(210 85% 60% / 0.2) 47%,
+            ${p.bleedRightA} 43%,
+            ${p.bleedRightB} 47%,
             transparent 55%
           )`,
           borderRadius: "50%",
@@ -211,11 +572,11 @@ function AuroraBackdrop() {
           transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
           background: `radial-gradient(circle at center,
             hsl(0 0% 100%) 0%,
-            hsl(290 100% 92%) 4%,
-            hsl(285 100% 80%) 10%,
-            hsl(280 95% 65% / 0.7) 20%,
-            hsl(270 85% 50% / 0.35) 35%,
-            hsl(260 70% 40% / 0.1) 55%,
+            ${p.hotspot1} 4%,
+            ${p.hotspot2} 10%,
+            ${p.hotspot3} 20%,
+            ${p.hotspot4} 35%,
+            ${p.hotspot5} 55%,
             transparent 75%
           )`,
           filter: "blur(6px)",
@@ -231,9 +592,9 @@ function AuroraBackdrop() {
           height: "900px",
           transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
           background: `radial-gradient(circle at center,
-            hsl(280 100% 70% / 0.4) 0%,
-            hsl(270 90% 55% / 0.2) 15%,
-            hsl(260 80% 45% / 0.08) 35%,
+            ${p.halo1} 0%,
+            ${p.halo2} 15%,
+            ${p.halo3} 35%,
             transparent 60%
           )`,
           filter: "blur(50px)",
@@ -252,10 +613,10 @@ function AuroraBackdrop() {
           borderRadius: "50%",
           boxShadow: `
             0 0 12px white,
-            0 0 30px hsl(290 100% 90%),
-            0 0 60px hsl(285 100% 75%),
-            0 0 120px hsl(275 100% 60%),
-            0 0 200px hsl(265 100% 50% / 0.5)
+            0 0 30px ${p.core1},
+            0 0 60px ${p.core2},
+            0 0 120px ${p.core3},
+            0 0 200px ${p.core4}
           `,
         }}
       />
@@ -277,7 +638,7 @@ function AuroraBackdrop() {
 // Less aggressive blur, higher opacity, more saturated colors so the
 // orbs are actually visible on a black canvas.
 // ─────────────────────────────────────────────────────────────────────
-function OrbsBackdrop() {
+function OrbsBackdrop({ p }: { p: LoginPalette }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <div className="absolute inset-0 bg-black" />
@@ -288,7 +649,7 @@ function OrbsBackdrop() {
         style={{
           width: "520px", height: "520px",
           top:   "-10%", left: "-8%",
-          background: "radial-gradient(circle, hsl(265 90% 55%) 0%, hsl(265 80% 45% / 0.4) 35%, transparent 70%)",
+          background: `radial-gradient(circle, ${p.orb1} 0%, ${p.orb1Tail} 35%, transparent 70%)`,
           filter: "blur(70px)",
           opacity: 0.7,
         }}
@@ -300,7 +661,7 @@ function OrbsBackdrop() {
         style={{
           width: "420px", height: "420px",
           top:   "8%", right: "-5%",
-          background: "radial-gradient(circle, hsl(300 90% 60%) 0%, hsl(310 85% 50% / 0.35) 35%, transparent 70%)",
+          background: `radial-gradient(circle, ${p.orb2} 0%, ${p.orb2Tail} 35%, transparent 70%)`,
           filter: "blur(60px)",
           opacity: 0.55,
         }}
@@ -312,7 +673,7 @@ function OrbsBackdrop() {
         style={{
           width: "600px", height: "600px",
           bottom: "-15%", left: "20%",
-          background: "radial-gradient(circle, hsl(220 95% 55%) 0%, hsl(225 85% 45% / 0.35) 35%, transparent 70%)",
+          background: `radial-gradient(circle, ${p.orb3} 0%, ${p.orb3Tail} 35%, transparent 70%)`,
           filter: "blur(80px)",
           opacity: 0.6,
         }}
@@ -324,7 +685,7 @@ function OrbsBackdrop() {
         style={{
           width: "320px", height: "320px",
           top: "45%", right: "15%",
-          background: "radial-gradient(circle, hsl(285 95% 65%) 0%, hsl(290 85% 55% / 0.4) 30%, transparent 65%)",
+          background: `radial-gradient(circle, ${p.orb4} 0%, ${p.orb4Tail} 30%, transparent 65%)`,
           filter: "blur(50px)",
           opacity: 0.5,
         }}
@@ -336,7 +697,7 @@ function OrbsBackdrop() {
         style={{
           width: "180px", height: "180px",
           top: "25%", left: "35%",
-          background: "radial-gradient(circle, hsl(280 100% 70%) 0%, hsl(275 90% 60% / 0.5) 30%, transparent 65%)",
+          background: `radial-gradient(circle, ${p.orb5} 0%, ${p.orb5Tail} 30%, transparent 65%)`,
           filter: "blur(35px)",
           opacity: 0.7,
         }}
@@ -371,6 +732,11 @@ export default function LoginPage() {
   const [error,       setError]      = useState("")
   const [success,     setSuccess]    = useState("")
   const [loginStyle,  setLoginStyle] = useState<LoginStyle>("aurora")
+
+  // Pass N — read saved dashboard theme from localStorage, derive login palette.
+  // Falls back to violet if no saved theme (matches Pass L look exactly).
+  const { theme: loginTheme } = useLoginTheme()
+  const p = getLoginPalette(loginTheme)
 
   // Load saved login style preference (browser memory)
   useEffect(() => {
@@ -442,7 +808,7 @@ export default function LoginPage() {
     <div className="relative min-h-screen flex flex-col md:flex-row overflow-hidden bg-black text-white">
 
       {/* Backdrop (full bleed under everything) */}
-      {loginStyle === "aurora" ? <AuroraBackdrop /> : <OrbsBackdrop />}
+      {loginStyle === "aurora" ? <AuroraBackdrop p={p} /> : <OrbsBackdrop p={p} />}
 
       {/* ── LEFT — Hero panel ─────────────────────────────────────── */}
       <div className="relative z-10 hidden md:flex md:w-[58%] flex-col p-10 lg:p-14">
@@ -451,8 +817,8 @@ export default function LoginPage() {
         <div className="flex items-center gap-3 flex-shrink-0">
           <div className="w-11 h-11 rounded-xl overflow-hidden flex items-center justify-center"
             style={{
-              boxShadow: "0 0 28px hsl(270 80% 60% / 0.45)",
-              border: "1px solid hsl(280 60% 40% / 0.4)",
+              boxShadow: `0 0 28px ${p.badgeBoxShadow}`,
+              border: `1px solid ${p.badgeBorder}`,
             }}>
             <Image
               src="/phoenix-logo.jpg"
@@ -476,9 +842,9 @@ export default function LoginPage() {
 
           {/* Status pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md mb-8"
-            style={{ borderColor: "hsl(280 85% 65% / 0.35)", background: "hsl(280 85% 65% / 0.08)" }}>
-            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "hsl(280 90% 70%)" }} />
-            <span className="text-[10px] font-black tracking-[0.25em] uppercase" style={{ color: "hsl(280 90% 75%)" }}>
+            style={{ borderColor: p.liveBadgeBorder, background: p.liveBadgeBg }}>
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: p.liveBadgeDot }} />
+            <span className="text-[10px] font-black tracking-[0.25em] uppercase" style={{ color: p.liveBadgeText }}>
               Live Algorithmic Trading Desk
             </span>
           </div>
@@ -493,7 +859,7 @@ export default function LoginPage() {
           <p className="mt-3 font-bold tracking-tight"
              style={{
                fontSize: "clamp(1.25rem, 2.2vw, 1.875rem)",
-               background: "linear-gradient(120deg, hsl(280 90% 75%) 0%, hsl(220 90% 75%) 100%)",
+               background: `linear-gradient(120deg, ${p.accentTextA} 0%, ${p.accentTextB} 100%)`,
                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                backgroundClip: "text",
              }}>
@@ -539,8 +905,8 @@ export default function LoginPage() {
           <div className="md:hidden mb-10 flex flex-col items-center gap-3">
             <div className="w-10 h-10 rounded-xl overflow-hidden"
               style={{
-                boxShadow: "0 0 24px hsl(270 80% 60% / 0.45)",
-                border: "1px solid hsl(280 60% 40% / 0.4)",
+                boxShadow: `0 0 24px ${p.badgeBoxShadow}`,
+                border: `1px solid ${p.badgeBorder}`,
               }}>
               <Image
                 src="/phoenix-logo.jpg"
@@ -587,8 +953,8 @@ export default function LoginPage() {
             {success && (
               <div className="mb-4 p-3 rounded-lg text-xs font-medium"
                 style={{
-                  background: "hsla(280,80%,65%,0.08)", border: "1px solid hsla(280,80%,65%,0.2)",
-                  color: "hsl(280 80% 80%)",
+                  background: p.liveBadgeBg, border: `1px solid ${p.liveBadgeBorder}`,
+                  color: p.liveBadgeText,
                 }}>
                 {success}
               </div>
@@ -611,7 +977,7 @@ export default function LoginPage() {
                     border: "1px solid hsla(0,0%,100%,0.08)",
                   }}
                   onFocus={e => {
-                    e.target.style.borderColor = "hsl(280 80% 65% / 0.5)"
+                    e.target.style.borderColor = p.inputFocus
                     e.target.style.background  = "hsla(0,0%,100%,0.06)"
                   }}
                   onBlur={e => {
@@ -649,7 +1015,7 @@ export default function LoginPage() {
                         border: "1px solid hsla(0,0%,100%,0.08)",
                       }}
                       onFocus={e => {
-                        e.target.style.borderColor = "hsl(280 80% 65% / 0.5)"
+                        e.target.style.borderColor = p.inputFocus
                         e.target.style.background  = "hsla(0,0%,100%,0.06)"
                       }}
                       onBlur={e => {
@@ -671,9 +1037,9 @@ export default function LoginPage() {
                 className="w-full py-3 rounded-lg text-sm font-black tracking-wider text-white transition-all active:scale-[0.98] disabled:cursor-not-allowed"
                 style={{
                   background: busy
-                    ? "linear-gradient(135deg, hsl(265 60% 45%) 0%, hsl(280 55% 40%) 100%)"
-                    : "linear-gradient(135deg, hsl(265 85% 60%) 0%, hsl(280 80% 50%) 100%)",
-                  boxShadow: busy ? "none" : "0 8px 24px hsl(270 80% 50% / 0.35)",
+                    ? `linear-gradient(135deg, ${p.buttonGradStartBusy} 0%, ${p.buttonGradEndBusy} 100%)`
+                    : `linear-gradient(135deg, ${p.buttonGradStart} 0%, ${p.buttonGradEnd} 100%)`,
+                  boxShadow: busy ? "none" : `0 8px 24px ${p.buttonShadow}`,
                   opacity: busy ? 0.7 : 1,
                 }}>
                 {submitLabel}
@@ -718,7 +1084,7 @@ export default function LoginPage() {
                       setError(""); setSuccess("")
                     }}
                     className="font-black transition-colors hover:text-white"
-                    style={{ color: "hsl(280 85% 75%)" }}>
+                    style={{ color: p.accentTextA }}>
                     {mode === "signin" ? "Request access" : "Sign in"}
                   </button>
                 </p>
