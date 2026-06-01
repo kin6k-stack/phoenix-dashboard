@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
 import {
   LayoutDashboard, Calendar, BarChart3, History, Clock,
   Globe, Target, CandlestickChart, ChevronLeft,
-  Settings, Wifi, Menu, X, PanelLeftOpen,
+  Settings, Wifi, Menu, X, PanelLeftOpen, Sparkles,
 } from "lucide-react"
 
 interface NavItem {
@@ -64,6 +64,30 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [session, setSession] = useState(getSessionLabel())
+
+  // Pass M: Hidden easter egg — 5 rapid clicks on the NYO/ACTIVE row
+  // toggles the prismatic black-hole variant for the login page.
+  // The counter resets after 2s of no clicks.
+  const [easterClicks, setEasterClicks] = useState(0)
+  const [easterToast, setEasterToast]   = useState<string | null>(null)
+  const easterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleEasterTap = () => {
+    if (easterTimerRef.current) clearTimeout(easterTimerRef.current)
+    const next = easterClicks + 1
+    if (next >= 5) {
+      // Toggle the prismatic flag
+      const current = localStorage.getItem("phoenix_easter_prismatic") === "true"
+      const flipped = !current
+      try { localStorage.setItem("phoenix_easter_prismatic", String(flipped)) } catch {}
+      setEasterToast(flipped ? "✦ Prismatic mode unlocked" : "Monochrome restored")
+      setEasterClicks(0)
+      setTimeout(() => setEasterToast(null), 2400)
+    } else {
+      setEasterClicks(next)
+      easterTimerRef.current = setTimeout(() => setEasterClicks(0), 2000)
+    }
+  }
 
   useEffect(() => {
     const saved = localStorage.getItem("phx_sidebar_collapsed")
@@ -243,13 +267,17 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
               </div>
             </div>
 
-            <div className="flex items-center justify-between px-1">
+            <button
+              type="button"
+              onClick={handleEasterTap}
+              className="w-full flex items-center justify-between px-1 hover:opacity-80 transition-opacity cursor-default"
+              title="">
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 <span className="text-[11px] font-black text-muted-foreground">{session.abbr}</span>
               </div>
               <span className="text-[9px] text-muted-foreground/70 uppercase">ACTIVE</span>
-            </div>
+            </button>
           </div>
         )}
 
@@ -322,6 +350,16 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
             {renderSidebarContent(true)}
           </aside>
         </>
+      )}
+
+      {/* Pass M: Easter egg toast (5-tap on NYO/ACTIVE row toggles prismatic black hole) */}
+      {easterToast && (
+        <div
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] px-4 py-2.5 rounded-full border bg-card/95 backdrop-blur-md shadow-2xl flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2"
+          style={{ borderColor: "hsl(280 85% 65% / 0.5)" }}>
+          <Sparkles className="h-3.5 w-3.5" style={{ color: "hsl(280 90% 70%)" }} />
+          <span className="text-xs font-black tracking-wider text-foreground">{easterToast}</span>
+        </div>
       )}
     </>
   )

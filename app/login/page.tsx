@@ -47,6 +47,246 @@ function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup"
 }
 
 // ─────────────────────────────────────────────────────────────────────
+// Pass M — Theme-aware login backdrops
+//
+// Login page reads the user's saved theme (`phoenix_settings.theme`) from
+// localStorage on mount. Backdrops (Aurora + Orbs) recolor to match.
+// On Black/White theme, Aurora becomes a BLACK HOLE composition instead
+// of a planet — distinct visual identity for the monochrome aesthetic.
+//
+// Hidden easter egg: clicking the "ACTIVE" status badge in the sidebar
+// (post-login) flips a localStorage flag that enables a prismatic
+// (rainbow chromatic-aberration) variant of the black hole. Toggles
+// back to monochrome on next click.
+// ─────────────────────────────────────────────────────────────────────
+
+type LoginTheme = "black-white" | "dark" | "midnight" | "violet" | "gold"
+
+interface LoginThemeState {
+  theme:     LoginTheme
+  invert:    boolean    // only meaningful for black-white
+  prismatic: boolean    // hidden easter egg flag, only meaningful for black-white
+  hydrated:  boolean
+}
+
+function useLoginTheme(): LoginThemeState {
+  const [state, setState] = useState<LoginThemeState>({
+    theme: "violet", invert: false, prismatic: false, hydrated: false,
+  })
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    try {
+      const saved = localStorage.getItem("phoenix_settings")
+      const parsed = saved ? JSON.parse(saved) : {}
+      let theme = parsed.theme as string
+      // Migrate legacy theme names
+      if (theme === "oled" || !theme) theme = "black-white"
+      else if (theme === "pink")     theme = "violet"
+      else if (theme === "light")    theme = "gold"
+      const validThemes: LoginTheme[] = ["black-white","dark","midnight","violet","gold"]
+      if (!validThemes.includes(theme as LoginTheme)) theme = "violet"
+
+      const prismatic = localStorage.getItem("phoenix_easter_prismatic") === "true"
+
+      setState({
+        theme: theme as LoginTheme,
+        invert: parsed.invert === true,
+        prismatic,
+        hydrated: true,
+      })
+    } catch {
+      setState({ theme: "violet", invert: false, prismatic: false, hydrated: true })
+    }
+  }, [])
+
+  return state
+}
+
+// ── Per-theme color palette for login backdrops ──────────────────────
+interface LoginPalette {
+  // Aurora SVG colors (purple by default)
+  rimMidColor:      string  // main rim sweep color (purple, gold, etc)
+  rimAccentColor:   string  // secondary rim sweep color (magenta, bronze)
+  hotspotColor:     string  // bright sunburst point on the rim
+  haloColor:        string  // soft outer halo around planet
+  bleedLeftColor:   string  // left-side bleed color
+  bleedRightColor:  string  // right-side bleed color
+  ambientWashColor: string  // wide low-intensity wash filling the rim area
+
+  // Orbs colors
+  orb1: string
+  orb2: string
+  orb3: string
+  orb4: string
+  orb5: string
+
+  // Form / button accents
+  buttonGradient:   string  // CSS gradient for the Sign In button
+  accentText:       string  // small accent text (e.g. "to your command center.")
+  liveBadgeBg:      string  // "LIVE ALGORITHMIC TRADING DESK" badge background
+  liveBadgeBorder:  string
+  liveBadgeText:    string
+  liveDotColor:     string
+
+  // Body class (true for black hole composition, false for planet)
+  isBlackHole:      boolean
+  // Inverted black hole — light canvas with dark event horizon
+  isInverted:       boolean
+  // Prismatic rainbow accretion disk (easter egg)
+  isPrismatic:      boolean
+}
+
+function getLoginPalette(state: LoginThemeState): LoginPalette {
+  const { theme, invert, prismatic } = state
+
+  switch (theme) {
+    case "violet":
+      return {
+        rimMidColor:      "hsl(290 100% 85%)",
+        rimAccentColor:   "hsl(300 100% 90%)",
+        hotspotColor:     "white",
+        haloColor:        "hsl(280 80% 55%)",
+        bleedLeftColor:   "hsl(280 95% 60%)",
+        bleedRightColor:  "hsl(200 95% 70%)",
+        ambientWashColor: "hsl(280 80% 55% / 0.35)",
+        orb1: "hsl(265 90% 55%)",
+        orb2: "hsl(300 90% 60%)",
+        orb3: "hsl(220 95% 55%)",
+        orb4: "hsl(285 95% 65%)",
+        orb5: "hsl(280 100% 70%)",
+        buttonGradient: "linear-gradient(135deg, hsl(280 85% 65%) 0%, hsl(310 80% 60%) 100%)",
+        accentText:       "hsl(280 70% 75%)",
+        liveBadgeBg:      "hsl(280 60% 40% / 0.15)",
+        liveBadgeBorder:  "hsl(280 80% 60% / 0.4)",
+        liveBadgeText:    "hsl(280 90% 80%)",
+        liveDotColor:     "hsl(280 90% 65%)",
+        isBlackHole: false, isInverted: false, isPrismatic: false,
+      }
+
+    case "gold":
+      return {
+        rimMidColor:      "hsl(38 100% 75%)",
+        rimAccentColor:   "hsl(45 100% 85%)",
+        hotspotColor:     "white",
+        haloColor:        "hsl(38 80% 55%)",
+        bleedLeftColor:   "hsl(38 95% 55%)",
+        bleedRightColor:  "hsl(28 95% 60%)",
+        ambientWashColor: "hsl(38 80% 50% / 0.35)",
+        orb1: "hsl(38 92% 50%)",
+        orb2: "hsl(28 92% 55%)",
+        orb3: "hsl(45 90% 55%)",
+        orb4: "hsl(20 95% 50%)",
+        orb5: "hsl(35 100% 65%)",
+        buttonGradient: "linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(28 92% 55%) 100%)",
+        accentText:       "hsl(38 80% 70%)",
+        liveBadgeBg:      "hsl(38 60% 35% / 0.18)",
+        liveBadgeBorder:  "hsl(38 80% 55% / 0.45)",
+        liveBadgeText:    "hsl(38 95% 75%)",
+        liveDotColor:     "hsl(38 95% 60%)",
+        isBlackHole: false, isInverted: false, isPrismatic: false,
+      }
+
+    case "midnight":
+      return {
+        rimMidColor:      "hsl(215 100% 80%)",
+        rimAccentColor:   "hsl(195 100% 85%)",
+        hotspotColor:     "white",
+        haloColor:        "hsl(220 80% 50%)",
+        bleedLeftColor:   "hsl(220 95% 60%)",
+        bleedRightColor:  "hsl(195 95% 65%)",
+        ambientWashColor: "hsl(220 80% 50% / 0.35)",
+        orb1: "hsl(220 95% 55%)",
+        orb2: "hsl(195 90% 60%)",
+        orb3: "hsl(240 95% 50%)",
+        orb4: "hsl(210 95% 65%)",
+        orb5: "hsl(200 100% 70%)",
+        buttonGradient: "linear-gradient(135deg, hsl(220 90% 60%) 0%, hsl(195 85% 55%) 100%)",
+        accentText:       "hsl(215 70% 75%)",
+        liveBadgeBg:      "hsl(220 60% 35% / 0.18)",
+        liveBadgeBorder:  "hsl(220 80% 55% / 0.4)",
+        liveBadgeText:    "hsl(215 90% 80%)",
+        liveDotColor:     "hsl(215 95% 65%)",
+        isBlackHole: false, isInverted: false, isPrismatic: false,
+      }
+
+    case "dark":  // Green Lab
+      return {
+        rimMidColor:      "hsl(142 90% 75%)",
+        rimAccentColor:   "hsl(160 90% 80%)",
+        hotspotColor:     "white",
+        haloColor:        "hsl(142 70% 45%)",
+        bleedLeftColor:   "hsl(142 90% 50%)",
+        bleedRightColor:  "hsl(170 85% 55%)",
+        ambientWashColor: "hsl(142 70% 40% / 0.35)",
+        orb1: "hsl(142 75% 50%)",
+        orb2: "hsl(160 75% 55%)",
+        orb3: "hsl(180 75% 50%)",
+        orb4: "hsl(150 80% 60%)",
+        orb5: "hsl(135 85% 65%)",
+        buttonGradient: "linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(160 75% 50%) 100%)",
+        accentText:       "hsl(142 60% 70%)",
+        liveBadgeBg:      "hsl(142 50% 30% / 0.18)",
+        liveBadgeBorder:  "hsl(142 70% 50% / 0.4)",
+        liveBadgeText:    "hsl(142 80% 70%)",
+        liveDotColor:     "hsl(142 80% 55%)",
+        isBlackHole: false, isInverted: false, isPrismatic: false,
+      }
+
+    case "black-white":
+    default:
+      // Black/white shows a BLACK HOLE composition instead of a planet.
+      // Default = monochrome white accretion disk on black canvas.
+      // Inverted = dark event horizon on white canvas.
+      // Prismatic (easter egg) = rainbow chromatic accretion.
+      if (invert) {
+        return {
+          rimMidColor:      "hsl(0 0% 5%)",
+          rimAccentColor:   "hsl(0 0% 15%)",
+          hotspotColor:     "black",
+          haloColor:        "hsl(0 0% 50%)",
+          bleedLeftColor:   "hsl(0 0% 20%)",
+          bleedRightColor:  "hsl(0 0% 30%)",
+          ambientWashColor: "hsl(0 0% 70% / 0.4)",
+          orb1: "hsl(0 0% 50%)",
+          orb2: "hsl(0 0% 40%)",
+          orb3: "hsl(0 0% 60%)",
+          orb4: "hsl(0 0% 30%)",
+          orb5: "hsl(0 0% 25%)",
+          buttonGradient: "linear-gradient(135deg, hsl(0 0% 8%) 0%, hsl(0 0% 30%) 100%)",
+          accentText:       "hsl(0 0% 35%)",
+          liveBadgeBg:      "hsl(0 0% 30% / 0.1)",
+          liveBadgeBorder:  "hsl(0 0% 50% / 0.3)",
+          liveBadgeText:    "hsl(0 0% 25%)",
+          liveDotColor:     "hsl(0 0% 30%)",
+          isBlackHole: true, isInverted: true, isPrismatic: prismatic,
+        }
+      }
+      return {
+        rimMidColor:      "hsl(0 0% 92%)",
+        rimAccentColor:   "hsl(0 0% 98%)",
+        hotspotColor:     "white",
+        haloColor:        "hsl(0 0% 80%)",
+        bleedLeftColor:   "hsl(0 0% 70%)",
+        bleedRightColor:  "hsl(0 0% 60%)",
+        ambientWashColor: "hsl(0 0% 60% / 0.25)",
+        orb1: "hsl(0 0% 70%)",
+        orb2: "hsl(0 0% 60%)",
+        orb3: "hsl(0 0% 50%)",
+        orb4: "hsl(0 0% 80%)",
+        orb5: "hsl(0 0% 90%)",
+        buttonGradient: "linear-gradient(135deg, hsl(0 0% 92%) 0%, hsl(0 0% 70%) 100%)",
+        accentText:       "hsl(0 0% 75%)",
+        liveBadgeBg:      "hsl(0 0% 70% / 0.1)",
+        liveBadgeBorder:  "hsl(0 0% 80% / 0.3)",
+        liveBadgeText:    "hsl(0 0% 85%)",
+        liveDotColor:     "hsl(0 0% 80%)",
+        isBlackHole: true, isInverted: false, isPrismatic: prismatic,
+      }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────
 // Style A — AURORA (planet + sunrise, tightly composed)
 //
 // Approach: a single bright radial bloom positioned low and slightly
@@ -54,23 +294,37 @@ function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup"
 // emerges from the bloom showing through the gap between the planet's
 // edge and the surrounding darkness.
 // ─────────────────────────────────────────────────────────────────────
-function AuroraBackdrop() {
+function AuroraBackdrop({ palette }: { palette: LoginPalette }) {
+  // Black/White → black hole composition (entirely different visual)
+  if (palette.isBlackHole) {
+    return <BlackHoleBackdrop palette={palette} />
+  }
+  // All other themes → planet+sunrise (the proven v6 composition, themed)
+  return <PlanetBackdrop palette={palette} />
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// PLANET BACKDROP — for Violet, Gold, Midnight, Green Lab themes
+// (Same composition as original v6 but with palette-driven colors)
+// ─────────────────────────────────────────────────────────────────────
+function PlanetBackdrop({ palette }: { palette: LoginPalette }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Deep space — true black */}
+      {/* Pure black space */}
       <div className="absolute inset-0 bg-black" />
 
-      {/* Subtle purple ambient haze in the upper sky */}
+      {/* Nebula haze in the upper sky — themed */}
       <div
         className="absolute"
         style={{
           top: "0%", left: "20%", width: "60%", height: "40%",
-          background: "radial-gradient(ellipse at center, hsl(265 60% 25% / 0.4) 0%, transparent 65%)",
+          background: `radial-gradient(ellipse at center, ${palette.haloColor} 0%, transparent 65%)`,
+          opacity: 0.35,
           filter: "blur(40px)",
         }}
       />
 
-      {/* Stars — kept subtle */}
+      {/* Stars */}
       <div className="absolute inset-0">
         {[
           { top: "5%",  left: "12%", size: 2, opacity: 0.8 },
@@ -101,166 +355,119 @@ function AuroraBackdrop() {
         ))}
       </div>
 
-      {/* ═══════════════════════════════════════════════════════
-          THE PLANET + SUNRISE — bigger composition, stronger bleed
-          Hot spot offset upper-right like the reference images.
-          ═══════════════════════════════════════════════════════ */}
-
-      {/* Layer 1: WIDE AMBIENT GLOW — soft purple wash filling the rim area */}
+      {/* Wide ambient glow — themed */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "1400px",
-          height: "1400px",
+          width:  "1400px", height: "1400px",
           transform: "translate(-50%, 20%)",
-          background: `radial-gradient(circle at center,
-            hsl(280 80% 55% / 0.35) 0%,
-            hsl(270 70% 45% / 0.2)  20%,
-            hsl(260 60% 35% / 0.08) 40%,
-            transparent 60%
-          )`,
+          background: `radial-gradient(circle at center, ${palette.ambientWashColor} 0%, transparent 50%)`,
           filter: "blur(60px)",
         }}
       />
 
-      {/* Layer 2: THE PLANET — large dark circle */}
+      {/* Planet body */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "760px",
-          height: "760px",
+          width:  "760px", height: "760px",
           transform: "translate(-50%, 12%)",
           background: "radial-gradient(circle at 50% 30%, hsl(265 25% 7%) 0%, hsl(0 0% 0%) 75%)",
           borderRadius: "50%",
-          boxShadow: `
-            inset 0 0 80px hsla(0, 0%, 0%, 0.6)
-          `,
+          boxShadow: "inset 0 0 80px hsla(0, 0%, 0%, 0.6)",
         }}
       />
 
-      {/* Layer 3: FULL RIM HIGHLIGHT — purple-blue gradient ring along the planet's edge */}
+      {/* Rim highlight — themed */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "760px",
-          height: "760px",
+          width:  "760px", height: "760px",
           transform: "translate(-50%, 12%)",
           borderRadius: "50%",
-          // Multi-layer inset shadows create the rim from purple-left → bright-center → blue-right
           boxShadow: `
-            inset 0 3px 0 hsl(290 100% 92%),
-            inset 0 6px 12px hsla(285, 100%, 78%, 0.85),
-            inset 0 14px 30px hsla(280, 100%, 65%, 0.5),
-            inset 0 24px 60px hsla(265, 90%, 55%, 0.25)
+            inset 0 3px 0 ${palette.rimAccentColor},
+            inset 0 6px 12px ${palette.rimMidColor},
+            inset 0 14px 30px ${palette.haloColor},
+            inset 0 24px 60px ${palette.haloColor}
           `,
           opacity: 1,
         }}
       />
 
-      {/* Layer 4: PURPLE BLEED (LEFT SIDE) — soft purple haze on the planet's left rim */}
+      {/* Purple bleed (left rim) — themed */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "900px",
-          height: "900px",
+          width: "900px", height: "900px",
           transform: "translate(calc(-50% - 80px), 5%)",
-          background: `radial-gradient(circle at center,
-            transparent 41%,
-            hsl(280 95% 60% / 0.5) 43%,
-            hsl(270 85% 50% / 0.2) 47%,
-            transparent 55%
-          )`,
+          background: `radial-gradient(circle at center, transparent 41%, ${palette.bleedLeftColor} 43%, transparent 55%)`,
           borderRadius: "50%",
           filter: "blur(14px)",
-          opacity: 0.9,
+          opacity: 0.5,
           maskImage: "linear-gradient(to right, black 0%, black 50%, transparent 75%)",
           WebkitMaskImage: "linear-gradient(to right, black 0%, black 50%, transparent 75%)",
         }}
       />
 
-      {/* Layer 5: BLUE BLEED (RIGHT SIDE) — cyan/blue haze on the planet's right rim */}
+      {/* Right bleed — themed */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "900px",
-          height: "900px",
+          width: "900px", height: "900px",
           transform: "translate(calc(-50% + 80px), 5%)",
-          background: `radial-gradient(circle at center,
-            transparent 41%,
-            hsl(200 95% 70% / 0.45) 43%,
-            hsl(210 85% 60% / 0.2) 47%,
-            transparent 55%
-          )`,
+          background: `radial-gradient(circle at center, transparent 41%, ${palette.bleedRightColor} 43%, transparent 55%)`,
           borderRadius: "50%",
           filter: "blur(14px)",
-          opacity: 0.85,
+          opacity: 0.45,
           maskImage: "linear-gradient(to left, black 0%, black 50%, transparent 75%)",
           WebkitMaskImage: "linear-gradient(to left, black 0%, black 50%, transparent 75%)",
         }}
       />
 
-      {/* Layer 6: THE SUNBURST — intense bright bloom on upper-right rim
-          This is where the "sun behind the planet" is visible.
-          Positioned at ~70% across the rim's curve. */}
+      {/* Sunburst — main bloom on upper-right rim */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "500px",
-          height: "500px",
-          // Position: roughly upper-right edge of the planet
+          width:  "500px", height: "500px",
           transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
-          background: `radial-gradient(circle at center,
-            hsl(0 0% 100%) 0%,
-            hsl(290 100% 92%) 4%,
-            hsl(285 100% 80%) 10%,
-            hsl(280 95% 65% / 0.7) 20%,
-            hsl(270 85% 50% / 0.35) 35%,
-            hsl(260 70% 40% / 0.1) 55%,
-            transparent 75%
-          )`,
+          background: `radial-gradient(circle at center, ${palette.hotspotColor} 0%, ${palette.rimMidColor} 10%, ${palette.haloColor} 35%, transparent 75%)`,
           filter: "blur(6px)",
           opacity: 1,
         }}
       />
 
-      {/* Layer 7: SUNBURST OUTER BLOOM — wider, softer halo around the bright point */}
+      {/* Sunburst outer halo */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "900px",
-          height: "900px",
+          width:  "900px", height: "900px",
           transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
-          background: `radial-gradient(circle at center,
-            hsl(280 100% 70% / 0.4) 0%,
-            hsl(270 90% 55% / 0.2) 15%,
-            hsl(260 80% 45% / 0.08) 35%,
-            transparent 60%
-          )`,
+          background: `radial-gradient(circle at center, ${palette.haloColor} 0%, transparent 60%)`,
           filter: "blur(50px)",
-          opacity: 1,
+          opacity: 0.5,
         }}
       />
 
-      {/* Layer 8: BRIGHT WHITE CORE — the absolute "sun" point */}
+      {/* Bright white core */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "14px",
-          height: "14px",
+          width:  "14px", height: "14px",
           transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
-          background: "white",
+          background: palette.hotspotColor,
           borderRadius: "50%",
           boxShadow: `
-            0 0 12px white,
-            0 0 30px hsl(290 100% 90%),
-            0 0 60px hsl(285 100% 75%),
-            0 0 120px hsl(275 100% 60%),
-            0 0 200px hsl(265 100% 50% / 0.5)
+            0 0 12px ${palette.hotspotColor},
+            0 0 30px ${palette.rimMidColor},
+            0 0 60px ${palette.rimAccentColor},
+            0 0 120px ${palette.haloColor},
+            0 0 200px ${palette.haloColor}
           `,
         }}
       />
 
-      {/* Layer 9: Bottom darkness — ensures the lower portion stays pure black */}
+      {/* Bottom darkness */}
       <div
         className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
         style={{
@@ -272,82 +479,204 @@ function AuroraBackdrop() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Style B — ORBS (visible gradient blobs)
+// BLACK HOLE BACKDROP — for Black/White theme
 //
-// Less aggressive blur, higher opacity, more saturated colors so the
-// orbs are actually visible on a black canvas.
+// Three variants:
+//   - Default (B/W default):  Monochrome white accretion disk, black void
+//   - Inverted (B/W invert):  Dark event horizon, white void/sphere on light canvas
+//   - Prismatic (easter egg): Rainbow chromatic accretion disk
 // ─────────────────────────────────────────────────────────────────────
-function OrbsBackdrop() {
+function BlackHoleBackdrop({ palette }: { palette: LoginPalette }) {
+  const isPrismatic = palette.isPrismatic
+  const isInverted  = palette.isInverted
+
+  // Background canvas — black on default, white on invert
+  const canvasBg = isInverted ? "white" : "black"
+  // Void color (the "hole" itself) — opposite of canvas
+  const voidColor = isInverted ? "white" : "black"
+  // Accretion disk colors
+  const diskInner = isInverted ? "hsl(0 0% 5%)"  : "hsl(0 0% 98%)"
+  const diskMid   = isInverted ? "hsl(0 0% 20%)" : "hsl(0 0% 85%)"
+  const diskOuter = isInverted ? "hsl(0 0% 40%)" : "hsl(0 0% 50%)"
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute inset-0 bg-black" />
+      {/* Canvas background */}
+      <div className="absolute inset-0" style={{ background: canvasBg }} />
 
-      {/* Top-left purple orb */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: "520px", height: "520px",
-          top:   "-10%", left: "-8%",
-          background: "radial-gradient(circle, hsl(265 90% 55%) 0%, hsl(265 80% 45% / 0.4) 35%, transparent 70%)",
-          filter: "blur(70px)",
-          opacity: 0.7,
-        }}
-      />
+      {/* Stars (or dark dots on inverted) */}
+      <div className="absolute inset-0">
+        {[
+          { top: "5%",  left: "12%", size: 2, opacity: 0.8 },
+          { top: "8%",  left: "55%", size: 2, opacity: 0.7 },
+          { top: "14%", left: "82%", size: 2, opacity: 0.6 },
+          { top: "20%", left: "30%", size: 1, opacity: 0.5 },
+          { top: "25%", left: "65%", size: 1, opacity: 0.5 },
+          { top: "11%", left: "40%", size: 1, opacity: 0.45 },
+          { top: "18%", left: "92%", size: 1, opacity: 0.5 },
+          { top: "30%", left: "5%",  size: 1, opacity: 0.4 },
+          { top: "6%",  left: "75%", size: 1, opacity: 0.5 },
+          { top: "3%",  left: "25%", size: 1, opacity: 0.6 },
+          { top: "16%", left: "8%",  size: 1, opacity: 0.4 },
+          { top: "22%", left: "48%", size: 1, opacity: 0.35 },
+        ].map((s, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full animate-pulse"
+            style={{
+              top: s.top, left: s.left,
+              width: s.size, height: s.size,
+              background: isInverted ? "black" : "white",
+              opacity: s.opacity,
+              animationDelay:    `${i * 0.5}s`,
+              animationDuration: `${4 + (i % 4)}s`,
+              boxShadow: s.size >= 2
+                ? (isInverted ? "0 0 4px hsla(0,0%,0%,0.5)" : "0 0 4px hsla(0,0%,100%,0.7)")
+                : "none",
+            }}
+          />
+        ))}
+      </div>
 
-      {/* Top-right magenta orb */}
+      {/* ═══════════════════════════════════════════════════════
+          THE BLACK HOLE — centered, slightly below center
+          Layers: outer halo → accretion ring (tilted) → photon ring → event horizon void
+          ═══════════════════════════════════════════════════════ */}
+
+      {/* Wide outer halo glow */}
       <div
-        className="absolute rounded-full"
+        className="absolute left-1/2 top-1/2"
         style={{
-          width: "420px", height: "420px",
-          top:   "8%", right: "-5%",
-          background: "radial-gradient(circle, hsl(300 90% 60%) 0%, hsl(310 85% 50% / 0.35) 35%, transparent 70%)",
+          width: "1400px", height: "1400px",
+          transform: "translate(-50%, -45%)",
+          background: isPrismatic
+            ? `radial-gradient(circle at center,
+                hsla(45,100%,70%,0.18) 0%,
+                hsla(180,100%,70%,0.12) 30%,
+                hsla(280,100%,70%,0.08) 50%,
+                transparent 70%)`
+            : `radial-gradient(circle at center, ${diskOuter} 0%, transparent 50%)`,
+          opacity: isPrismatic ? 1 : 0.4,
           filter: "blur(60px)",
-          opacity: 0.55,
         }}
       />
 
-      {/* Center-bottom blue orb */}
+      {/* ─── ACCRETION DISK ─── Elongated horizontal ellipse, tilted slightly */}
       <div
-        className="absolute rounded-full"
+        className="absolute left-1/2 top-1/2"
         style={{
-          width: "600px", height: "600px",
-          bottom: "-15%", left: "20%",
-          background: "radial-gradient(circle, hsl(220 95% 55%) 0%, hsl(225 85% 45% / 0.35) 35%, transparent 70%)",
-          filter: "blur(80px)",
-          opacity: 0.6,
+          width: "1100px", height: "320px",
+          transform: "translate(-50%, -50%) rotate(-8deg)",
+          background: isPrismatic
+            ? `radial-gradient(ellipse at center,
+                transparent 0%, transparent 22%,
+                hsl(45 100% 75% / 0.95) 24%,
+                hsl(20 100% 70% / 0.85) 28%,
+                hsl(330 100% 70% / 0.7) 33%,
+                hsl(280 100% 75% / 0.5) 38%,
+                hsl(200 100% 75% / 0.4) 44%,
+                hsl(160 100% 75% / 0.3) 50%,
+                transparent 60%)`
+            : `radial-gradient(ellipse at center,
+                transparent 0%, transparent 22%,
+                ${diskInner} 24%,
+                ${diskMid} 32%,
+                ${diskOuter} 45%,
+                transparent 60%)`,
+          filter: "blur(2px)",
+          opacity: 0.95,
         }}
       />
 
-      {/* Middle-right violet accent (smaller, sharper) */}
+      {/* Secondary accretion (slight rotation offset for depth) */}
       <div
-        className="absolute rounded-full"
+        className="absolute left-1/2 top-1/2"
         style={{
-          width: "320px", height: "320px",
-          top: "45%", right: "15%",
-          background: "radial-gradient(circle, hsl(285 95% 65%) 0%, hsl(290 85% 55% / 0.4) 30%, transparent 65%)",
-          filter: "blur(50px)",
-          opacity: 0.5,
-        }}
-      />
-
-      {/* Small bright purple core — anchor point */}
-      <div
-        className="absolute rounded-full"
-        style={{
-          width: "180px", height: "180px",
-          top: "25%", left: "35%",
-          background: "radial-gradient(circle, hsl(280 100% 70%) 0%, hsl(275 90% 60% / 0.5) 30%, transparent 65%)",
-          filter: "blur(35px)",
+          width: "1000px", height: "260px",
+          transform: "translate(-50%, -50%) rotate(-12deg)",
+          background: isPrismatic
+            ? `radial-gradient(ellipse at center,
+                transparent 0%, transparent 22%,
+                hsl(60 100% 80% / 0.6) 25%,
+                hsl(30 100% 75% / 0.5) 35%,
+                hsl(300 100% 75% / 0.35) 45%,
+                transparent 60%)`
+            : `radial-gradient(ellipse at center,
+                transparent 0%, transparent 22%,
+                ${diskMid} 28%,
+                ${diskOuter} 42%,
+                transparent 58%)`,
+          filter: "blur(8px)",
           opacity: 0.7,
         }}
       />
 
-      {/* Subtle dot-grid texture overlay */}
+      {/* Photon ring — bright thin ring tight around the void */}
       <div
-        className="absolute inset-0 opacity-[0.04]"
+        className="absolute left-1/2 top-1/2"
         style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
-          backgroundSize: "28px 28px",
+          width: "340px", height: "340px",
+          transform: "translate(-50%, -50%)",
+          borderRadius: "50%",
+          background: `radial-gradient(circle at center,
+            transparent 0%, transparent 47%,
+            ${isPrismatic ? "hsl(45 100% 90%)" : diskInner} 49%,
+            ${isPrismatic ? "hsl(0 100% 75%)"  : diskInner} 51%,
+            transparent 54%)`,
+          filter: "blur(1px)",
+          opacity: 0.95,
+        }}
+      />
+
+      {/* Inner glow ring (gravitational lensing effect — bright halo just outside the void) */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width: "400px", height: "400px",
+          transform: "translate(-50%, -50%)",
+          borderRadius: "50%",
+          background: `radial-gradient(circle at center,
+            transparent 38%,
+            ${isPrismatic ? "hsla(45,100%,80%,0.5)" : (isInverted ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.4)")} 45%,
+            transparent 60%)`,
+          filter: "blur(8px)",
+        }}
+      />
+
+      {/* THE VOID — the black hole itself */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width: "300px", height: "300px",
+          transform: "translate(-50%, -50%)",
+          background: `radial-gradient(circle at center, ${voidColor} 0%, ${voidColor} 50%, transparent 90%)`,
+          borderRadius: "50%",
+          boxShadow: `0 0 80px 20px ${voidColor}`,
+        }}
+      />
+
+      {/* Top half — bright "lensed" arc from light going around the back of the hole */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width: "320px", height: "60px",
+          transform: "translate(-50%, calc(-50% - 165px))",
+          background: isPrismatic
+            ? `radial-gradient(ellipse at center,
+                hsl(45 100% 85%) 0%,
+                hsl(0 100% 70% / 0.6) 50%,
+                transparent 90%)`
+            : `radial-gradient(ellipse at center, ${diskInner} 0%, ${diskMid} 50%, transparent 90%)`,
+          filter: "blur(4px)",
+          borderRadius: "50%",
+        }}
+      />
+
+      {/* Bottom fade */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
+        style={{
+          background: `linear-gradient(to bottom, transparent 0%, ${canvasBg} 70%)`,
         }}
       />
     </div>
@@ -355,8 +684,52 @@ function OrbsBackdrop() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Main login page
+// Style B — ORBS (gradient blobs, themed)
 // ─────────────────────────────────────────────────────────────────────
+function OrbsBackdrop({ palette }: { palette: LoginPalette }) {
+  // Canvas is black on dark themes, white on B/W-invert, black otherwise
+  const canvasBg = palette.isInverted ? "white" : "black"
+  const blendMode = palette.isInverted ? "multiply" : "screen"
+  const dotColor  = palette.isInverted ? "black" : "white"
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="absolute inset-0" style={{ background: canvasBg }} />
+
+      {[
+        { width: "520px", height: "520px", top: "-10%", left: "-8%",  color: palette.orb1, blur: "70px", opacity: 0.7 },
+        { width: "420px", height: "420px", top: "8%",  right: "-5%",  color: palette.orb2, blur: "60px", opacity: 0.55 },
+        { width: "600px", height: "600px", bottom: "-15%", left: "20%", color: palette.orb3, blur: "80px", opacity: 0.6 },
+        { width: "320px", height: "320px", top: "45%", right: "15%",   color: palette.orb4, blur: "50px", opacity: 0.5 },
+        { width: "180px", height: "180px", top: "25%", left: "35%",    color: palette.orb5, blur: "35px", opacity: 0.7 },
+      ].map((orb, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full"
+          style={{
+            top: orb.top, left: orb.left, right: (orb as any).right, bottom: (orb as any).bottom,
+            width: orb.width, height: orb.height,
+            background: `radial-gradient(circle, ${orb.color} 0%, ${orb.color} 30%, transparent 70%)`,
+            filter: `blur(${orb.blur})`,
+            opacity: orb.opacity,
+            mixBlendMode: blendMode as any,
+          }}
+        />
+      ))}
+
+      {/* Subtle dot-grid texture overlay */}
+      <div
+        className="absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, ${dotColor} 1px, transparent 0)`,
+          backgroundSize: "28px 28px",
+        }}
+      />
+    </div>
+  )
+}
+
+
 export default function LoginPage() {
   const router = useRouter()
   const { signInWithEmail, signUpWithEmail, signInWithGoogle, resetPassword } = useAuth()
@@ -371,6 +744,10 @@ export default function LoginPage() {
   const [error,       setError]      = useState("")
   const [success,     setSuccess]    = useState("")
   const [loginStyle,  setLoginStyle] = useState<LoginStyle>("aurora")
+
+  // Pass M: read saved theme + invert + prismatic flag
+  const themeState = useLoginTheme()
+  const palette    = getLoginPalette(themeState)
 
   // Load saved login style preference (browser memory)
   useEffect(() => {
@@ -442,7 +819,7 @@ export default function LoginPage() {
     <div className="relative min-h-screen flex flex-col md:flex-row overflow-hidden bg-black text-white">
 
       {/* Backdrop (full bleed under everything) */}
-      {loginStyle === "aurora" ? <AuroraBackdrop /> : <OrbsBackdrop />}
+      {loginStyle === "aurora" ? <AuroraBackdrop palette={palette} /> : <OrbsBackdrop palette={palette} />}
 
       {/* ── LEFT — Hero panel ─────────────────────────────────────── */}
       <div className="relative z-10 hidden md:flex md:w-[58%] flex-col p-10 lg:p-14">
@@ -474,11 +851,11 @@ export default function LoginPage() {
         <div className="flex-1 flex flex-col items-center justify-center text-center"
              style={{ paddingBottom: "20%" }}>
 
-          {/* Status pill */}
+          {/* Status pill — themed */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md mb-8"
-            style={{ borderColor: "hsl(280 85% 65% / 0.35)", background: "hsl(280 85% 65% / 0.08)" }}>
-            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "hsl(280 90% 70%)" }} />
-            <span className="text-[10px] font-black tracking-[0.25em] uppercase" style={{ color: "hsl(280 90% 75%)" }}>
+            style={{ borderColor: palette.liveBadgeBorder, background: palette.liveBadgeBg }}>
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: palette.liveDotColor }} />
+            <span className="text-[10px] font-black tracking-[0.25em] uppercase" style={{ color: palette.liveBadgeText }}>
               Live Algorithmic Trading Desk
             </span>
           </div>
@@ -489,11 +866,11 @@ export default function LoginPage() {
             Welcome
           </h1>
 
-          {/* Smaller "to your command center." */}
+          {/* Smaller "to your command center." — themed gradient */}
           <p className="mt-3 font-bold tracking-tight"
              style={{
                fontSize: "clamp(1.25rem, 2.2vw, 1.875rem)",
-               background: "linear-gradient(120deg, hsl(280 90% 75%) 0%, hsl(220 90% 75%) 100%)",
+               background: `linear-gradient(120deg, ${palette.rimMidColor} 0%, ${palette.rimAccentColor} 100%)`,
                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                backgroundClip: "text",
              }}>
@@ -671,9 +1048,9 @@ export default function LoginPage() {
                 className="w-full py-3 rounded-lg text-sm font-black tracking-wider text-white transition-all active:scale-[0.98] disabled:cursor-not-allowed"
                 style={{
                   background: busy
-                    ? "linear-gradient(135deg, hsl(265 60% 45%) 0%, hsl(280 55% 40%) 100%)"
-                    : "linear-gradient(135deg, hsl(265 85% 60%) 0%, hsl(280 80% 50%) 100%)",
-                  boxShadow: busy ? "none" : "0 8px 24px hsl(270 80% 50% / 0.35)",
+                    ? "linear-gradient(135deg, hsl(0 0% 30%) 0%, hsl(0 0% 20%) 100%)"
+                    : palette.buttonGradient,
+                  boxShadow: busy ? "none" : `0 8px 24px ${palette.haloColor}`,
                   opacity: busy ? 0.7 : 1,
                 }}>
                 {submitLabel}
