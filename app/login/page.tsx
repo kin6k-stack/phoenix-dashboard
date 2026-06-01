@@ -123,7 +123,10 @@ interface LoginPalette {
 
   // Form / button accents
   buttonGradient:   string  // CSS gradient for the Sign In button
+  buttonGlow:       string  // box-shadow color for the button (tuned, low-opacity)
   accentText:       string  // small accent text (e.g. "to your command center.")
+  accentTextStart:  string  // accent text gradient START (text-legible, not rim-bright)
+  accentTextEnd:    string  // accent text gradient END
   liveBadgeBg:      string  // "LIVE ALGORITHMIC TRADING DESK" badge background
   liveBadgeBorder:  string
   liveBadgeText:    string
@@ -156,7 +159,10 @@ function getLoginPalette(state: LoginThemeState): LoginPalette {
         orb4: "hsl(285 95% 65%)",
         orb5: "hsl(280 100% 70%)",
         buttonGradient: "linear-gradient(135deg, hsl(280 85% 65%) 0%, hsl(310 80% 60%) 100%)",
+        buttonGlow:       "hsl(280 80% 50% / 0.45)",
         accentText:       "hsl(280 70% 75%)",
+        accentTextStart:  "hsl(280 85% 72%)",
+        accentTextEnd:    "hsl(305 80% 68%)",
         liveBadgeBg:      "hsl(280 60% 40% / 0.15)",
         liveBadgeBorder:  "hsl(280 80% 60% / 0.4)",
         liveBadgeText:    "hsl(280 90% 80%)",
@@ -179,7 +185,10 @@ function getLoginPalette(state: LoginThemeState): LoginPalette {
         orb4: "hsl(20 95% 50%)",
         orb5: "hsl(35 100% 65%)",
         buttonGradient: "linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(28 92% 55%) 100%)",
+        buttonGlow:       "hsl(38 90% 50% / 0.4)",
         accentText:       "hsl(38 80% 70%)",
+        accentTextStart:  "hsl(42 90% 65%)",
+        accentTextEnd:    "hsl(28 88% 58%)",
         liveBadgeBg:      "hsl(38 60% 35% / 0.18)",
         liveBadgeBorder:  "hsl(38 80% 55% / 0.45)",
         liveBadgeText:    "hsl(38 95% 75%)",
@@ -202,7 +211,10 @@ function getLoginPalette(state: LoginThemeState): LoginPalette {
         orb4: "hsl(210 95% 65%)",
         orb5: "hsl(200 100% 70%)",
         buttonGradient: "linear-gradient(135deg, hsl(220 90% 60%) 0%, hsl(195 85% 55%) 100%)",
+        buttonGlow:       "hsl(220 85% 50% / 0.4)",
         accentText:       "hsl(215 70% 75%)",
+        accentTextStart:  "hsl(215 88% 70%)",
+        accentTextEnd:    "hsl(195 85% 62%)",
         liveBadgeBg:      "hsl(220 60% 35% / 0.18)",
         liveBadgeBorder:  "hsl(220 80% 55% / 0.4)",
         liveBadgeText:    "hsl(215 90% 80%)",
@@ -225,7 +237,10 @@ function getLoginPalette(state: LoginThemeState): LoginPalette {
         orb4: "hsl(150 80% 60%)",
         orb5: "hsl(135 85% 65%)",
         buttonGradient: "linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(160 75% 50%) 100%)",
+        buttonGlow:       "hsl(142 70% 40% / 0.4)",
         accentText:       "hsl(142 60% 70%)",
+        accentTextStart:  "hsl(142 75% 62%)",
+        accentTextEnd:    "hsl(165 72% 58%)",
         liveBadgeBg:      "hsl(142 50% 30% / 0.18)",
         liveBadgeBorder:  "hsl(142 70% 50% / 0.4)",
         liveBadgeText:    "hsl(142 80% 70%)",
@@ -254,7 +269,10 @@ function getLoginPalette(state: LoginThemeState): LoginPalette {
           orb4: "hsl(0 0% 30%)",
           orb5: "hsl(0 0% 25%)",
           buttonGradient: "linear-gradient(135deg, hsl(0 0% 8%) 0%, hsl(0 0% 30%) 100%)",
+          buttonGlow:       "hsl(0 0% 20% / 0.35)",
           accentText:       "hsl(0 0% 35%)",
+          accentTextStart:  "hsl(0 0% 25%)",
+          accentTextEnd:    "hsl(0 0% 45%)",
           liveBadgeBg:      "hsl(0 0% 30% / 0.1)",
           liveBadgeBorder:  "hsl(0 0% 50% / 0.3)",
           liveBadgeText:    "hsl(0 0% 25%)",
@@ -270,13 +288,16 @@ function getLoginPalette(state: LoginThemeState): LoginPalette {
         bleedLeftColor:   "hsl(0 0% 70%)",
         bleedRightColor:  "hsl(0 0% 60%)",
         ambientWashColor: "hsl(0 0% 60% / 0.25)",
-        orb1: "hsl(0 0% 70%)",
-        orb2: "hsl(0 0% 60%)",
-        orb3: "hsl(0 0% 50%)",
-        orb4: "hsl(0 0% 80%)",
-        orb5: "hsl(0 0% 90%)",
+        orb1: "hsl(0 0% 85%)",
+        orb2: "hsl(0 0% 72%)",
+        orb3: "hsl(0 0% 65%)",
+        orb4: "hsl(0 0% 90%)",
+        orb5: "hsl(0 0% 95%)",
         buttonGradient: "linear-gradient(135deg, hsl(0 0% 92%) 0%, hsl(0 0% 70%) 100%)",
+        buttonGlow:       "hsl(0 0% 80% / 0.25)",
         accentText:       "hsl(0 0% 75%)",
+        accentTextStart:  "hsl(0 0% 82%)",
+        accentTextEnd:    "hsl(0 0% 58%)",
         liveBadgeBg:      "hsl(0 0% 70% / 0.1)",
         liveBadgeBorder:  "hsl(0 0% 80% / 0.3)",
         liveBadgeText:    "hsl(0 0% 85%)",
@@ -310,44 +331,59 @@ function AuroraBackdrop({ palette }: { palette: LoginPalette }) {
 function PlanetBackdrop({ palette }: { palette: LoginPalette }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Pure black space */}
+      {/* Deep space canvas */}
       <div className="absolute inset-0 bg-black" />
 
-      {/* Nebula haze in the upper sky — themed */}
+      {/* ── UPPER-SKY NEBULA HAZE ──
+          Soft scatter of the sun's light into the atmosphere above the
+          planet. Centered slightly right of center where the sun rises. */}
       <div
         className="absolute"
         style={{
-          top: "0%", left: "20%", width: "60%", height: "40%",
-          background: `radial-gradient(ellipse at center, ${palette.haloColor} 0%, transparent 65%)`,
-          opacity: 0.35,
-          filter: "blur(40px)",
+          top: "5%", left: "35%", width: "55%", height: "55%",
+          background: `radial-gradient(ellipse at center, ${palette.haloColor} 0%, transparent 60%)`,
+          opacity: 0.30,
+          filter: "blur(70px)",
+        }}
+      />
+      {/* Secondary cooler haze drifting left */}
+      <div
+        className="absolute"
+        style={{
+          top: "12%", left: "8%", width: "45%", height: "45%",
+          background: `radial-gradient(ellipse at center, ${palette.bleedRightColor} 0%, transparent 65%)`,
+          opacity: 0.14,
+          filter: "blur(80px)",
         }}
       />
 
-      {/* Stars */}
+      {/* ── STAR FIELD ── */}
       <div className="absolute inset-0">
         {[
-          { top: "5%",  left: "12%", size: 2, opacity: 0.8 },
-          { top: "8%",  left: "55%", size: 2, opacity: 0.7 },
-          { top: "14%", left: "82%", size: 2, opacity: 0.6 },
-          { top: "20%", left: "30%", size: 1, opacity: 0.5 },
-          { top: "25%", left: "65%", size: 1, opacity: 0.5 },
-          { top: "11%", left: "40%", size: 1, opacity: 0.45 },
-          { top: "18%", left: "92%", size: 1, opacity: 0.5 },
-          { top: "30%", left: "5%",  size: 1, opacity: 0.4 },
-          { top: "6%",  left: "75%", size: 1, opacity: 0.5 },
-          { top: "3%",  left: "25%", size: 1, opacity: 0.6 },
-          { top: "16%", left: "8%",  size: 1, opacity: 0.4 },
-          { top: "22%", left: "48%", size: 1, opacity: 0.35 },
+          { top: "6%",  left: "10%", size: 2, opacity: 0.85 },
+          { top: "9%",  left: "48%", size: 2, opacity: 0.7 },
+          { top: "13%", left: "78%", size: 2, opacity: 0.65 },
+          { top: "18%", left: "26%", size: 1, opacity: 0.55 },
+          { top: "22%", left: "62%", size: 1, opacity: 0.5 },
+          { top: "8%",  left: "36%", size: 1, opacity: 0.5 },
+          { top: "16%", left: "90%", size: 1, opacity: 0.55 },
+          { top: "27%", left: "4%",  size: 1, opacity: 0.45 },
+          { top: "5%",  left: "70%", size: 1, opacity: 0.55 },
+          { top: "3%",  left: "22%", size: 1, opacity: 0.65 },
+          { top: "20%", left: "84%", size: 1, opacity: 0.4 },
+          { top: "11%", left: "58%", size: 1, opacity: 0.4 },
+          { top: "24%", left: "44%", size: 1, opacity: 0.35 },
+          { top: "30%", left: "16%", size: 1, opacity: 0.4 },
+          { top: "14%", left: "6%",  size: 1, opacity: 0.45 },
         ].map((s, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-white animate-pulse"
             style={{
               top: s.top, left: s.left,
-              width:  s.size, height: s.size,
+              width: s.size, height: s.size,
               opacity: s.opacity,
-              animationDelay:    `${i * 0.5}s`,
+              animationDelay:    `${i * 0.4}s`,
               animationDuration: `${4 + (i % 4)}s`,
               boxShadow: s.size >= 2 ? "0 0 4px hsla(0,0%,100%,0.7)" : "none",
             }}
@@ -355,128 +391,136 @@ function PlanetBackdrop({ palette }: { palette: LoginPalette }) {
         ))}
       </div>
 
-      {/* Wide ambient glow — themed */}
+      {/* ════════════════════════════════════════════════════════
+          THE PLANET — sits mostly BELOW the canvas. Only the top
+          ~18% of its curve shows as a horizon arc at screen mid.
+          Center pushed far down via translate Y +62%.
+          ════════════════════════════════════════════════════════ */}
+
+      {/* Planet body — huge, mostly off-screen bottom */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "1400px", height: "1400px",
-          transform: "translate(-50%, 20%)",
-          background: `radial-gradient(circle at center, ${palette.ambientWashColor} 0%, transparent 50%)`,
-          filter: "blur(60px)",
+          width:  "1700px", height: "1700px",
+          transform: "translate(-50%, 62%)",
+          background: "radial-gradient(circle at 50% 25%, hsl(265 22% 6%) 0%, hsl(0 0% 0.5%) 60%)",
+          borderRadius: "50%",
+          boxShadow: "inset 0 4px 40px hsla(0,0%,0%,0.8)",
+          zIndex: 2,
         }}
       />
 
-      {/* Planet body */}
+      {/* ── THE RISING SUN (light source behind planet) ──
+          Positioned at the back-right of the rim, sitting just above the
+          horizon line. Most of its bloom is ABOVE the planet edge,
+          creating the "sun breaking over the edge" effect. */}
+
+      {/* Wide atmospheric bloom — the sun's glow scattering into the sky */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "760px", height: "760px",
-          transform: "translate(-50%, 12%)",
-          background: "radial-gradient(circle at 50% 30%, hsl(265 25% 7%) 0%, hsl(0 0% 0%) 75%)",
-          borderRadius: "50%",
-          boxShadow: "inset 0 0 80px hsla(0, 0%, 0%, 0.6)",
+          width: "1100px", height: "1100px",
+          transform: "translate(calc(-50% + 240px), calc(-50% + 250px))",
+          background: `radial-gradient(circle at center, ${palette.haloColor} 0%, transparent 55%)`,
+          filter: "blur(40px)",
+          opacity: 0.55,
+          zIndex: 3,
         }}
       />
 
-      {/* Rim highlight — themed */}
+      {/* Mid bloom — tighter, brighter */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "760px", height: "760px",
-          transform: "translate(-50%, 12%)",
-          borderRadius: "50%",
-          boxShadow: `
-            inset 0 3px 0 ${palette.rimAccentColor},
-            inset 0 6px 12px ${palette.rimMidColor},
-            inset 0 14px 30px ${palette.haloColor},
-            inset 0 24px 60px ${palette.haloColor}
-          `,
-          opacity: 1,
-        }}
-      />
-
-      {/* Purple bleed (left rim) — themed */}
-      <div
-        className="absolute left-1/2 top-1/2"
-        style={{
-          width: "900px", height: "900px",
-          transform: "translate(calc(-50% - 80px), 5%)",
-          background: `radial-gradient(circle at center, transparent 41%, ${palette.bleedLeftColor} 43%, transparent 55%)`,
-          borderRadius: "50%",
+          width: "560px", height: "560px",
+          transform: "translate(calc(-50% + 240px), calc(-50% + 250px))",
+          background: `radial-gradient(circle at center, ${palette.rimMidColor} 0%, ${palette.haloColor} 30%, transparent 68%)`,
           filter: "blur(14px)",
-          opacity: 0.5,
-          maskImage: "linear-gradient(to right, black 0%, black 50%, transparent 75%)",
-          WebkitMaskImage: "linear-gradient(to right, black 0%, black 50%, transparent 75%)",
+          opacity: 0.9,
+          zIndex: 3,
         }}
       />
 
-      {/* Right bleed — themed */}
+      {/* Core flare — the actual bright point of the sun */}
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width: "900px", height: "900px",
-          transform: "translate(calc(-50% + 80px), 5%)",
-          background: `radial-gradient(circle at center, transparent 41%, ${palette.bleedRightColor} 43%, transparent 55%)`,
-          borderRadius: "50%",
-          filter: "blur(14px)",
-          opacity: 0.45,
-          maskImage: "linear-gradient(to left, black 0%, black 50%, transparent 75%)",
-          WebkitMaskImage: "linear-gradient(to left, black 0%, black 50%, transparent 75%)",
-        }}
-      />
-
-      {/* Sunburst — main bloom on upper-right rim */}
-      <div
-        className="absolute left-1/2 top-1/2"
-        style={{
-          width:  "500px", height: "500px",
-          transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
-          background: `radial-gradient(circle at center, ${palette.hotspotColor} 0%, ${palette.rimMidColor} 10%, ${palette.haloColor} 35%, transparent 75%)`,
-          filter: "blur(6px)",
-          opacity: 1,
-        }}
-      />
-
-      {/* Sunburst outer halo */}
-      <div
-        className="absolute left-1/2 top-1/2"
-        style={{
-          width:  "900px", height: "900px",
-          transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
-          background: `radial-gradient(circle at center, ${palette.haloColor} 0%, transparent 60%)`,
-          filter: "blur(50px)",
-          opacity: 0.5,
-        }}
-      />
-
-      {/* Bright white core */}
-      <div
-        className="absolute left-1/2 top-1/2"
-        style={{
-          width:  "14px", height: "14px",
-          transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
+          width: "16px", height: "16px",
+          transform: "translate(calc(-50% + 240px), calc(-50% + 246px))",
           background: palette.hotspotColor,
           borderRadius: "50%",
           boxShadow: `
-            0 0 12px ${palette.hotspotColor},
-            0 0 30px ${palette.rimMidColor},
-            0 0 60px ${palette.rimAccentColor},
-            0 0 120px ${palette.haloColor},
-            0 0 200px ${palette.haloColor}
+            0 0 14px ${palette.hotspotColor},
+            0 0 36px ${palette.rimMidColor},
+            0 0 80px ${palette.rimAccentColor},
+            0 0 160px ${palette.haloColor}
           `,
+          zIndex: 4,
         }}
       />
 
-      {/* Bottom darkness */}
+      {/* ── RIM HIGHLIGHT ──
+          Thin sharp line of light grazing the planet's upper edge.
+          This is the crescent where the sun catches the atmosphere.
+          Built as a ring slightly larger than the planet, masked to
+          only show the top arc, with a bright gradient sweep. */}
       <div
-        className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
+        className="absolute left-1/2 top-1/2"
         style={{
-          background: "linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 70%)",
+          width:  "1700px", height: "1700px",
+          transform: "translate(-50%, 62%)",
+          borderRadius: "50%",
+          background: `conic-gradient(from 270deg at 50% 50%,
+            transparent 0deg,
+            ${palette.bleedLeftColor} 35deg,
+            ${palette.rimMidColor} 78deg,
+            ${palette.hotspotColor} 90deg,
+            ${palette.rimAccentColor} 102deg,
+            ${palette.bleedRightColor} 145deg,
+            transparent 180deg,
+            transparent 360deg)`,
+          WebkitMask: "radial-gradient(circle, transparent 0, transparent calc(50% - 3px), black calc(50% - 2px), black 50%, transparent calc(50% + 1px))",
+          mask: "radial-gradient(circle, transparent 0, transparent calc(50% - 3px), black calc(50% - 2px), black 50%, transparent calc(50% + 1px))",
+          opacity: 0.95,
+          zIndex: 5,
+          filter: "blur(0.5px)",
+        }}
+      />
+
+      {/* Rim bloom — soft glow bleeding off the bright crescent into the sky */}
+      <div
+        className="absolute left-1/2 top-1/2"
+        style={{
+          width:  "1740px", height: "1740px",
+          transform: "translate(-50%, 61.5%)",
+          borderRadius: "50%",
+          background: `conic-gradient(from 270deg at 50% 50%,
+            transparent 0deg,
+            ${palette.rimMidColor} 80deg,
+            ${palette.hotspotColor} 90deg,
+            ${palette.rimAccentColor} 100deg,
+            transparent 160deg,
+            transparent 360deg)`,
+          WebkitMask: "radial-gradient(circle, transparent 0, transparent calc(50% - 22px), black calc(50% - 18px), black 50%, transparent calc(50% + 4px))",
+          mask: "radial-gradient(circle, transparent 0, transparent calc(50% - 22px), black calc(50% - 18px), black 50%, transparent calc(50% + 4px))",
+          opacity: 0.5,
+          zIndex: 3,
+          filter: "blur(12px)",
+        }}
+      />
+
+      {/* Bottom darkness fade */}
+      <div
+        className="absolute inset-x-0 bottom-0 h-1/4 pointer-events-none"
+        style={{
+          background: "linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 80%)",
+          zIndex: 6,
         }}
       />
     </div>
   )
 }
+
 
 // ─────────────────────────────────────────────────────────────────────
 // BLACK HOLE BACKDROP — for Black/White theme
@@ -494,10 +538,10 @@ function BlackHoleBackdrop({ palette }: { palette: LoginPalette }) {
   const canvasBg = isInverted ? "white" : "black"
   // Void color (the "hole" itself) — opposite of canvas
   const voidColor = isInverted ? "white" : "black"
-  // Accretion disk colors
-  const diskInner = isInverted ? "hsl(0 0% 5%)"  : "hsl(0 0% 98%)"
-  const diskMid   = isInverted ? "hsl(0 0% 20%)" : "hsl(0 0% 85%)"
-  const diskOuter = isInverted ? "hsl(0 0% 40%)" : "hsl(0 0% 50%)"
+  // Accretion disk colors — monochrome ring needs high contrast + tight stops
+  const diskInner = isInverted ? "hsl(0 0% 5%)"  : "hsl(0 0% 100%)"
+  const diskMid   = isInverted ? "hsl(0 0% 15%)" : "hsl(0 0% 90%)"
+  const diskOuter = isInverted ? "hsl(0 0% 35%)" : "hsl(0 0% 60%)"
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -578,12 +622,12 @@ function BlackHoleBackdrop({ palette }: { palette: LoginPalette }) {
                 hsl(160 100% 75% / 0.3) 50%,
                 transparent 60%)`
             : `radial-gradient(ellipse at center,
-                transparent 0%, transparent 22%,
-                ${diskInner} 24%,
-                ${diskMid} 32%,
-                ${diskOuter} 45%,
-                transparent 60%)`,
-          filter: "blur(2px)",
+                transparent 0%, transparent 30%,
+                ${diskInner} 33%,
+                ${diskMid} 40%,
+                ${diskOuter} 48%,
+                transparent 58%)`,
+          filter: "blur(1.5px)",
           opacity: 0.95,
         }}
       />
@@ -689,19 +733,26 @@ function BlackHoleBackdrop({ palette }: { palette: LoginPalette }) {
 function OrbsBackdrop({ palette }: { palette: LoginPalette }) {
   // Canvas is black on dark themes, white on B/W-invert, black otherwise
   const canvasBg = palette.isInverted ? "white" : "black"
+  // B/W default needs brighter orbs to register against pure black.
+  // Inverted (white canvas) uses multiply to darken.
+  const isBW = palette.isBlackHole
   const blendMode = palette.isInverted ? "multiply" : "screen"
   const dotColor  = palette.isInverted ? "black" : "white"
+  // Opacity multiplier — B/W orbs get a boost since grey-on-black is faint
+  const op = (base: number) => isBW && !palette.isInverted
+    ? Math.min(1, base + 0.25)
+    : base
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <div className="absolute inset-0" style={{ background: canvasBg }} />
 
       {[
-        { width: "520px", height: "520px", top: "-10%", left: "-8%",  color: palette.orb1, blur: "70px", opacity: 0.7 },
-        { width: "420px", height: "420px", top: "8%",  right: "-5%",  color: palette.orb2, blur: "60px", opacity: 0.55 },
-        { width: "600px", height: "600px", bottom: "-15%", left: "20%", color: palette.orb3, blur: "80px", opacity: 0.6 },
-        { width: "320px", height: "320px", top: "45%", right: "15%",   color: palette.orb4, blur: "50px", opacity: 0.5 },
-        { width: "180px", height: "180px", top: "25%", left: "35%",    color: palette.orb5, blur: "35px", opacity: 0.7 },
+        { width: "560px", height: "560px", top: "-10%", left: "-8%",  color: palette.orb1, blur: "70px", opacity: op(0.7) },
+        { width: "460px", height: "460px", top: "8%",  right: "-5%",  color: palette.orb2, blur: "60px", opacity: op(0.55) },
+        { width: "640px", height: "640px", bottom: "-15%", left: "20%", color: palette.orb3, blur: "80px", opacity: op(0.6) },
+        { width: "340px", height: "340px", top: "45%", right: "15%",   color: palette.orb4, blur: "50px", opacity: op(0.5) },
+        { width: "200px", height: "200px", top: "25%", left: "35%",    color: palette.orb5, blur: "35px", opacity: op(0.7) },
       ].map((orb, i) => (
         <div
           key={i}
@@ -709,7 +760,7 @@ function OrbsBackdrop({ palette }: { palette: LoginPalette }) {
           style={{
             top: orb.top, left: orb.left, right: (orb as any).right, bottom: (orb as any).bottom,
             width: orb.width, height: orb.height,
-            background: `radial-gradient(circle, ${orb.color} 0%, ${orb.color} 30%, transparent 70%)`,
+            background: `radial-gradient(circle, ${orb.color} 0%, ${orb.color} 35%, transparent 72%)`,
             filter: `blur(${orb.blur})`,
             opacity: orb.opacity,
             mixBlendMode: blendMode as any,
@@ -870,7 +921,7 @@ export default function LoginPage() {
           <p className="mt-3 font-bold tracking-tight"
              style={{
                fontSize: "clamp(1.25rem, 2.2vw, 1.875rem)",
-               background: `linear-gradient(120deg, ${palette.rimMidColor} 0%, ${palette.rimAccentColor} 100%)`,
+               background: `linear-gradient(120deg, ${palette.accentTextStart} 0%, ${palette.accentTextEnd} 100%)`,
                WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                backgroundClip: "text",
              }}>
@@ -1050,7 +1101,7 @@ export default function LoginPage() {
                   background: busy
                     ? "linear-gradient(135deg, hsl(0 0% 30%) 0%, hsl(0 0% 20%) 100%)"
                     : palette.buttonGradient,
-                  boxShadow: busy ? "none" : `0 8px 24px ${palette.haloColor}`,
+                  boxShadow: busy ? "none" : `0 4px 20px ${palette.buttonGlow}`,
                   opacity: busy ? 0.7 : 1,
                 }}>
                 {submitLabel}
