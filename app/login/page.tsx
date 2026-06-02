@@ -452,25 +452,44 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
 
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-      {/* Pure black canvas — shows in any image-loading gaps + edges */}
+      {/* Pure black canvas */}
       <div className="absolute inset-0 bg-black" />
 
-      {/* The photographic backdrop layer */}
-      <img
-        src={imageSrc}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 w-full h-full object-cover"
-        style={{
-          // Slight transform per backdrop type to anchor the focal point
-          // where the layered Aurora glow / rim accents will sit
-          objectPosition: isBlackWhite ? "center 60%" : "center bottom",
-          opacity: 0.95,
-        }}
-      />
+      {isBlackWhite ? (
+        // Black hole photo — fills frame, already well-composed in source.
+        // No CSS overlays render on top for B/W (see AuroraBackdrop guard).
+        <img
+          src={imageSrc}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ objectPosition: "center 60%", opacity: 0.95 }}
+        />
+      ) : (
+        // Moon photo — sized + positioned to act as the planet body that
+        // the CSS rim glow / sunburst wrap around. Matches the CSS planet's
+        // geometry (760px wide, ~12% below viewport center).
+        // Wrapper is a sized div with the moon as a contained background,
+        // so the photo's edge aligns with where the rim crescent paints.
+        <div
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width:  "1100px",
+            height: "1100px",
+            transform: "translate(-50%, 8%)",
+            backgroundImage: `url(${imageSrc})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center 35%",
+            // Mask to a circle so the moon's edge is clean against black space
+            borderRadius: "50%",
+            // Subtle inner darkening at the bottom for atmospheric depth
+            boxShadow: "inset 0 -40px 80px rgba(0,0,0,0.6)",
+            opacity: 0.9,
+          }}
+        />
+      )}
 
-      {/* Subtle vignette — darkens the corners so text reads cleanly
-          and the login card's right-side area stays uncluttered */}
+      {/* Vignette — darkens corners so text reads cleanly */}
       <div
         className="absolute inset-0"
         style={{
@@ -492,7 +511,12 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
 }
 
 
-function AuroraBackdrop({ p }: { p: LoginPalette }) {
+function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
+  // Pass P v3: On Black/White theme, the black hole photo is the focal element.
+  // Skip the planet-specific CSS layers (rim glow, sunburst, halo, core, bleeds)
+  // that were designed to wrap a planet — they'd clash with the black hole.
+  // Stars and faint nebula haze still render universally as ambient sky.
+  const isBlackWhite = theme === "black-white"
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
       {/* Pass P v2: Removed the `bg-black` deep-space layer here — the
@@ -567,6 +591,10 @@ function AuroraBackdrop({ p }: { p: LoginPalette }) {
       {/* Layer 2 (Pass P): The planet body div is no longer needed —
           the photo IS the planet now. Removed to let the image breathe. */}
       {/* (intentionally empty — preserved structure for diff readability) */}
+
+      {/* Planet-specific layers — skipped on Black/White (black hole photo carries it) */}
+      {!isBlackWhite && (
+        <>
 
       {/* Layer 3: FULL RIM HIGHLIGHT — purple-blue gradient ring along the planet's edge */}
       <div
@@ -689,6 +717,9 @@ function AuroraBackdrop({ p }: { p: LoginPalette }) {
           `,
         }}
       />
+
+        </>
+      )}
 
       {/* Layer 9: Bottom darkness — ensures the lower portion stays pure black */}
       <div
@@ -885,7 +916,7 @@ export default function LoginPage() {
       {loginStyle === "aurora" ? (
         <>
           <PhotoBackdrop p={p} theme={loginTheme} />
-          <AuroraBackdrop p={p} />
+          <AuroraBackdrop p={p} theme={loginTheme} />
         </>
       ) : (
         <OrbsBackdrop p={p} />
