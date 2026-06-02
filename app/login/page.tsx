@@ -531,7 +531,7 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-          style={{ objectPosition: "center 60%", opacity: isInverted ? 0.85 : 0.95 }}
+          style={{ objectPosition: "center 60%", opacity: 1 }}
         />
       ) : (
         // Moon photo — sized + positioned to act as the planet body that
@@ -557,20 +557,12 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
         />
       )}
 
-      {/* Pass R2: Invert brightness overlay — lifts the entire photo on invert */}
-      {isInverted && (
-        <div
-          className="absolute inset-0"
-          style={{ background: "rgba(255,255,255,0.52)", mixBlendMode: "screen" }}
-        />
-      )}
-
       {/* Vignette — darkens corners so text reads cleanly */}
       <div
         className="absolute inset-0"
         style={{
           background: isInverted
-            ? "radial-gradient(ellipse at center, transparent 40%, rgba(255,255,255,0.3) 100%)"
+            ? "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.08) 100%)"
             : "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.55) 90%)",
         }}
       />
