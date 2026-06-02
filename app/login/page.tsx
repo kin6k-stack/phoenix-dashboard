@@ -531,7 +531,7 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-          style={{ objectPosition: "center 60%", opacity: isInverted ? 0.75 : 0.95 }}
+          style={{ objectPosition: "center 60%", opacity: isInverted ? 0.55 : 0.95 }}
         />
       ) : (
         // Moon photo — sized + positioned to act as the planet body that
@@ -796,7 +796,7 @@ function AuroraBackdrop({ p, theme, isInverted, animationsOn = true }: { p: Logi
       <div
         className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
         style={{
-          background: isInverted ? "linear-gradient(to bottom, transparent 0%, hsl(0 0% 85%) 70%)" : "linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 70%)",
+          background: isInverted ? "linear-gradient(to bottom, transparent 0%, hsl(0 0% 92%) 70%)" : "linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 70%)",
         }}
       />
     </div>
@@ -823,8 +823,8 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           background: isInverted
             ? "radial-gradient(circle, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.06) 35%, transparent 70%)"
             : `radial-gradient(circle, ${p.orb1} 0%, ${p.orb1Tail} 35%, transparent 70%)`,
-          filter: "blur(70px)",
-          opacity: isInverted ? 1 : 0.7,
+          filter: "blur(35px)",
+          opacity: isInverted ? 1 : 0.85,
           animation: animationsOn ? "orb1Drift 9s ease-in-out infinite" : "none",
         }}
       />
@@ -838,8 +838,8 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           background: isInverted
             ? "radial-gradient(circle, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
             : `radial-gradient(circle, ${p.orb2} 0%, ${p.orb2Tail} 35%, transparent 70%)`,
-          filter: "blur(60px)",
-          opacity: isInverted ? 1 : 0.55,
+          filter: "blur(30px)",
+          opacity: isInverted ? 1 : 0.75,
           animation: animationsOn ? "orb2Drift 11s ease-in-out infinite" : "none",
         }}
       />
@@ -853,8 +853,8 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           background: isInverted
             ? "radial-gradient(circle, rgba(0,0,0,0.50) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
             : `radial-gradient(circle, ${p.orb3} 0%, ${p.orb3Tail} 35%, transparent 70%)`,
-          filter: "blur(80px)",
-          opacity: isInverted ? 1 : 0.6,
+          filter: "blur(40px)",
+          opacity: isInverted ? 1 : 0.8,
           animation: animationsOn ? "orb3Drift 8s ease-in-out infinite" : "none",
         }}
       />
@@ -868,8 +868,8 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           background: isInverted
             ? "radial-gradient(circle, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.04) 30%, transparent 65%)"
             : `radial-gradient(circle, ${p.orb4} 0%, ${p.orb4Tail} 30%, transparent 65%)`,
-          filter: "blur(50px)",
-          opacity: isInverted ? 1 : 0.5,
+          filter: "blur(25px)",
+          opacity: isInverted ? 1 : 0.75,
           animation: animationsOn ? "orb4Drift 10s ease-in-out infinite" : "none",
         }}
       />
@@ -883,8 +883,8 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           background: isInverted
             ? "radial-gradient(circle, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.07) 30%, transparent 65%)"
             : `radial-gradient(circle, ${p.orb5} 0%, ${p.orb5Tail} 30%, transparent 65%)`,
-          filter: "blur(35px)",
-          opacity: isInverted ? 1 : 0.7,
+          filter: "blur(18px)",
+          opacity: isInverted ? 1 : 0.85,
           animation: animationsOn ? "orb5Drift 12s ease-in-out infinite" : "none",
         }}
       />
