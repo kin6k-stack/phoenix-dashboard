@@ -451,7 +451,7 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
     : "/login-backdrop-planet.webp"
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
       {/* Pure black canvas — shows in any image-loading gaps + edges */}
       <div className="absolute inset-0 bg-black" />
 
@@ -494,9 +494,11 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
 
 function AuroraBackdrop({ p }: { p: LoginPalette }) {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Deep space — true black */}
-      <div className="absolute inset-0 bg-black" />
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 1 }}>
+      {/* Pass P v2: Removed the `bg-black` deep-space layer here — the
+          PhotoBackdrop below now provides the canvas (photo or its own
+          black fallback). Painting solid black here was occluding the
+          photo entirely. */}
 
       {/* Subtle purple ambient haze in the upper sky */}
       <div
