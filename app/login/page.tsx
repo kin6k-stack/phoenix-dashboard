@@ -564,7 +564,7 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
         ].map((s, i) => (
           <div
             key={i}
-            className="absolute rounded-full bg-white animate-pulse"
+            className={`absolute rounded-full animate-pulse ${isInverted ? "bg-black/40" : "bg-white"}`}
             style={{
               top: s.top, left: s.left,
               width:  s.size, height: s.size,
@@ -975,6 +975,7 @@ export default function LoginPage() {
 
           {/* Big "Welcome" */}
           <h1 className={`font-black tracking-tight leading-none ${isInverted ? "text-black" : "text-white"}`}
+              style={isInverted ? { WebkitTextStroke: "0.5px rgba(0,0,0,0.25)", paintOrder: "stroke fill" } : {}}
               style={{ fontSize: "clamp(4.5rem, 8vw, 7rem)" }}>
             Welcome
           </h1>
@@ -1013,15 +1014,15 @@ export default function LoginPage() {
               />
             </div>
             <div className="leading-tight">
-              <p className={`text-[10px] uppercase tracking-widest font-bold ${isInverted ? "text-black/40" : "text-white/40"}`}>by</p>
-              <p className={`text-xs font-black tracking-wider uppercase ${isInverted ? "text-black/80" : "text-white/80"}`}>Trader Kizan</p>
+              <p className={`text-[10px] uppercase tracking-widest font-bold ${isInverted ? "text-black/60" : "text-white/40"}`}>by</p>
+              <p className={`text-xs font-black tracking-wider uppercase ${isInverted ? "text-black" : "text-white/80"}`}>Trader Kizan</p>
             </div>
           </div>
 
           {/* Style toggle */}
           <button
             onClick={cycleLoginStyle}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all text-[10px] font-bold uppercase tracking-widest ${isInverted ? "border-black/10 hover:border-black/30 hover:bg-black/[0.04] text-black/50 hover:text-black/90" : "border-white/10 hover:border-white/30 hover:bg-white/[0.04] text-white/50 hover:text-white/90"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all text-[10px] font-bold uppercase tracking-widest ${isInverted ? "border-black/20 hover:border-black/40 hover:bg-black/[0.06] text-black/60 hover:text-black" : "border-white/10 hover:border-white/30 hover:bg-white/[0.04] text-white/50 hover:text-white/90"}`}
             title={`Switch to ${loginStyle === "aurora" ? "orbs" : "aurora"} style`}>
             {loginStyle === "aurora" ? <Sparkles className="w-3 h-3" /> : <Orbit className="w-3 h-3" />}
             <span>{loginStyle === "aurora" ? "Aurora" : "Orbs"}</span>
@@ -1255,7 +1256,7 @@ export default function LoginPage() {
             </div>
             <button
               onClick={cycleLoginStyle}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${isInverted ? "border-black/10 text-black/50" : "border-white/10 text-white/50"}`}>
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${isInverted ? "border-black/20 text-black/60" : "border-white/10 text-white/50"}`}>
               {loginStyle === "aurora" ? <Sparkles className="w-3 h-3" /> : <Orbit className="w-3 h-3" />}
               {loginStyle === "aurora" ? "Aurora" : "Orbs"}
             </button>
