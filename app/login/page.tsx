@@ -755,63 +755,73 @@ function OrbsBackdrop({ p, isInverted }: { p: LoginPalette; isInverted?: boolean
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <div className={`absolute inset-0 ${isInverted ? "bg-white" : "bg-black"}`} />
 
-      {/* Top-left purple orb */}
+      {/* Top-left orb */}
       <div
         className="absolute rounded-full"
         style={{
           width: "520px", height: "520px",
           top:   "-10%", left: "-8%",
-          background: `radial-gradient(circle, ${p.orb1} 0%, ${p.orb1Tail} 35%, transparent 70%)`,
+          background: isInverted
+            ? "radial-gradient(circle, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.06) 35%, transparent 70%)"
+            : `radial-gradient(circle, ${p.orb1} 0%, ${p.orb1Tail} 35%, transparent 70%)`,
           filter: "blur(70px)",
-          opacity: 0.7,
+          opacity: isInverted ? 1 : 0.7,
         }}
       />
 
-      {/* Top-right magenta orb */}
+      {/* Top-right orb */}
       <div
         className="absolute rounded-full"
         style={{
           width: "420px", height: "420px",
           top:   "8%", right: "-5%",
-          background: `radial-gradient(circle, ${p.orb2} 0%, ${p.orb2Tail} 35%, transparent 70%)`,
+          background: isInverted
+            ? "radial-gradient(circle, rgba(0,0,0,0.14) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
+            : `radial-gradient(circle, ${p.orb2} 0%, ${p.orb2Tail} 35%, transparent 70%)`,
           filter: "blur(60px)",
-          opacity: 0.55,
+          opacity: isInverted ? 1 : 0.55,
         }}
       />
 
-      {/* Center-bottom blue orb */}
+      {/* Center-bottom orb */}
       <div
         className="absolute rounded-full"
         style={{
           width: "600px", height: "600px",
           bottom: "-15%", left: "20%",
-          background: `radial-gradient(circle, ${p.orb3} 0%, ${p.orb3Tail} 35%, transparent 70%)`,
+          background: isInverted
+            ? "radial-gradient(circle, rgba(0,0,0,0.16) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
+            : `radial-gradient(circle, ${p.orb3} 0%, ${p.orb3Tail} 35%, transparent 70%)`,
           filter: "blur(80px)",
-          opacity: 0.6,
+          opacity: isInverted ? 1 : 0.6,
         }}
       />
 
-      {/* Middle-right violet accent (smaller, sharper) */}
+      {/* Middle-right accent */}
       <div
         className="absolute rounded-full"
         style={{
           width: "320px", height: "320px",
           top: "45%", right: "15%",
-          background: `radial-gradient(circle, ${p.orb4} 0%, ${p.orb4Tail} 30%, transparent 65%)`,
+          background: isInverted
+            ? "radial-gradient(circle, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 30%, transparent 65%)"
+            : `radial-gradient(circle, ${p.orb4} 0%, ${p.orb4Tail} 30%, transparent 65%)`,
           filter: "blur(50px)",
-          opacity: 0.5,
+          opacity: isInverted ? 1 : 0.5,
         }}
       />
 
-      {/* Small bright purple core — anchor point */}
+      {/* Small core orb */}
       <div
         className="absolute rounded-full"
         style={{
           width: "180px", height: "180px",
           top: "25%", left: "35%",
-          background: `radial-gradient(circle, ${p.orb5} 0%, ${p.orb5Tail} 30%, transparent 65%)`,
+          background: isInverted
+            ? "radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.07) 30%, transparent 65%)"
+            : `radial-gradient(circle, ${p.orb5} 0%, ${p.orb5Tail} 30%, transparent 65%)`,
           filter: "blur(35px)",
-          opacity: 0.7,
+          opacity: isInverted ? 1 : 0.7,
         }}
       />
 
@@ -967,15 +977,15 @@ export default function LoginPage() {
           {/* Status pill */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md mb-8"
             style={{ borderColor: p.liveBadgeBorder, background: p.liveBadgeBg }}>
-            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: p.liveBadgeDot }} />
-            <span className="text-[10px] font-black tracking-[0.25em] uppercase" style={{ color: p.liveBadgeText }}>
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: isInverted ? "rgba(0,0,0,0.5)" : p.liveBadgeDot }} />
+            <span className="text-[10px] font-black tracking-[0.25em] uppercase" style={{ color: isInverted ? "rgba(0,0,0,0.7)" : p.liveBadgeText }}>
               Live Algorithmic Trading Desk
             </span>
           </div>
 
           {/* Big "Welcome" */}
           <h1 className={`font-black tracking-tight leading-none ${isInverted ? "text-black" : "text-white"}`}
-              style={isInverted ? { WebkitTextStroke: "0.5px rgba(0,0,0,0.25)", paintOrder: "stroke fill" } : {}}
+              style={isInverted ? { WebkitTextStroke: "1.5px rgba(255,255,255,0.6)", paintOrder: "stroke fill" } : {}}
               style={{ fontSize: "clamp(4.5rem, 8vw, 7rem)" }}>
             Welcome
           </h1>
@@ -1004,7 +1014,7 @@ export default function LoginPage() {
         <div className="flex items-end justify-between flex-shrink-0">
 
           {/* Trader Kizan credit */}
-          <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full backdrop-blur-md ${isInverted ? "bg-black/10 border border-black/10" : "bg-white/[0.06] border border-white/10"}`}>
+          <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-full overflow-hidden border border-white/15 flex-shrink-0">
               <Image
                 src="/trader-kizan-logo.jpg"
@@ -1014,8 +1024,8 @@ export default function LoginPage() {
               />
             </div>
             <div className="leading-tight">
-              <p className={`text-[10px] uppercase tracking-widest font-bold ${isInverted ? "text-black/60" : "text-white/60"}`}>by</p>
-              <p className={`text-xs font-black tracking-wider uppercase ${isInverted ? "text-black" : "text-white/90"}`}>Trader Kizan</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: isInverted ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.9)", textShadow: isInverted ? "none" : "0 1px 4px rgba(0,0,0,0.8)" }}>by</p>
+              <p className="text-xs font-black tracking-wider uppercase" style={{ color: isInverted ? "rgba(0,0,0,0.9)" : "rgba(255,255,255,1)", textShadow: isInverted ? "none" : "0 1px 6px rgba(0,0,0,0.9)" }}>Trader Kizan</p>
             </div>
           </div>
 
