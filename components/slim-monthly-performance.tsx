@@ -13,91 +13,82 @@ interface SlimMonthlyPerformanceProps {
   fees: number
 }
 
-// ── Pass U: Per-theme ring/distribution configuration ─────────────────────────
-function getRingConfig(theme: string, safeWinRate: number) {
+// ── Pass U: Per-theme distribution ring config ────────────────────────────────
+// Reference images:
+//   violet      → purple wins (#a855f7),  salmon losses (#fb7185)
+//   black-white → white wins (#e5e5e5),   mid-grey losses (#525252)
+//   dark        → emerald wins (#34d399), salmon losses (#fb7185)
+//   gold        → classic green wins (#22c55e), classic red losses (#ef4444)
+//   midnight    → green wins (#22c55e),   rose losses (#fb7185)
+function getRingConfig(theme: string) {
   switch (theme) {
 
-    case "black-white":
-      // Numora monochrome: clean white arc on grey track
+    case "violet":
       return {
-        winColor:    "#e5e5e5",
-        lossColor:   "#525252",
-        trackColor:  "rgba(80,80,80,0.3)",
-        winGlow:     "",
-        lossGlow:    "",
-        winLabel:    "#e5e5e5",
-        lossLabel:   "#737373",
-        ringBg:      "rgba(20,20,20,0.6)",
-        strokeWidth: 5,
+        winColor:   "#a855f7",
+        lossColor:  "#fb7185",
+        trackColor: "rgba(168,85,247,0.12)",
+        winGlow:    "drop-shadow(0 0 5px rgba(168,85,247,0.6))",
+        centerBg:   "rgba(15,10,24,0.7)",
+        winDot:     "#a855f7",
+        lossDot:    "#fb7185",
+      }
+
+    case "black-white":
+      return {
+        winColor:   "#e5e5e5",
+        lossColor:  "#525252",
+        trackColor: "rgba(80,80,80,0.2)",
+        winGlow:    "",
+        centerBg:   "rgba(10,10,10,0.7)",
+        winDot:     "#e5e5e5",
+        lossDot:    "#525252",
       }
 
     case "dark":
-      // Image 6: teal/emerald arc — neon glow ring
       return {
-        winColor:    "#34d399",
-        lossColor:   "#fb7185",
-        trackColor:  "rgba(52,211,153,0.1)",
-        winGlow:     "drop-shadow(0 0 6px rgba(52,211,153,0.7))",
-        lossGlow:    "drop-shadow(0 0 6px rgba(251,113,133,0.7))",
-        winLabel:    "#34d399",
-        lossLabel:   "#fb7185",
-        ringBg:      "rgba(20,30,25,0.5)",
-        strokeWidth: 5,
-      }
-
-    case "midnight":
-      // Image 5: blue/indigo segments — electric blue
-      return {
-        winColor:    "#60a5fa",
-        lossColor:   "#818cf8",
-        trackColor:  "rgba(96,165,250,0.1)",
-        winGlow:     "drop-shadow(0 0 5px rgba(96,165,250,0.6))",
-        lossGlow:    "drop-shadow(0 0 5px rgba(129,140,248,0.6))",
-        winLabel:    "#60a5fa",
-        lossLabel:   "#818cf8",
-        ringBg:      "rgba(10,15,30,0.5)",
-        strokeWidth: 5,
-      }
-
-    case "violet":
-      // Image 5 purple variant: violet/magenta ring
-      return {
-        winColor:    "#c084fc",
-        lossColor:   "#e879f9",
-        trackColor:  "rgba(192,132,252,0.1)",
-        winGlow:     "drop-shadow(0 0 6px rgba(192,132,252,0.6))",
-        lossGlow:    "drop-shadow(0 0 6px rgba(232,121,249,0.5))",
-        winLabel:    "#c084fc",
-        lossLabel:   "#e879f9",
-        ringBg:      "rgba(15,10,24,0.5)",
-        strokeWidth: 5,
+        winColor:   "#34d399",
+        lossColor:  "#fb7185",
+        trackColor: "rgba(52,211,153,0.1)",
+        winGlow:    "drop-shadow(0 0 5px rgba(52,211,153,0.65))",
+        centerBg:   "rgba(10,20,15,0.7)",
+        winDot:     "#34d399",
+        lossDot:    "#fb7185",
       }
 
     case "gold":
-      // Warm amber/orange ring
+      // Image 10: classic green wins / red losses — gold theme uses traditional colors
       return {
-        winColor:    "#f59e0b",
-        lossColor:   "#f97316",
-        trackColor:  "rgba(245,158,11,0.1)",
-        winGlow:     "drop-shadow(0 0 5px rgba(245,158,11,0.5))",
-        lossGlow:    "drop-shadow(0 0 5px rgba(249,115,22,0.5))",
-        winLabel:    "#f59e0b",
-        lossLabel:   "#f97316",
-        ringBg:      "rgba(30,20,5,0.3)",
-        strokeWidth: 5,
+        winColor:   "#22c55e",
+        lossColor:  "#ef4444",
+        trackColor: "rgba(34,197,94,0.1)",
+        winGlow:    "",
+        centerBg:   "rgba(20,15,5,0.5)",
+        winDot:     "#22c55e",
+        lossDot:    "#ef4444",
+      }
+
+    case "midnight":
+      // Image 13: green wins / rose losses on blue theme
+      return {
+        winColor:   "#22c55e",
+        lossColor:  "#fb7185",
+        trackColor: "rgba(34,197,94,0.1)",
+        winGlow:    "",
+        centerBg:   "rgba(10,15,30,0.7)",
+        winDot:     "#22c55e",
+        lossDot:    "#fb7185",
       }
 
     default:
       return {
-        winColor:    "#34d399",
-        lossColor:   "#fb7185",
-        trackColor:  "rgba(52,211,153,0.1)",
-        winGlow:     "",
-        lossGlow:    "",
-        winLabel:    "#34d399",
-        lossLabel:   "#fb7185",
-        ringBg:      "rgba(0,0,0,0.3)",
-        strokeWidth: 5,
+        winColor:   "#34d399",
+        lossColor:  "#fb7185",
+        trackColor: "rgba(52,211,153,0.1)",
+        winGlow:    "",
+        centerBg:   "rgba(0,0,0,0.5)",
+        winDot:     "#34d399",
+        lossDot:    "#fb7185",
       }
   }
 }
@@ -112,14 +103,21 @@ export function SlimMonthlyPerformance({
 }: SlimMonthlyPerformanceProps) {
   const { theme } = useTheme()
 
-  const safeWinRate  = Math.min(Math.max(Number(winRate), 0), 100)
-  const isProfitable = Number(netPnL) >= 0
+  const safeWinRate   = Math.min(Math.max(Number(winRate), 0), 100)
+  const isProfitable  = Number(netPnL) >= 0
   const circumference = 2 * Math.PI * 26
-  const strokeDashoffset = circumference - (safeWinRate / 100) * circumference
+  const lossRate      = 100 - safeWinRate
 
-  const ring = getRingConfig(theme, safeWinRate)
-  const ringColor = safeWinRate >= 50 ? ring.winColor : ring.lossColor
-  const ringGlow  = safeWinRate >= 50 ? ring.winGlow  : ring.lossGlow
+  // Win arc
+  const winDashArray  = circumference
+  const winDashOffset = circumference - (safeWinRate / 100) * circumference
+
+  // Loss arc (starts where win ends)
+  const lossDashArray  = circumference
+  const lossDashOffset = circumference - (lossRate / 100) * circumference
+  const lossRotation   = (safeWinRate / 100) * 360
+
+  const ring = getRingConfig(theme)
 
   return (
     <Card className="border-border/40 bg-card/60 shadow-lg gap-0 py-0">
@@ -132,48 +130,61 @@ export function SlimMonthlyPerformance({
 
       <CardContent className="p-3 space-y-2">
 
-        {/* Win-rate ring */}
+        {/* Distribution ring — win + loss arcs like reference images */}
         <div className="flex items-center gap-3 bg-background/50 rounded-lg p-2.5">
           <div className="relative w-14 h-14 flex-shrink-0">
             <svg
               className="w-14 h-14 transform -rotate-90"
               viewBox="0 0 64 64"
-              style={ringGlow ? { filter: ringGlow } : undefined}
+              style={ring.winGlow ? { filter: ring.winGlow } : undefined}
             >
               {/* Track */}
-              <circle
-                cx="32" cy="32" r="26"
-                stroke={ring.trackColor}
-                strokeWidth={ring.strokeWidth}
-                fill="none"
+              <circle cx="32" cy="32" r="26"
+                stroke={ring.trackColor} strokeWidth="5" fill="none" />
+
+              {/* Loss arc (underneath, full circle tinted) */}
+              <circle cx="32" cy="32" r="26"
+                stroke={ring.lossColor} strokeWidth="5"
+                strokeLinecap="butt" fill="none"
+                strokeDasharray={lossDashArray}
+                strokeDashoffset={lossDashOffset}
+                style={{ transform: `rotate(${lossRotation}deg)`, transformOrigin: "50% 50%" }}
+                opacity={0.75}
               />
-              {/* Win arc */}
-              <circle
-                cx="32" cy="32" r="26"
-                stroke={ringColor}
-                strokeWidth={ring.strokeWidth}
-                strokeLinecap="round"
-                fill="none"
+
+              {/* Win arc (on top) */}
+              <circle cx="32" cy="32" r="26"
+                stroke={ring.winColor} strokeWidth="5"
+                strokeLinecap="butt" fill="none"
+                strokeDasharray={winDashArray}
+                strokeDashoffset={winDashOffset}
                 className="transition-all duration-500"
-                strokeDasharray={circumference}
-                strokeDashoffset={strokeDashoffset}
               />
             </svg>
-            <div
-              className="absolute inset-0 flex items-center justify-center rounded-full"
-              style={{ background: ring.ringBg }}
-            >
-              <span
-                className="text-xs font-black tracking-tighter"
-                style={{ color: ringColor }}
-              >
+
+            {/* Center */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center rounded-full"
+              style={{ background: ring.centerBg }}>
+              <span className="text-[9px] font-black tracking-tighter"
+                style={{ color: safeWinRate >= 50 ? ring.winColor : ring.lossColor }}>
                 {safeWinRate}%
               </span>
             </div>
           </div>
-          <div>
+
+          <div className="flex-1 min-w-0">
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Win Rate</p>
-            <p className="text-[10px] text-muted-foreground/70 mt-0.5">Baseline this month</p>
+            {/* Wins / Losses legend like reference images */}
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ background: ring.winDot }} />
+                <span className="text-[9px] font-black" style={{ color: ring.winColor }}>{Number(wins)}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ background: ring.lossDot }} />
+                <span className="text-[9px] font-black" style={{ color: ring.lossColor }}>{Number(losses)}</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -208,10 +219,8 @@ export function SlimMonthlyPerformance({
         <div className="pt-1.5 mt-1 border-t border-border/30 space-y-1.5">
           <div className="flex justify-between items-center bg-background/50 rounded-lg px-2.5 py-1.5">
             <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Net P&L</span>
-            <span
-              className="text-xs font-black tabular-nums"
-              style={{ color: isProfitable ? ring.winColor : ring.lossColor }}
-            >
+            <span className="text-xs font-black tabular-nums"
+              style={{ color: isProfitable ? ring.winColor : ring.lossColor }}>
               {isProfitable ? "+" : ""}${Number(netPnL).toFixed(2)}
             </span>
           </div>

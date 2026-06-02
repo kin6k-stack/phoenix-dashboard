@@ -2,7 +2,7 @@
 
 import { TrendingUp, TrendingDown } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, linearGradient } from "recharts"
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 import { useTheme } from "@/lib/use-theme"
 
 interface Trade {
@@ -13,106 +13,101 @@ interface Trade {
   rMultiple: number
 }
 
-// ── Pass U: Per-theme chart configuration ─────────────────────────────────────
+// ── Pass U: Per-theme equity curve config ─────────────────────────────────────
+// Reference images:
+//   violet    → smooth violet area, purple stroke, purple-to-transparent fill
+//   black-white → white/grey stepped monotone, minimal fill
+//   dark      → neon emerald + dot grid, bright glow line
+//   gold      → amber/orange smooth area, warm fill
+//   midnight  → electric blue smooth area, blue-to-transparent fill
 function getChartConfig(theme: string, isPositive: boolean) {
   switch (theme) {
 
-    case "black-white":
-      // Numora-style: stepped monochrome bars, no glow, pure B/W
+    case "violet":
       return {
-        type:          "stepAfter" as const,
-        strokeColor:   isPositive ? "#e5e5e5" : "#737373",
-        strokeWidth:   1.5,
-        fillId:        "bwFill",
-        fillStart:     isPositive ? "rgba(229,229,229,0.2)" : "rgba(115,115,115,0.15)",
-        fillEnd:       "rgba(0,0,0,0)",
-        dotGrid:       false,
-        glowFilter:    "",
-        dot:           false,
-        activeDot:     { r: 3, fill: isPositive ? "#e5e5e5" : "#737373", strokeWidth: 0 },
+        type:        "monotone" as const,
+        strokeColor: "#a855f7",
+        strokeWidth: 2,
+        fillId:      "violetFill",
+        fillStart:   "rgba(168,85,247,0.35)",
+        fillEnd:     "rgba(168,85,247,0)",
+        dotGrid:     false,
+        glowFilter:  "drop-shadow(0 0 4px rgba(168,85,247,0.55))",
+        dot:         false,
+        activeDot:   { r: 4, fill: "#a855f7", strokeWidth: 0 },
+      }
+
+    case "black-white":
+      return {
+        type:        "stepAfter" as const,
+        strokeColor: "#e5e5e5",
+        strokeWidth: 1.5,
+        fillId:      "bwFill",
+        fillStart:   "rgba(229,229,229,0.12)",
+        fillEnd:     "rgba(0,0,0,0)",
+        dotGrid:     false,
+        glowFilter:  "",
+        dot:         false,
+        activeDot:   { r: 3, fill: "#e5e5e5", strokeWidth: 0 },
       }
 
     case "dark":
-      // Image 4: neon emerald glowing line, dot grid background
+      // Image 8: neon emerald glowing line + dot grid
       return {
-        type:          "monotone" as const,
-        strokeColor:   isPositive ? "#34d399" : "#fb7185",
-        strokeWidth:   2,
-        fillId:        "darkFill",
-        fillStart:     isPositive ? "rgba(52,211,153,0.25)" : "rgba(251,113,133,0.2)",
-        fillEnd:       "rgba(0,0,0,0)",
-        dotGrid:       true,
-        glowFilter:    isPositive
-          ? "drop-shadow(0 0 6px rgba(52,211,153,0.8)) drop-shadow(0 0 12px rgba(52,211,153,0.4))"
-          : "drop-shadow(0 0 6px rgba(251,113,133,0.8)) drop-shadow(0 0 12px rgba(251,113,133,0.4))",
-        dot:           false,
-        activeDot:     { r: 4, fill: isPositive ? "#34d399" : "#fb7185", strokeWidth: 0,
-                         style: { filter: "drop-shadow(0 0 6px rgba(52,211,153,0.9))" } },
-      }
-
-    case "midnight":
-      // Electric blue smooth area, Image 5 inspired
-      return {
-        type:          "monotone" as const,
-        strokeColor:   isPositive ? "#60a5fa" : "#fb7185",
-        strokeWidth:   2,
-        fillId:        "midnightFill",
-        fillStart:     isPositive ? "rgba(96,165,250,0.3)" : "rgba(251,113,133,0.25)",
-        fillEnd:       "rgba(0,0,0,0)",
-        dotGrid:       false,
-        glowFilter:    isPositive
-          ? "drop-shadow(0 0 4px rgba(96,165,250,0.6))"
-          : "drop-shadow(0 0 4px rgba(251,113,133,0.6))",
-        dot:           false,
-        activeDot:     { r: 4, fill: isPositive ? "#60a5fa" : "#fb7185", strokeWidth: 0 },
-      }
-
-    case "violet":
-      // Image 3: purple/magenta smooth gradient area, ZEEX violet style
-      return {
-        type:          "monotone" as const,
-        strokeColor:   isPositive ? "#c084fc" : "#fb7185",
-        strokeWidth:   2,
-        fillId:        "violetFill",
-        fillStart:     isPositive ? "rgba(192,132,252,0.35)" : "rgba(251,113,133,0.25)",
-        fillEnd:       "rgba(0,0,0,0)",
-        dotGrid:       false,
-        glowFilter:    isPositive
-          ? "drop-shadow(0 0 5px rgba(192,132,252,0.6))"
-          : "drop-shadow(0 0 5px rgba(251,113,133,0.6))",
-        dot:           false,
-        activeDot:     { r: 4, fill: isPositive ? "#c084fc" : "#fb7185", strokeWidth: 0 },
+        type:        "monotone" as const,
+        strokeColor: "#34d399",
+        strokeWidth: 2,
+        fillId:      "darkFill",
+        fillStart:   "rgba(52,211,153,0.22)",
+        fillEnd:     "rgba(0,0,0,0)",
+        dotGrid:     true,
+        glowFilter:  "drop-shadow(0 0 5px rgba(52,211,153,0.85)) drop-shadow(0 0 10px rgba(52,211,153,0.4))",
+        dot:         false,
+        activeDot:   { r: 4, fill: "#34d399", strokeWidth: 0 },
       }
 
     case "gold":
-      // Image 2: amber/gold warm area chart, ZEEX gold style
+      // Image 11: amber/gold stepped line with volume bar feel, warm fill
       return {
-        type:          "monotone" as const,
-        strokeColor:   isPositive ? "#f59e0b" : "#fb7185",
-        strokeWidth:   2,
-        fillId:        "goldFill",
-        fillStart:     isPositive ? "rgba(245,158,11,0.3)" : "rgba(251,113,133,0.25)",
-        fillEnd:       "rgba(0,0,0,0)",
-        dotGrid:       false,
-        glowFilter:    isPositive
-          ? "drop-shadow(0 0 4px rgba(245,158,11,0.5))"
-          : "drop-shadow(0 0 4px rgba(251,113,133,0.5))",
-        dot:           false,
-        activeDot:     { r: 4, fill: isPositive ? "#f59e0b" : "#fb7185", strokeWidth: 0 },
+        type:        "monotone" as const,
+        strokeColor: "#f59e0b",
+        strokeWidth: 2,
+        fillId:      "goldFill",
+        fillStart:   "rgba(245,158,11,0.22)",
+        fillEnd:     "rgba(245,158,11,0)",
+        dotGrid:     false,
+        glowFilter:  "",
+        dot:         false,
+        activeDot:   { r: 4, fill: "#f59e0b", strokeWidth: 0 },
+      }
+
+    case "midnight":
+      // Image 13: electric blue smooth area
+      return {
+        type:        "monotone" as const,
+        strokeColor: "#60a5fa",
+        strokeWidth: 2,
+        fillId:      "midnightFill",
+        fillStart:   "rgba(96,165,250,0.28)",
+        fillEnd:     "rgba(96,165,250,0)",
+        dotGrid:     false,
+        glowFilter:  "drop-shadow(0 0 4px rgba(96,165,250,0.5))",
+        dot:         false,
+        activeDot:   { r: 4, fill: "#60a5fa", strokeWidth: 0 },
       }
 
     default:
       return {
-        type:          "monotone" as const,
-        strokeColor:   isPositive ? "#10b981" : "#f43f5e",
-        strokeWidth:   2,
-        fillId:        "defaultFill",
-        fillStart:     isPositive ? "rgba(16,185,129,0.25)" : "rgba(244,63,94,0.2)",
-        fillEnd:       "rgba(0,0,0,0)",
-        dotGrid:       false,
-        glowFilter:    "",
-        dot:           false,
-        activeDot:     { r: 3, fill: isPositive ? "#10b981" : "#f43f5e", strokeWidth: 0 },
+        type:        "monotone" as const,
+        strokeColor: isPositive ? "#10b981" : "#f43f5e",
+        strokeWidth: 2,
+        fillId:      "defaultFill",
+        fillStart:   isPositive ? "rgba(16,185,129,0.25)" : "rgba(244,63,94,0.2)",
+        fillEnd:     "rgba(0,0,0,0)",
+        dotGrid:     false,
+        glowFilter:  "",
+        dot:         false,
+        activeDot:   { r: 3, fill: "#10b981", strokeWidth: 0 },
       }
   }
 }
@@ -129,7 +124,9 @@ export function SlimPnLChart({ trades = [] }: { trades: Trade[] }) {
   const isPositive = livePnLValue >= 0
   const label = dailyTrades.length > 0 ? "Net Daily P&L" : "Net Total P&L"
 
-  const chronologicalTrades = trades.slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  const chronologicalTrades = trades.slice().sort((a, b) =>
+    new Date(a.date).getTime() - new Date(b.date).getTime()
+  )
   let runningPnL = 0
   const waveData = chronologicalTrades.map((trade, index) => {
     runningPnL += Number(trade.rMultiple)
@@ -140,7 +137,9 @@ export function SlimPnLChart({ trades = [] }: { trades: Trade[] }) {
       date: new Date(trade.date).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
     }
   })
-  const chartData = waveData.length > 0 ? waveData : [{ index: 0, pnl: 0, symbol: "Base", date: "Start" }]
+  const chartData = waveData.length > 0
+    ? waveData
+    : [{ index: 0, pnl: 0, symbol: "Base", date: "Start" }]
 
   const cfg = getChartConfig(theme, isPositive)
 
@@ -152,7 +151,7 @@ export function SlimPnLChart({ trades = [] }: { trades: Trade[] }) {
 
       <CardContent className="p-3 space-y-2">
 
-        {/* Value + trend label */}
+        {/* Value + trend */}
         <div className="bg-background/50 rounded-lg px-2.5 py-2">
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-black tracking-tight" style={{ color: cfg.strokeColor }}>
@@ -178,12 +177,11 @@ export function SlimPnLChart({ trades = [] }: { trades: Trade[] }) {
             </span>
           </div>
           <div className="h-16 p-1.5 relative">
-            {/* Dot grid overlay for Dark/Green Lab theme */}
             {cfg.dotGrid && (
-              <div className="absolute inset-0 pointer-events-none opacity-20"
+              <div className="absolute inset-0 pointer-events-none opacity-25"
                 style={{
-                  backgroundImage: "radial-gradient(circle, rgba(52,211,153,0.4) 1px, transparent 0)",
-                  backgroundSize: "12px 12px",
+                  backgroundImage: "radial-gradient(circle, rgba(52,211,153,0.5) 1px, transparent 0)",
+                  backgroundSize: "10px 10px",
                 }} />
             )}
             <ResponsiveContainer width="100%" height="100%">
@@ -193,15 +191,6 @@ export function SlimPnLChart({ trades = [] }: { trades: Trade[] }) {
                     <stop offset="5%"  stopColor={cfg.fillStart} stopOpacity={1} />
                     <stop offset="95%" stopColor={cfg.fillEnd}   stopOpacity={1} />
                   </linearGradient>
-                  {cfg.glowFilter && (
-                    <filter id="lineGlow">
-                      <feGaussianBlur stdDeviation="2" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  )}
                 </defs>
                 <XAxis dataKey="date" hide />
                 <YAxis hide domain={["dataMin - 5", "dataMax + 5"]} />
@@ -212,9 +201,7 @@ export function SlimPnLChart({ trades = [] }: { trades: Trade[] }) {
                       return (
                         <div className="bg-card/95 border border-border/50 px-2 py-1 rounded shadow-xl text-[10px] space-y-0.5">
                           <p className="text-muted-foreground font-bold uppercase tracking-wider">{d.date} ({d.symbol})</p>
-                          <p className="font-black" style={{ color: cfg.strokeColor }}>
-                            ${d.pnl.toFixed(2)}
-                          </p>
+                          <p className="font-black" style={{ color: cfg.strokeColor }}>${d.pnl.toFixed(2)}</p>
                         </div>
                       )
                     }
