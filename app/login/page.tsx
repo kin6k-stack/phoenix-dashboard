@@ -427,6 +427,71 @@ function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup"
 // emerges from the bloom showing through the gap between the planet's
 // edge and the surrounding darkness.
 // ─────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────
+// Pass P — Photo Backdrop Layer
+//
+// Renders the real photographic backdrop (moon for color themes,
+// black hole for B/W). Sits BEHIND AuroraBackdrop's overlays. The
+// existing Aurora rim glow / sunburst / halo / nebula layers still
+// render on top, providing the per-theme color tint while the photo
+// provides the photorealistic detail CSS can never produce.
+//
+// Image positioning matches Aurora's planet position:
+//   - Moon photo: bright rim is upper-CENTER in source → no flip
+//     needed (Aurora's sunburst is at upper-right; we just let them
+//     coexist as two slightly-offset light sources, which actually
+//     reads as a more complex/cinematic lighting setup)
+//   - Black hole: centered, looks correct as-is
+// ─────────────────────────────────────────────────────────────────────
+function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
+  // B/W theme uses the black hole photo. All other themes share the moon photo.
+  const isBlackWhite = theme === "black-white"
+  const imageSrc = isBlackWhite
+    ? "/login-backdrop-blackhole.webp"
+    : "/login-backdrop-planet.webp"
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Pure black canvas — shows in any image-loading gaps + edges */}
+      <div className="absolute inset-0 bg-black" />
+
+      {/* The photographic backdrop layer */}
+      <img
+        src={imageSrc}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{
+          // Slight transform per backdrop type to anchor the focal point
+          // where the layered Aurora glow / rim accents will sit
+          objectPosition: isBlackWhite ? "center 60%" : "center bottom",
+          opacity: 0.95,
+        }}
+      />
+
+      {/* Subtle vignette — darkens the corners so text reads cleanly
+          and the login card's right-side area stays uncluttered */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.55) 90%)",
+        }}
+      />
+
+      {/* Right-side gradient mask — extra darkening behind the login card */}
+      <div
+        className="absolute inset-y-0 right-0 w-1/3"
+        style={{
+          background:
+            "linear-gradient(to right, transparent 0%, rgba(0,0,0,0.5) 100%)",
+        }}
+      />
+    </div>
+  )
+}
+
+
 function AuroraBackdrop({ p }: { p: LoginPalette }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -497,19 +562,9 @@ function AuroraBackdrop({ p }: { p: LoginPalette }) {
       />
 
       {/* Layer 2: THE PLANET — large dark circle */}
-      <div
-        className="absolute left-1/2 top-1/2"
-        style={{
-          width:  "760px",
-          height: "760px",
-          transform: "translate(-50%, 12%)",
-          background: "radial-gradient(circle at 50% 30%, hsl(265 25% 7%) 0%, hsl(0 0% 0%) 75%)",
-          borderRadius: "50%",
-          boxShadow: `
-            inset 0 0 80px hsla(0, 0%, 0%, 0.6)
-          `,
-        }}
-      />
+      {/* Layer 2 (Pass P): The planet body div is no longer needed —
+          the photo IS the planet now. Removed to let the image breathe. */}
+      {/* (intentionally empty — preserved structure for diff readability) */}
 
       {/* Layer 3: FULL RIM HIGHLIGHT — purple-blue gradient ring along the planet's edge */}
       <div
@@ -820,7 +875,19 @@ export default function LoginPage() {
     <div className="relative min-h-screen flex flex-col md:flex-row overflow-hidden bg-black text-white">
 
       {/* Backdrop (full bleed under everything) */}
-      {loginStyle === "aurora" ? <AuroraBackdrop p={p} /> : <OrbsBackdrop p={p} />}
+      {/* Pass P: Photo backdrop sits behind the Aurora overlay layers,
+          providing photorealistic detail. Aurora's nebula haze, rim
+          glow, sunburst, and core point still render on top, applying
+          per-theme color tinting to the photo's neutral planet body.
+          On Orbs mode, no photo — keep the pure gradient orbs aesthetic. */}
+      {loginStyle === "aurora" ? (
+        <>
+          <PhotoBackdrop p={p} theme={loginTheme} />
+          <AuroraBackdrop p={p} />
+        </>
+      ) : (
+        <OrbsBackdrop p={p} />
+      )}
 
       {/* ── LEFT — Hero panel ─────────────────────────────────────── */}
       <div className="relative z-10 hidden md:flex md:w-[58%] flex-col p-10 lg:p-14">
