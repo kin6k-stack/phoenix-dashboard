@@ -600,9 +600,9 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "760px",
-          height: "760px",
-          transform: "translate(-50%, 12%)",
+          width:  "1100px",
+          height: "1100px",
+          transform: "translate(-50%, 8%)",
           borderRadius: "50%",
           // Multi-layer inset shadows create the rim from purple-left → bright-center → blue-right
           boxShadow: `
@@ -619,9 +619,9 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "900px",
-          height: "900px",
-          transform: "translate(calc(-50% - 80px), 5%)",
+          width:  "1300px",
+          height: "1300px",
+          transform: "translate(calc(-50% - 110px), 1%)",
           background: `radial-gradient(circle at center,
             transparent 41%,
             ${p.bleedLeftA} 43%,
@@ -640,9 +640,9 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
       <div
         className="absolute left-1/2 top-1/2"
         style={{
-          width:  "900px",
-          height: "900px",
-          transform: "translate(calc(-50% + 80px), 5%)",
+          width:  "1300px",
+          height: "1300px",
+          transform: "translate(calc(-50% + 110px), 1%)",
           background: `radial-gradient(circle at center,
             transparent 41%,
             ${p.bleedRightA} 43%,
@@ -666,7 +666,7 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
           width:  "500px",
           height: "500px",
           // Position: roughly upper-right edge of the planet
-          transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
+          transform: "translate(calc(-50% + 280px), calc(-50% - 240px))",
           background: `radial-gradient(circle at center,
             hsl(0 0% 100%) 0%,
             ${p.hotspot1} 4%,
@@ -687,7 +687,7 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
         style={{
           width:  "900px",
           height: "900px",
-          transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
+          transform: "translate(calc(-50% + 280px), calc(-50% - 240px))",
           background: `radial-gradient(circle at center,
             ${p.halo1} 0%,
             ${p.halo2} 15%,
@@ -705,7 +705,7 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
         style={{
           width:  "14px",
           height: "14px",
-          transform: "translate(calc(-50% + 180px), calc(-50% + 100px))",
+          transform: "translate(calc(-50% + 280px), calc(-50% - 240px))",
           background: "white",
           borderRadius: "50%",
           boxShadow: `
