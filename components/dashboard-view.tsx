@@ -157,12 +157,16 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
   const { theme, invert } = useTheme()
   const [tokens, setTokens] = useState<ChartTokens>(FALLBACK_TOKENS)
 
-  // Re-read CSS vars — double RAF ensures full cascade applies first
+  // Re-read CSS vars — double RAF + 150ms fallback to catch any cascade delays
   useEffect(() => {
-    let id1: number, id2: number
+    let id1: number, id2: number, tid: ReturnType<typeof setTimeout>
     const read = () => {
       id1 = requestAnimationFrame(() => {
-        id2 = requestAnimationFrame(() => setTokens(readTokens()))
+        id2 = requestAnimationFrame(() => {
+          setTokens(readTokens())
+          // 150ms fallback — catches themes that apply after paint
+          tid = setTimeout(() => setTokens(readTokens()), 150)
+        })
       })
     }
     read()
@@ -170,67 +174,80 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
     return () => {
       cancelAnimationFrame(id1)
       cancelAnimationFrame(id2)
+      clearTimeout(tid)
       window.removeEventListener("phoenix-settings-changed", read)
     }
   }, [theme, invert])
 
 
-  // Pass U: per-theme chart STYLE config (type, glow, dot grid)
+  // Pass U: per-theme chart STYLE config
   const chartStyle = (() => {
     switch(theme) {
       case "black-white": return {
-        areaType:    "stepAfter" as const,
-        lineGlow:    "",
-        dotGrid:     false,
-        strokeWidth: 1.5,
+        areaType:     "stepAfter" as const,
+        // No glow — pure monochrome
+        lineGlow:     "",
+        dotGrid:      false,
+        strokeWidth:  1.5,
         paddingAngle: 2,
-        innerRadius: 50,
-        outerRadius: 75,
+        innerRadius:  50,
+        outerRadius:  75,
+        // Override fill to be very minimal for monochrome
+        fillOverride: "rgba(229,229,229,0.08)",
       }
       case "dark": return {
-        areaType:    "monotone" as const,
-        lineGlow:    `drop-shadow(0 0 6px ${tokens.primary}) drop-shadow(0 0 12px ${tokens.glow})`,
-        dotGrid:     true,
-        strokeWidth: 2.5,
+        areaType:     "monotone" as const,
+        // Strong double glow — neon emerald
+        lineGlow:     "drop-shadow(0 0 4px #34d399) drop-shadow(0 0 10px rgba(52,211,153,0.6)) drop-shadow(0 0 20px rgba(52,211,153,0.3))",
+        dotGrid:      true,
+        strokeWidth:  2.5,
         paddingAngle: 6,
-        innerRadius: 50,
-        outerRadius: 75,
+        innerRadius:  50,
+        outerRadius:  75,
+        fillOverride: null,
       }
       case "midnight": return {
-        areaType:    "monotone" as const,
-        lineGlow:    `drop-shadow(0 0 4px ${tokens.primary})`,
-        dotGrid:     false,
-        strokeWidth: 2.5,
+        areaType:     "monotone" as const,
+        // Blue glow — electric
+        lineGlow:     "drop-shadow(0 0 4px #60a5fa) drop-shadow(0 0 10px rgba(96,165,250,0.5))",
+        dotGrid:      false,
+        strokeWidth:  2.5,
         paddingAngle: 6,
-        innerRadius: 50,
-        outerRadius: 75,
+        innerRadius:  50,
+        outerRadius:  75,
+        fillOverride: null,
       }
       case "violet": return {
-        areaType:    "monotone" as const,
-        lineGlow:    `drop-shadow(0 0 5px ${tokens.primary})`,
-        dotGrid:     false,
-        strokeWidth: 2.5,
+        areaType:     "monotone" as const,
+        // Purple glow — uses gradient stroke via CSS vars (stroke1/2/3)
+        lineGlow:     "drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 10px rgba(192,132,252,0.5))",
+        dotGrid:      false,
+        strokeWidth:  2.5,
         paddingAngle: 6,
-        innerRadius: 50,
-        outerRadius: 75,
+        innerRadius:  50,
+        outerRadius:  75,
+        fillOverride: null,
       }
       case "gold": return {
-        areaType:    "monotone" as const,
-        lineGlow:    "",
-        dotGrid:     false,
-        strokeWidth: 2,
+        areaType:     "monotone" as const,
+        // Gold: no glow, uses gradient stroke (amber→orange via CSS vars)
+        lineGlow:     "",
+        dotGrid:      false,
+        strokeWidth:  2.5,
         paddingAngle: 6,
-        innerRadius: 50,
-        outerRadius: 75,
+        innerRadius:  50,
+        outerRadius:  75,
+        fillOverride: null,
       }
       default: return {
-        areaType:    "monotone" as const,
-        lineGlow:    "",
-        dotGrid:     false,
-        strokeWidth: 2,
+        areaType:     "monotone" as const,
+        lineGlow:     "",
+        dotGrid:      false,
+        strokeWidth:  2,
         paddingAngle: 6,
-        innerRadius: 50,
-        outerRadius: 75,
+        innerRadius:  50,
+        outerRadius:  75,
+        fillOverride: null,
       }
     }
   })()
@@ -374,7 +391,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                     dataKey="value"
                     stroke={strokeUrl}
                     strokeWidth={chartStyle.strokeWidth}
-                    fill="url(#equityAreaGradient)"
+                    fill={chartStyle.fillOverride ?? "url(#equityAreaGradient)"}
                     style={chartStyle.lineGlow ? { filter: chartStyle.lineGlow } : undefined}
                   />
                 </AreaChart>
@@ -418,11 +435,12 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={[{name: "Wins", value: wins}, {name: "Losses", value: losses}]}
+                    data={[{name: "Wins", value: wins || 0}, {name: "Losses", value: losses || 0}]}
                     dataKey="value" cx="50%" cy="50%"
                     innerRadius={chartStyle.innerRadius}
                     outerRadius={chartStyle.outerRadius}
                     paddingAngle={chartStyle.paddingAngle}
+                    startAngle={90} endAngle={-270}
                     labelLine={false} label={renderCustomizedLabel}>
                     <Cell fill={tokens.win}  style={{ filter: `drop-shadow(0px 0px 6px ${tokens.winGlow})` }} />
                     <Cell fill={tokens.loss} style={{ filter: `drop-shadow(0px 0px 6px ${tokens.lossGlow})` }} />

@@ -186,7 +186,7 @@
     --chart-purple:      252 68% 68%;
     /* ── Pass D v2 chart tokens — Midnight (blue accent) ── */
     --chart-primary:     #60a5fa;
-    --chart-fill-start:  rgba(96,165,250,0.4);
+    --chart-fill-start:  rgba(96,165,250,0.45);
     --chart-fill-end:    rgba(96,165,250,0.02);
     --chart-glow:        rgba(96,165,250,0.5);
     --chart-grid:        hsla(220, 30%, 40%, 0.15);
@@ -224,8 +224,8 @@
     --chart-purple:      280 85% 65%;
     /* ── Pass D v2 chart tokens — Violet (purple gradient + glow) ── */
     --chart-primary:     #c084fc;
-    --chart-fill-start:  rgba(192,132,252,0.45);
-    --chart-fill-end:    rgba(232,121,249,0.05);
+    --chart-fill-start:  rgba(168,85,247,0.50);
+    --chart-fill-end:    rgba(168,85,247,0.02);
     --chart-glow:        rgba(192,132,252,0.6);
     --chart-grid:        hsla(280, 30%, 50%, 0.15);
     --chart-axis-text:   hsl(280 15% 60%);
@@ -269,7 +269,7 @@
     --chart-purple:      30 25% 25%;       /* dark brown for variety */
     /* ── Pass D v2 chart tokens — Gold (amber gradient + glow) ── */
     --chart-primary:     #f59e0b;
-    --chart-fill-start:  rgba(245,158,11,0.4);
+    --chart-fill-start:  rgba(245,158,11,0.38);
     --chart-fill-end:    rgba(249,115,22,0.05);
     --chart-glow:        rgba(245,158,11,0.5);
     --chart-grid:        hsla(38, 30%, 50%, 0.18);
