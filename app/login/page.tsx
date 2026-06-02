@@ -17,6 +17,54 @@ import { VipBlockedScreen } from "@/components/vip-blocked-screen"
 // • Phoenix Command branding + Trader Kizan footer credit
 // ─────────────────────────────────────────────────────────────────────
 
+
+// ─────────────────────────────────────────────────────────────────────
+// Pass R — Orb animation keyframes injected via <style> tag
+// Each orb has a unique drift path so they never move in sync.
+// Animations respect the `animations` setting from localStorage.
+// ─────────────────────────────────────────────────────────────────────
+function OrbKeyframes() {
+  return (
+    <style>{`
+      @keyframes orb1Drift {
+        0%   { transform: translate(0px,   0px)   scale(1);    }
+        20%  { transform: translate(60px,  -40px) scale(1.08); }
+        45%  { transform: translate(-30px, 70px)  scale(0.94); }
+        70%  { transform: translate(80px,  40px)  scale(1.05); }
+        100% { transform: translate(0px,   0px)   scale(1);    }
+      }
+      @keyframes orb2Drift {
+        0%   { transform: translate(0px,   0px)   scale(1);    }
+        25%  { transform: translate(-70px, 50px)  scale(1.1);  }
+        50%  { transform: translate(40px,  -60px) scale(0.92); }
+        75%  { transform: translate(-50px, -30px) scale(1.06); }
+        100% { transform: translate(0px,   0px)   scale(1);    }
+      }
+      @keyframes orb3Drift {
+        0%   { transform: translate(0px,   0px)   scale(1);    }
+        30%  { transform: translate(50px,  -50px) scale(1.07); }
+        60%  { transform: translate(-60px, 30px)  scale(0.95); }
+        80%  { transform: translate(30px,  60px)  scale(1.04); }
+        100% { transform: translate(0px,   0px)   scale(1);    }
+      }
+      @keyframes orb4Drift {
+        0%   { transform: translate(0px,   0px)   scale(1);    }
+        35%  { transform: translate(-40px, -60px) scale(1.09); }
+        65%  { transform: translate(70px,  20px)  scale(0.93); }
+        85%  { transform: translate(-20px, 50px)  scale(1.05); }
+        100% { transform: translate(0px,   0px)   scale(1);    }
+      }
+      @keyframes orb5Drift {
+        0%   { transform: translate(0px,   0px)   scale(1);    }
+        20%  { transform: translate(40px,  60px)  scale(1.12); }
+        55%  { transform: translate(-50px, -40px) scale(0.9);  }
+        80%  { transform: translate(30px,  -20px) scale(1.08); }
+        100% { transform: translate(0px,   0px)   scale(1);    }
+      }
+    `}</style>
+  )
+}
+
 type LoginStyle = "aurora" | "orbs"
 
 // ─────────────────────────────────────────────────────────────────────
@@ -750,7 +798,7 @@ function AuroraBackdrop({ p, theme, isInverted }: { p: LoginPalette; theme: Logi
 // Less aggressive blur, higher opacity, more saturated colors so the
 // orbs are actually visible on a black canvas.
 // ─────────────────────────────────────────────────────────────────────
-function OrbsBackdrop({ p, isInverted }: { p: LoginPalette; isInverted?: boolean }) {
+function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette; isInverted?: boolean; animationsOn?: boolean }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <div className={`absolute inset-0 ${isInverted ? "bg-white" : "bg-black"}`} />
@@ -766,6 +814,7 @@ function OrbsBackdrop({ p, isInverted }: { p: LoginPalette; isInverted?: boolean
             : `radial-gradient(circle, ${p.orb1} 0%, ${p.orb1Tail} 35%, transparent 70%)`,
           filter: "blur(70px)",
           opacity: isInverted ? 1 : 0.7,
+          animation: animationsOn ? "orb1Drift 9s ease-in-out infinite" : "none",
         }}
       />
 
@@ -780,6 +829,7 @@ function OrbsBackdrop({ p, isInverted }: { p: LoginPalette; isInverted?: boolean
             : `radial-gradient(circle, ${p.orb2} 0%, ${p.orb2Tail} 35%, transparent 70%)`,
           filter: "blur(60px)",
           opacity: isInverted ? 1 : 0.55,
+          animation: animationsOn ? "orb2Drift 11s ease-in-out infinite" : "none",
         }}
       />
 
@@ -794,6 +844,7 @@ function OrbsBackdrop({ p, isInverted }: { p: LoginPalette; isInverted?: boolean
             : `radial-gradient(circle, ${p.orb3} 0%, ${p.orb3Tail} 35%, transparent 70%)`,
           filter: "blur(80px)",
           opacity: isInverted ? 1 : 0.6,
+          animation: animationsOn ? "orb3Drift 8s ease-in-out infinite" : "none",
         }}
       />
 
@@ -808,6 +859,7 @@ function OrbsBackdrop({ p, isInverted }: { p: LoginPalette; isInverted?: boolean
             : `radial-gradient(circle, ${p.orb4} 0%, ${p.orb4Tail} 30%, transparent 65%)`,
           filter: "blur(50px)",
           opacity: isInverted ? 1 : 0.5,
+          animation: animationsOn ? "orb4Drift 10s ease-in-out infinite" : "none",
         }}
       />
 
@@ -822,6 +874,7 @@ function OrbsBackdrop({ p, isInverted }: { p: LoginPalette; isInverted?: boolean
             : `radial-gradient(circle, ${p.orb5} 0%, ${p.orb5Tail} 30%, transparent 65%)`,
           filter: "blur(35px)",
           opacity: isInverted ? 1 : 0.7,
+          animation: animationsOn ? "orb5Drift 12s ease-in-out infinite" : "none",
         }}
       />
 
@@ -859,6 +912,17 @@ export default function LoginPage() {
   // Falls back to violet if no saved theme (matches Pass L look exactly).
   const { theme: loginTheme, isInverted } = useLoginTheme()
   const p = getLoginPalette(loginTheme)
+
+  // Pass R — read animations preference from localStorage
+  const [animationsOn, setAnimationsOn] = useState(true)
+  useEffect(() => {
+    try {
+      const raw    = localStorage.getItem("phoenix_settings")
+      const parsed = raw ? JSON.parse(raw) : {}
+      // Default true if not set
+      setAnimationsOn(parsed.animations !== false)
+    } catch {}
+  }, [])
 
   // Load saved login style preference (browser memory)
   useEffect(() => {
@@ -935,13 +999,14 @@ export default function LoginPage() {
           glow, sunburst, and core point still render on top, applying
           per-theme color tinting to the photo's neutral planet body.
           On Orbs mode, no photo — keep the pure gradient orbs aesthetic. */}
+      <OrbKeyframes />
       {loginStyle === "aurora" ? (
         <>
           <PhotoBackdrop p={p} theme={loginTheme} />
           <AuroraBackdrop p={p} theme={loginTheme} isInverted={isInverted} />
         </>
       ) : (
-        <OrbsBackdrop p={p} isInverted={isInverted} />
+        <OrbsBackdrop p={p} isInverted={isInverted} animationsOn={animationsOn} />
       )}
 
       {/* ── LEFT — Hero panel ─────────────────────────────────────── */}
