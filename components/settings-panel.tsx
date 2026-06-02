@@ -8,13 +8,13 @@ import {
   X, Palette, Maximize2, Sparkles, LogOut, Check, Moon, RotateCcw,
 } from "lucide-react"
 import { useTheme, type Theme, type Density } from "@/lib/use-theme"
+import { MT5ConnectSection } from "@/components/mt5-connect-section"
 
 interface SettingsPanelProps {
   open: boolean
   onClose: () => void
 }
 
-// ── Theme swatches ──────────────────────────────────────────
 const THEMES: { id: Theme; label: string; description: string; bg: string; accent: string; border: string; gradient?: string }[] = [
   { id: "black-white", label: "Black / White", description: "True monochrome — invertible to white canvas",            bg: "#000000", accent: "#e5e5e5", border: "#1c1c1c" },
   { id: "dark",        label: "Green Lab",     description: "Slate base with emerald accents — the OG Phoenix lab look", bg: "#1a1d23", accent: "#16a34a", border: "#2a2e36" },
@@ -36,7 +36,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   } = useTheme()
   const router = useRouter()
 
-  // ESC to close
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
@@ -44,7 +43,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     return () => window.removeEventListener("keydown", onKey)
   }, [open, onClose])
 
-  // Lock body scroll while open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden"
@@ -63,26 +61,16 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
 
   if (!open) return null
 
-  // For the Black/White swatch preview, flip colors if invert is active
   const bwSwatchBg     = invert ? "#ffffff" : "#000000"
   const bwSwatchBorder = invert ? "#e5e5e5" : "#1c1c1c"
 
   return (
     <>
-      {/* Backdrop */}
       <div
         onClick={onClose}
         className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 animate-in fade-in"
         aria-hidden="true"
       />
-
-      {/* Drawer
-          Pass K: Switched h-screen → h-[100dvh] so the footer
-          (Sign Out button) isn't pushed off-screen by mobile browser
-          UI (iOS Safari URL bar, Chrome bottom bar, etc).
-          `100dvh` = dynamic viewport height, which accounts for
-          collapsible browser chrome. Fallback to h-screen for older
-          browsers via the inline style. */}
       <aside
         role="dialog"
         aria-modal="true"
@@ -90,7 +78,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
         style={{ height: "100dvh" }}
         className="fixed top-0 right-0 w-full sm:w-[420px] h-screen bg-card border-l border-border z-50 flex flex-col shadow-2xl"
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-background/30 flex-shrink-0">
           <div className="flex items-center gap-2">
             <Palette className="h-4 w-4 text-primary" />
@@ -104,10 +91,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           </button>
         </div>
 
-        {/* Body
-            Pass K: `min-h-0` is critical for the flex layout — without it,
-            this flex-1 div would refuse to shrink past its content height,
-            pushing the Sign Out footer off-screen on mobile. */}
         <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-6">
 
           {/* THEMES */}
@@ -133,7 +116,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                     <div
                       className="w-12 h-12 rounded flex-shrink-0 border relative overflow-hidden"
                       style={{ background: swatchBg, borderColor: swatchBorder }}>
-                      {/* Accent dot — gradient if the theme defines one, else solid */}
                       <div
                         className="absolute bottom-1.5 left-1.5 w-2.5 h-2.5 rounded-full"
                         style={{ background: t.gradient ?? t.accent }}
@@ -152,8 +134,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 )
               })}
             </div>
-
-            {/* Invert toggle — only when Black/White is active */}
             {theme === "black-white" && (
               <button
                 onClick={() => setInvert(!invert)}
@@ -231,6 +211,9 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
             </button>
           </section>
 
+          {/* MT5 CONNECT */}
+          <MT5ConnectSection />
+
           {/* ABOUT */}
           <section className="pt-2 border-t border-border space-y-1.5">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Phoenix Command</p>
@@ -241,9 +224,6 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
 
         </div>
 
-        {/* Footer — Sign Out
-            Pass K: `flex-shrink-0` ensures the footer keeps its full height
-            and stays visible even when the body content is tall. */}
         <div className="p-3 border-t border-border bg-background/30 flex-shrink-0">
           <button
             onClick={handleSignOut}
