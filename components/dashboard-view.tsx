@@ -157,12 +157,24 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
   const { theme, invert } = useTheme()
   const [tokens, setTokens] = useState<ChartTokens>(FALLBACK_TOKENS)
 
-  // Re-read CSS vars whenever theme/invert changes (after the DOM applies them)
+  // Re-read CSS vars whenever theme/invert changes.
+  // Pass U: double-RAF ensures we read AFTER the full CSS cascade applies
+  // (single RAF fires before data-theme attribute change fully propagates).
+  // Also listen to phoenix-settings-changed so tokens update on hot-swap.
   useEffect(() => {
-    // Small RAF delay so we read the new values AFTER the data-theme switch
-    // has propagated through the cascade.
-    const id = requestAnimationFrame(() => setTokens(readTokens()))
-    return () => cancelAnimationFrame(id)
+    let id1: number, id2: number
+    const read = () => {
+      id1 = requestAnimationFrame(() => {
+        id2 = requestAnimationFrame(() => setTokens(readTokens()))
+      })
+    }
+    read()
+    window.addEventListener("phoenix-settings-changed", read)
+    return () => {
+      cancelAnimationFrame(id1)
+      cancelAnimationFrame(id2)
+      window.removeEventListener("phoenix-settings-changed", read)
+    }
   }, [theme, invert])
 
   const totalPnl = trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0)
