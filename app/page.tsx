@@ -146,7 +146,11 @@ export default function TradingDashboard() {
           date:       tradeDate,
           symbol:     data.symbol || "Unknown",
           setup:      normalizeBotName(rawBot),
-          rMultiple:  data.profit !== undefined ? Number(data.profit) : 0,
+          // Pass O: schema fallback. Sync script writes `rMultiple`, legacy
+          // historical sync wrote `profit`. Read whichever exists.
+          rMultiple:  data.rMultiple !== undefined ? Number(data.rMultiple)
+                    : data.profit    !== undefined ? Number(data.profit)
+                    : 0,
           direction:  (data.direction || data.type || "BUY").toUpperCase(),
           notes:      data.notes || "",
           screenshot: data.screenshot || "",
@@ -176,7 +180,10 @@ export default function TradingDashboard() {
           date:       tradeDate,
           symbol:     data.symbol || "Unknown",
           setup:      normalizeBotName(rawBot),
-          rMultiple:  data.profit !== undefined ? Number(data.profit) : 0,
+          // Pass O: same schema fallback for botTrades
+          rMultiple:  data.rMultiple !== undefined ? Number(data.rMultiple)
+                    : data.profit    !== undefined ? Number(data.profit)
+                    : 0,
           direction:  (data.direction || data.type || "BUY").toUpperCase(),
           notes:      "",
           screenshot: "",
