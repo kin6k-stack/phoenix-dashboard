@@ -157,10 +157,7 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
   const { theme, invert } = useTheme()
   const [tokens, setTokens] = useState<ChartTokens>(FALLBACK_TOKENS)
 
-  // Re-read CSS vars whenever theme/invert changes.
-  // Pass U: double-RAF ensures we read AFTER the full CSS cascade applies
-  // (single RAF fires before data-theme attribute change fully propagates).
-  // Also listen to phoenix-settings-changed so tokens update on hot-swap.
+  // Re-read CSS vars — double RAF ensures full cascade applies first
   useEffect(() => {
     let id1: number, id2: number
     const read = () => {
@@ -176,6 +173,67 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
       window.removeEventListener("phoenix-settings-changed", read)
     }
   }, [theme, invert])
+
+
+  // Pass U: per-theme chart STYLE config (type, glow, dot grid)
+  const chartStyle = (() => {
+    switch(theme) {
+      case "black-white": return {
+        areaType:    "stepAfter" as const,
+        lineGlow:    "",
+        dotGrid:     false,
+        strokeWidth: 1.5,
+        paddingAngle: 2,
+        innerRadius: 50,
+        outerRadius: 75,
+      }
+      case "dark": return {
+        areaType:    "monotone" as const,
+        lineGlow:    `drop-shadow(0 0 6px ${tokens.primary}) drop-shadow(0 0 12px ${tokens.glow})`,
+        dotGrid:     true,
+        strokeWidth: 2.5,
+        paddingAngle: 6,
+        innerRadius: 50,
+        outerRadius: 75,
+      }
+      case "midnight": return {
+        areaType:    "monotone" as const,
+        lineGlow:    `drop-shadow(0 0 4px ${tokens.primary})`,
+        dotGrid:     false,
+        strokeWidth: 2.5,
+        paddingAngle: 6,
+        innerRadius: 50,
+        outerRadius: 75,
+      }
+      case "violet": return {
+        areaType:    "monotone" as const,
+        lineGlow:    `drop-shadow(0 0 5px ${tokens.primary})`,
+        dotGrid:     false,
+        strokeWidth: 2.5,
+        paddingAngle: 6,
+        innerRadius: 50,
+        outerRadius: 75,
+      }
+      case "gold": return {
+        areaType:    "monotone" as const,
+        lineGlow:    "",
+        dotGrid:     false,
+        strokeWidth: 2,
+        paddingAngle: 6,
+        innerRadius: 50,
+        outerRadius: 75,
+      }
+      default: return {
+        areaType:    "monotone" as const,
+        lineGlow:    "",
+        dotGrid:     false,
+        strokeWidth: 2,
+        paddingAngle: 6,
+        innerRadius: 50,
+        outerRadius: 75,
+      }
+    }
+  })()
 
   const totalPnl = trades.reduce((sum, t) => sum + Number(t.rMultiple || 0), 0)
   const wins     = trades.filter(t => t.rMultiple > 0).length
@@ -279,7 +337,15 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
               <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase">Cumulative P&L</span>
               <span className="text-[9px] sm:text-[10px] font-mono font-bold text-muted-foreground bg-background/50 px-2 py-0.5 rounded border border-border/50 whitespace-nowrap">Base: $200</span>
             </div>
-            <div className="h-[140px] sm:h-[170px] lg:h-[200px] px-2 pt-2 pb-1">
+            <div className="h-[140px] sm:h-[170px] lg:h-[200px] px-2 pt-2 pb-1 relative">
+              {/* Dot grid overlay — Dark/Green Lab theme only */}
+              {chartStyle.dotGrid && (
+                <div className="absolute inset-0 pointer-events-none opacity-[0.18] z-10"
+                  style={{
+                    backgroundImage: `radial-gradient(circle, ${tokens.primary} 1px, transparent 0)`,
+                    backgroundSize: "12px 12px",
+                  }} />
+              )}
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={equityData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs>
@@ -297,17 +363,19 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tokens.grid} />
                   <XAxis dataKey="date" hide />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: tokens.axisText, fontWeight: 'bold' }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: tokens.axisText, fontWeight: "bold" }} />
                   <Tooltip
                     content={({ active, payload, label }) => (
                       <ChartTooltip active={active} payload={payload} label={label} labelHeader="Equity" valuePrefix="$" />
                     )}
                   />
                   <Area
-                    type="monotone" dataKey="value"
-                    stroke={strokeUrl} strokeWidth={2.5}
+                    type={chartStyle.areaType}
+                    dataKey="value"
+                    stroke={strokeUrl}
+                    strokeWidth={chartStyle.strokeWidth}
                     fill="url(#equityAreaGradient)"
-                    style={{ filter: `drop-shadow(0 4px 8px ${tokens.glow})` }}
+                    style={chartStyle.lineGlow ? { filter: chartStyle.lineGlow } : undefined}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -321,22 +389,54 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
             Distribution
           </h3>
           <div className="flex-1 min-h-[180px] sm:min-h-[200px] lg:min-h-[220px] relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[{name: 'Wins', value: wins}, {name: 'Losses', value: losses}]}
-                  dataKey="value" cx="50%" cy="50%" innerRadius={50} outerRadius={75} paddingAngle={6}
-                  labelLine={false} label={renderCustomizedLabel}>
-                  <Cell fill={tokens.win}  style={{ filter: `drop-shadow(0px 0px 6px ${tokens.winGlow})` }} />
-                  <Cell fill={tokens.loss} style={{ filter: `drop-shadow(0px 0px 6px ${tokens.lossGlow})` }} />
-                </Pie>
-                <Tooltip content={<DistributionTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-xl sm:text-2xl font-black text-foreground drop-shadow-md">{trades.length}</span>
-              <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Signals</span>
-            </div>
+            {theme === "black-white" ? (
+              // Black/White: SVG dual-arc ring — segmented Numora-style
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="relative" style={{ width: 160, height: 160 }}>
+                  <svg width="160" height="160" viewBox="0 0 160 160" className="-rotate-90">
+                    {/* Segmented track — many small dashes for Numora monochrome look */}
+                    <circle cx="80" cy="80" r="60"
+                      stroke={tokens.loss} strokeWidth="14" fill="none"
+                      strokeDasharray="6 4"
+                      opacity={0.5}
+                    />
+                    {/* Win arc — solid white on top */}
+                    <circle cx="80" cy="80" r="60"
+                      stroke={tokens.win} strokeWidth="14" fill="none"
+                      strokeDasharray={`${(wins / Math.max(trades.length,1)) * 376.99} 376.99`}
+                      strokeLinecap="butt"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl sm:text-2xl font-black text-foreground">{trades.length}</span>
+                    <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Signals</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // All other themes — recharts PieChart donut
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[{name: "Wins", value: wins}, {name: "Losses", value: losses}]}
+                    dataKey="value" cx="50%" cy="50%"
+                    innerRadius={chartStyle.innerRadius}
+                    outerRadius={chartStyle.outerRadius}
+                    paddingAngle={chartStyle.paddingAngle}
+                    labelLine={false} label={renderCustomizedLabel}>
+                    <Cell fill={tokens.win}  style={{ filter: `drop-shadow(0px 0px 6px ${tokens.winGlow})` }} />
+                    <Cell fill={tokens.loss} style={{ filter: `drop-shadow(0px 0px 6px ${tokens.lossGlow})` }} />
+                  </Pie>
+                  <Tooltip content={<DistributionTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+            {theme !== "black-white" && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-xl sm:text-2xl font-black text-foreground drop-shadow-md">{trades.length}</span>
+                <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Signals</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-around pt-2 mt-1 border-t border-border/30">
