@@ -531,7 +531,7 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-          style={{ objectPosition: "center 60%", opacity: isInverted ? 0.55 : 0.95 }}
+          style={{ objectPosition: "center 60%", opacity: isInverted ? 0.42 : 0.95 }}
         />
       ) : (
         // Moon photo — sized + positioned to act as the planet body that
@@ -796,7 +796,7 @@ function AuroraBackdrop({ p, theme, isInverted, animationsOn = true }: { p: Logi
       <div
         className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
         style={{
-          background: isInverted ? "linear-gradient(to bottom, transparent 0%, hsl(0 0% 92%) 70%)" : "linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 70%)",
+          background: isInverted ? "linear-gradient(to bottom, transparent 0%, hsl(0 0% 96%) 70%)" : "linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 70%)",
         }}
       />
     </div>
@@ -812,7 +812,7 @@ function AuroraBackdrop({ p, theme, isInverted, animationsOn = true }: { p: Logi
 function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette; isInverted?: boolean; animationsOn?: boolean }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className={`absolute inset-0 ${isInverted ? "bg-white" : "bg-black"}`} />
+      <div className={`absolute inset-0 ${isInverted ? "bg-[#d8d8d8]" : "bg-black"}`} />
 
       {/* Top-left orb */}
       <div
@@ -821,7 +821,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "520px", height: "520px",
           top:   "-10%", left: "-8%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.06) 35%, transparent 70%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.35) 35%, transparent 70%)"
             : `radial-gradient(circle, ${p.orb1} 0%, ${p.orb1Tail} 35%, transparent 70%)`,
           filter: "blur(35px)",
           opacity: isInverted ? 1 : 0.85,
@@ -836,7 +836,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "420px", height: "420px",
           top:   "8%", right: "-5%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.28) 35%, transparent 70%)"
             : `radial-gradient(circle, ${p.orb2} 0%, ${p.orb2Tail} 35%, transparent 70%)`,
           filter: "blur(30px)",
           opacity: isInverted ? 1 : 0.75,
@@ -851,7 +851,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "600px", height: "600px",
           bottom: "-15%", left: "20%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.50) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.30) 35%, transparent 70%)"
             : `radial-gradient(circle, ${p.orb3} 0%, ${p.orb3Tail} 35%, transparent 70%)`,
           filter: "blur(40px)",
           opacity: isInverted ? 1 : 0.8,
@@ -866,7 +866,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "320px", height: "320px",
           top: "45%", right: "15%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.04) 30%, transparent 65%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.25) 30%, transparent 65%)"
             : `radial-gradient(circle, ${p.orb4} 0%, ${p.orb4Tail} 30%, transparent 65%)`,
           filter: "blur(25px)",
           opacity: isInverted ? 1 : 0.75,
@@ -881,7 +881,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "180px", height: "180px",
           top: "25%", left: "35%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.07) 30%, transparent 65%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.38) 30%, transparent 65%)"
             : `radial-gradient(circle, ${p.orb5} 0%, ${p.orb5Tail} 30%, transparent 65%)`,
           filter: "blur(18px)",
           opacity: isInverted ? 1 : 0.85,
