@@ -523,7 +523,7 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
 }
 
 
-function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
+function AuroraBackdrop({ p, theme, isInverted }: { p: LoginPalette; theme: LoginTheme; isInverted: boolean }) {
   // Pass P v3: On Black/White theme, the black hole photo is the focal element.
   // Skip the planet-specific CSS layers (rim glow, sunburst, halo, core, bleeds)
   // that were designed to wrap a planet — they'd clash with the black hole.
@@ -928,7 +928,7 @@ export default function LoginPage() {
       {loginStyle === "aurora" ? (
         <>
           <PhotoBackdrop p={p} theme={loginTheme} />
-          <AuroraBackdrop p={p} theme={loginTheme} />
+          <AuroraBackdrop p={p} theme={loginTheme} isInverted={isInverted} />
         </>
       ) : (
         <OrbsBackdrop p={p} />
