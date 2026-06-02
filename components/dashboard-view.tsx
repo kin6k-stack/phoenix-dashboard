@@ -401,70 +401,111 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
         </Card>
 
         <Card className="p-3 sm:p-4 lg:p-5 border-border/40 bg-card/60 shadow-lg backdrop-blur-md flex flex-col">
-          <h3 className="text-xs sm:text-sm font-black mb-2 flex items-center gap-2 uppercase tracking-widest text-foreground">
+          <h3 className="text-xs sm:text-sm font-black mb-3 flex items-center gap-2 uppercase tracking-widest text-foreground">
             <Target size={14} style={{ color: tokens.win, filter: `drop-shadow(0 0 5px ${tokens.winGlow})` }} />
             Distribution
           </h3>
-          <div className="flex-1 min-h-[180px] sm:min-h-[200px] lg:min-h-[220px] relative">
-            {theme === "black-white" ? (
-              // Black/White: SVG dual-arc ring — segmented Numora-style
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="relative" style={{ width: 160, height: 160 }}>
-                  <svg width="160" height="160" viewBox="0 0 160 160" className="-rotate-90">
-                    {/* Segmented track — many small dashes for Numora monochrome look */}
-                    <circle cx="80" cy="80" r="60"
-                      stroke={tokens.loss} strokeWidth="14" fill="none"
-                      strokeDasharray="6 4"
-                      opacity={0.5}
+
+          {/* Per-theme donut ring */}
+          {(() => {
+            const total = Math.max(trades.length, 1)
+            const winPct  = wins  / total
+            const lossPct = losses / total
+            const C = 2 * Math.PI * 54   // circumference r=54
+            const winArc  = C * winPct
+            const lossArc = C * lossPct
+            const lossRot = winPct * 360
+
+            // Per-theme segment colors — shades of theme palette, not generic green/red
+            const [segWin, segLoss, glowColor] = (() => {
+              switch(theme) {
+                case "violet":   return ["#a78bfa", "#6d28d9",  "rgba(167,139,250,0.5)"]   // lavender → deep purple
+                case "dark":     return ["#34d399", "#065f46",  "rgba(52,211,153,0.5)"]    // bright teal → dark teal
+                case "midnight": return ["#60a5fa", "#312e81",  "rgba(96,165,250,0.5)"]    // bright blue → deep indigo
+                case "gold":     return ["#fcd34d", "#92400e",  "rgba(252,211,77,0.4)"]    // bright gold → dark bronze
+                default:         return [tokens.win, tokens.loss, tokens.winGlow]
+              }
+            })()
+
+            if (theme === "black-white") {
+              // Numora segmented monochrome ring
+              return (
+                <div className="flex-1 flex items-center justify-center min-h-[180px]">
+                  <div className="relative" style={{ width: 170, height: 170 }}>
+                    <svg width="170" height="170" viewBox="0 0 170 170" className="-rotate-90">
+                      <circle cx="85" cy="85" r="54"
+                        stroke={tokens.loss} strokeWidth="16" fill="none"
+                        strokeDasharray="5 3" opacity={0.4} />
+                      <circle cx="85" cy="85" r="54"
+                        stroke={tokens.win} strokeWidth="16" fill="none"
+                        strokeDasharray={`${winArc} ${C}`}
+                        strokeLinecap="round" />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-black text-foreground">{trades.length}</span>
+                      <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Signals</span>
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
+            // All other themes — thick rounded SVG donut
+            return (
+              <div className="flex-1 flex items-center justify-center min-h-[180px]">
+                <div className="relative" style={{ width: 180, height: 180 }}>
+                  <svg width="180" height="180" viewBox="0 0 180 180"
+                    className="-rotate-90"
+                    style={{ filter: `drop-shadow(0 0 8px ${glowColor})` }}>
+                    {/* Track */}
+                    <circle cx="90" cy="90" r="54"
+                      stroke="rgba(255,255,255,0.05)" strokeWidth="18" fill="none" />
+                    {/* Loss arc */}
+                    <circle cx="90" cy="90" r="54"
+                      stroke={segLoss} strokeWidth="18" fill="none"
+                      strokeDasharray={`${lossArc} ${C}`}
+                      strokeLinecap="round"
+                      style={{ transform: `rotate(${lossRot}deg)`, transformOrigin: "50% 50%" }}
+                      opacity={0.85}
                     />
-                    {/* Win arc — solid white on top */}
-                    <circle cx="80" cy="80" r="60"
-                      stroke={tokens.win} strokeWidth="14" fill="none"
-                      strokeDasharray={`${(wins / Math.max(trades.length,1)) * 376.99} 376.99`}
-                      strokeLinecap="butt"
+                    {/* Win arc */}
+                    <circle cx="90" cy="90" r="54"
+                      stroke={segWin} strokeWidth="18" fill="none"
+                      strokeDasharray={`${winArc} ${C}`}
+                      strokeLinecap="round"
                     />
                   </svg>
+                  {/* Center */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-xl sm:text-2xl font-black text-foreground">{trades.length}</span>
+                    <span className="text-2xl font-black text-foreground">{trades.length}</span>
                     <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Signals</span>
                   </div>
                 </div>
               </div>
-            ) : (
-              // All other themes — recharts PieChart donut
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={[{name: "Wins", value: wins || 0}, {name: "Losses", value: losses || 0}]}
-                    dataKey="value" cx="50%" cy="50%"
-                    innerRadius={chartStyle.innerRadius}
-                    outerRadius={chartStyle.outerRadius}
-                    paddingAngle={chartStyle.paddingAngle}
-                    startAngle={90} endAngle={-270}
-                    labelLine={false} label={renderCustomizedLabel}>
-                    <Cell fill={tokens.win}  style={{ filter: `drop-shadow(0px 0px 6px ${tokens.winGlow})` }} />
-                    <Cell fill={tokens.loss} style={{ filter: `drop-shadow(0px 0px 6px ${tokens.lossGlow})` }} />
-                  </Pie>
-                  <Tooltip content={<DistributionTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-            {theme !== "black-white" && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-xl sm:text-2xl font-black text-foreground drop-shadow-md">{trades.length}</span>
-                <span className="text-[9px] text-muted-foreground uppercase tracking-widest font-bold">Signals</span>
-              </div>
-            )}
-          </div>
+            )
+          })()}
 
+          {/* Legend */}
           <div className="flex items-center justify-around pt-2 mt-1 border-t border-border/30">
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ background: tokens.win }} />
+              <div className="w-2.5 h-2.5 rounded-full" style={{
+                background: theme === "violet" ? "#a78bfa"
+                  : theme === "dark" ? "#34d399"
+                  : theme === "midnight" ? "#60a5fa"
+                  : theme === "gold" ? "#fcd34d"
+                  : tokens.win
+              }} />
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Wins</span>
               <span className="text-[11px] font-black text-foreground font-mono">{wins}</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full" style={{ background: tokens.loss }} />
+              <div className="w-2.5 h-2.5 rounded-full" style={{
+                background: theme === "violet" ? "#6d28d9"
+                  : theme === "dark" ? "#065f46"
+                  : theme === "midnight" ? "#312e81"
+                  : theme === "gold" ? "#92400e"
+                  : tokens.loss
+              }} />
               <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Losses</span>
               <span className="text-[11px] font-black text-foreground font-mono">{losses}</span>
             </div>
