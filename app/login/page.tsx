@@ -1316,14 +1316,14 @@ export default function LoginPage() {
                   {gLoading ? "Connecting…" : "Continue with Google"}
                 </button>
 
-                <p className="mt-6 text-center text-xs text-white/40">
+                <p className={`mt-6 text-center text-xs ${isInverted ? "text-black/50" : "text-white/60"}`}>
                   {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
                   <button
                     onClick={() => {
                       setMode(mode === "signin" ? "signup" : "signin")
                       setError(""); setSuccess("")
                     }}
-                    className={`font-black transition-colors ${isInverted ? "hover:text-black" : "hover:text-white"}`}
+                    className={`font-black transition-colors ${isInverted ? "text-black/80 hover:text-black" : "text-white/90 hover:text-white"}`}
                     style={{ color: p.accentTextA }}>
                     {mode === "signin" ? "Request access" : "Sign in"}
                   </button>
