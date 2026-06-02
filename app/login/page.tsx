@@ -91,27 +91,28 @@ interface LoginPalette {
   badgeBorder:    string  // small badge borders elsewhere (with alpha)
 }
 
-function useLoginTheme(): { theme: LoginTheme; hydrated: boolean } {
-  const [theme, setTheme] = useState<LoginTheme>("violet")
-  const [hydrated, setHydrated] = useState(false)
+function useLoginTheme(): { theme: LoginTheme; hydrated: boolean; isInverted: boolean } {
+  const [theme,      setTheme]      = useState<LoginTheme>("violet")
+  const [hydrated,   setHydrated]   = useState(false)
+  const [isInverted, setIsInverted] = useState(false)
   useEffect(() => {
     if (typeof window === "undefined") return
     try {
-      const raw = localStorage.getItem("phoenix_settings")
+      const raw    = localStorage.getItem("phoenix_settings")
       const parsed = raw ? JSON.parse(raw) : {}
       let t = parsed.theme as string
-      // Migrate legacy names + sanitize
       if (t === "oled" || !t) t = "black-white"
       else if (t === "pink")  t = "violet"
       else if (t === "light") t = "gold"
       if (!["violet","gold","midnight","dark","black-white"].includes(t)) t = "violet"
       setTheme(t as LoginTheme)
+      setIsInverted(t === "black-white" && !!parsed.invert)
     } catch {
       setTheme("violet")
     }
     setHydrated(true)
   }, [])
-  return { theme, hydrated }
+  return { theme, hydrated, isInverted }
 }
 
 function getLoginPalette(theme: LoginTheme): LoginPalette {
@@ -846,7 +847,7 @@ export default function LoginPage() {
 
   // Pass N — read saved dashboard theme from localStorage, derive login palette.
   // Falls back to violet if no saved theme (matches Pass L look exactly).
-  const { theme: loginTheme } = useLoginTheme()
+  const { theme: loginTheme, isInverted } = useLoginTheme()
   const p = getLoginPalette(loginTheme)
 
   // Load saved login style preference (browser memory)
@@ -916,7 +917,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col md:flex-row overflow-hidden bg-black text-white">
+    <div className={`relative min-h-screen flex flex-col md:flex-row overflow-hidden ${isInverted ? "bg-white text-black" : "bg-black text-white"}`}>
 
       {/* Backdrop (full bleed under everything) */}
       {/* Pass P: Photo backdrop sits behind the Aurora overlay layers,
@@ -952,8 +953,8 @@ export default function LoginPage() {
             />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="text-white font-black text-base tracking-[0.2em] uppercase">Phoenix</span>
-            <span className="text-white/50 font-bold text-[10px] tracking-[0.35em] uppercase mt-1">Command</span>
+            <span className={`font-black text-base tracking-[0.2em] uppercase ${isInverted ? "text-black" : "text-white"}`}>Phoenix</span>
+            <span className={`font-bold text-[10px] tracking-[0.35em] uppercase mt-1 ${isInverted ? "text-black/50" : "text-white/50"}`}>Command</span>
           </div>
         </div>
 
@@ -973,7 +974,7 @@ export default function LoginPage() {
           </div>
 
           {/* Big "Welcome" */}
-          <h1 className="font-black text-white tracking-tight leading-none"
+          <h1 className={`font-black tracking-tight leading-none ${isInverted ? "text-black" : "text-white"}`}
               style={{ fontSize: "clamp(4.5rem, 8vw, 7rem)" }}>
             Welcome
           </h1>
@@ -985,7 +986,7 @@ export default function LoginPage() {
           <p className="mt-3 font-bold tracking-tight"
              style={{
                fontSize: "clamp(1.25rem, 2.2vw, 1.875rem)",
-               color: "white",
+               color: isInverted ? "black" : "white",
                // Three-layer glow: tight full-opacity bloom, mid fade, wide ambient
                // accentTextA/B are full-sat hsl() strings — alpha added via CSS / notation
                textShadow: [
@@ -1012,15 +1013,15 @@ export default function LoginPage() {
               />
             </div>
             <div className="leading-tight">
-              <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold">by</p>
-              <p className="text-xs text-white/80 font-black tracking-wider uppercase">Trader Kizan</p>
+              <p className={`text-[10px] uppercase tracking-widest font-bold ${isInverted ? "text-black/40" : "text-white/40"}`}>by</p>
+              <p className={`text-xs font-black tracking-wider uppercase ${isInverted ? "text-black/80" : "text-white/80"}`}>Trader Kizan</p>
             </div>
           </div>
 
           {/* Style toggle */}
           <button
             onClick={cycleLoginStyle}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 hover:border-white/30 hover:bg-white/[0.04] backdrop-blur-md transition-all text-[10px] font-bold uppercase tracking-widest text-white/50 hover:text-white/90"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all text-[10px] font-bold uppercase tracking-widest ${isInverted ? "border-black/10 hover:border-black/30 hover:bg-black/[0.04] text-black/50 hover:text-black/90" : "border-white/10 hover:border-white/30 hover:bg-white/[0.04] text-white/50 hover:text-white/90"}`}
             title={`Switch to ${loginStyle === "aurora" ? "orbs" : "aurora"} style`}>
             {loginStyle === "aurora" ? <Sparkles className="w-3 h-3" /> : <Orbit className="w-3 h-3" />}
             <span>{loginStyle === "aurora" ? "Aurora" : "Orbs"}</span>
@@ -1047,14 +1048,18 @@ export default function LoginPage() {
               />
             </div>
             <div className="text-center leading-none">
-              <p className="text-white font-black text-base tracking-[0.2em] uppercase">Phoenix</p>
-              <p className="text-white/50 font-bold text-[10px] tracking-[0.35em] uppercase mt-1.5">Command</p>
+              <p className={`font-black text-base tracking-[0.2em] uppercase ${isInverted ? "text-black" : "text-white"}`}>Phoenix</p>
+              <p className={`font-bold text-[10px] tracking-[0.35em] uppercase mt-1.5 ${isInverted ? "text-black/50" : "text-white/50"}`}>Command</p>
             </div>
           </div>
 
           {/* Glass card */}
           <div className="rounded-2xl p-7 md:p-8 backdrop-blur-xl"
-            style={{
+            style={isInverted ? {
+              background: "linear-gradient(165deg, hsla(0,0%,0%,0.06) 0%, hsla(0,0%,0%,0.03) 100%)",
+              border: "1px solid hsla(0,0%,0%,0.12)",
+              boxShadow: "0 20px 60px hsla(0,0%,0%,0.15), inset 0 1px 0 hsla(0,0%,100%,0.6)",
+            } : {
               background: "linear-gradient(165deg, hsla(0,0%,100%,0.04) 0%, hsla(0,0%,100%,0.01) 100%)",
               border: "1px solid hsla(0,0%,100%,0.08)",
               boxShadow: "0 20px 60px hsla(0,0%,0%,0.5), inset 0 1px 0 hsla(0,0%,100%,0.04)",
@@ -1063,15 +1068,15 @@ export default function LoginPage() {
             {/* Back button when in reset mode */}
             {mode === "reset" && (
               <button onClick={() => { setMode("signin"); setError(""); setSuccess("") }}
-                className="flex items-center gap-1 text-xs text-white/40 hover:text-white/80 mb-3 transition-colors">
+                className={`flex items-center gap-1 text-xs mb-3 transition-colors ${isInverted ? "text-black/40 hover:text-black/80" : "text-white/40 hover:text-white/80"}`}>
                 <ArrowLeft className="w-3 h-3" />
                 Back to sign in
               </button>
             )}
 
             <div className="mb-6">
-              <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">{heading}</h2>
-              <p className="mt-1.5 text-sm text-white/45">{subhead}</p>
+              <h2 className={`text-2xl md:text-3xl font-black tracking-tight ${isInverted ? "text-black" : "text-white"}`}>{heading}</h2>
+              <p className={`mt-1.5 text-sm ${isInverted ? "text-black/55" : "text-white/45"}`}>{subhead}</p>
             </div>
 
             {/* Error / Success */}
@@ -1095,25 +1100,28 @@ export default function LoginPage() {
 
               {/* Email */}
               <div>
-                <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/40 mb-1.5">
+                <label className={`block text-[10px] font-black uppercase tracking-[0.2em] mb-1.5 ${isInverted ? "text-black/50" : "text-white/40"}`}>
                   Email
                 </label>
                 <input
                   type="email" required autoComplete="email"
                   value={email} onChange={e => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="w-full rounded-lg px-3.5 py-2.5 text-sm text-white outline-none transition-all"
-                  style={{
+                  className={`w-full rounded-lg px-3.5 py-2.5 text-sm outline-none transition-all ${isInverted ? "text-black" : "text-white"}`}
+                  style={isInverted ? {
+                    background: "hsla(0,0%,0%,0.04)",
+                    border: "1px solid hsla(0,0%,0%,0.15)",
+                  } : {
                     background: "hsla(0,0%,100%,0.04)",
                     border: "1px solid hsla(0,0%,100%,0.08)",
                   }}
                   onFocus={e => {
                     e.target.style.borderColor = p.inputFocus
-                    e.target.style.background  = "hsla(0,0%,100%,0.06)"
+                    e.target.style.background  = isInverted ? "hsla(0,0%,0%,0.07)" : "hsla(0,0%,100%,0.06)"
                   }}
                   onBlur={e => {
-                    e.target.style.borderColor = "hsla(0,0%,100%,0.08)"
-                    e.target.style.background  = "hsla(0,0%,100%,0.04)"
+                    e.target.style.borderColor = isInverted ? "hsla(0,0%,0%,0.15)" : "hsla(0,0%,100%,0.08)"
+                    e.target.style.background  = isInverted ? "hsla(0,0%,0%,0.04)" : "hsla(0,0%,100%,0.04)"
                   }}
                 />
               </div>
@@ -1122,13 +1130,13 @@ export default function LoginPage() {
               {mode !== "reset" && (
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/40">
+                    <label className={`block text-[10px] font-black uppercase tracking-[0.2em] ${isInverted ? "text-black/50" : "text-white/40"}`}>
                       Password
                     </label>
                     {mode === "signin" && (
                       <button type="button"
                         onClick={() => { setMode("reset"); setError(""); setSuccess("") }}
-                        className="text-[11px] text-white/40 hover:text-white/90 transition-colors">
+                        className={`text-[11px] transition-colors ${isInverted ? "text-black/40 hover:text-black/90" : "text-white/40 hover:text-white/90"}`}>
                         Forgot password?
                       </button>
                     )}
@@ -1140,22 +1148,25 @@ export default function LoginPage() {
                       value={password} onChange={e => setPassword(e.target.value)}
                       placeholder={mode === "signup" ? "At least 6 characters" : "••••••••••"}
                       minLength={6}
-                      className="w-full rounded-lg px-3.5 py-2.5 pr-10 text-sm text-white outline-none transition-all"
-                      style={{
+                      className={`w-full rounded-lg px-3.5 py-2.5 pr-10 text-sm outline-none transition-all ${isInverted ? "text-black" : "text-white"}`}
+                      style={isInverted ? {
+                        background: "hsla(0,0%,0%,0.04)",
+                        border: "1px solid hsla(0,0%,0%,0.15)",
+                      } : {
                         background: "hsla(0,0%,100%,0.04)",
                         border: "1px solid hsla(0,0%,100%,0.08)",
                       }}
                       onFocus={e => {
                         e.target.style.borderColor = p.inputFocus
-                        e.target.style.background  = "hsla(0,0%,100%,0.06)"
+                        e.target.style.background  = isInverted ? "hsla(0,0%,0%,0.07)" : "hsla(0,0%,100%,0.06)"
                       }}
                       onBlur={e => {
-                        e.target.style.borderColor = "hsla(0,0%,100%,0.08)"
-                        e.target.style.background  = "hsla(0,0%,100%,0.04)"
+                        e.target.style.borderColor = isInverted ? "hsla(0,0%,0%,0.15)" : "hsla(0,0%,100%,0.08)"
+                        e.target.style.background  = isInverted ? "hsla(0,0%,0%,0.04)" : "hsla(0,0%,100%,0.04)"
                       }}
                     />
                     <button type="button" onClick={() => setShowPass(p => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/90 transition-colors"
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 transition-colors ${isInverted ? "text-black/40 hover:text-black/90" : "text-white/40 hover:text-white/90"}`}
                       aria-label={showPass ? "Hide password" : "Show password"}>
                       {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -1165,11 +1176,19 @@ export default function LoginPage() {
 
               {/* Submit — gradient button */}
               <button type="submit" disabled={busy}
-                className="w-full py-3 rounded-lg text-sm font-black tracking-wider text-white transition-all active:scale-[0.98] disabled:cursor-not-allowed"
-                style={{
+                className="w-full py-3 rounded-lg text-sm font-black tracking-wider transition-all active:scale-[0.98] disabled:cursor-not-allowed"
+                style={isInverted ? {
+                  background: busy
+                    ? "linear-gradient(135deg, hsl(0 0% 45%) 0%, hsl(0 0% 30%) 100%)"
+                    : "linear-gradient(135deg, hsl(0 0% 18%) 0%, hsl(0 0% 10%) 100%)",
+                  color: "white",
+                  boxShadow: busy ? "none" : "0 8px 24px hsla(0,0%,0%,0.35)",
+                  opacity: busy ? 0.7 : 1,
+                } : {
                   background: busy
                     ? `linear-gradient(135deg, ${p.buttonGradStartBusy} 0%, ${p.buttonGradEndBusy} 100%)`
                     : `linear-gradient(135deg, ${p.buttonGradStart} 0%, ${p.buttonGradEnd} 100%)`,
+                  color: "white",
                   boxShadow: busy ? "none" : `0 8px 24px ${p.buttonShadow}`,
                   opacity: busy ? 0.7 : 1,
                 }}>
@@ -1181,23 +1200,26 @@ export default function LoginPage() {
               <>
                 <div className="relative my-5">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t" style={{ borderColor: "hsla(0,0%,100%,0.08)" }} />
+                    <div className="w-full border-t" style={{ borderColor: isInverted ? "hsla(0,0%,0%,0.12)" : "hsla(0,0%,100%,0.08)" }} />
                   </div>
                   <div className="relative flex justify-center">
-                    <span className="px-2 text-[10px] font-bold tracking-widest uppercase text-white/30 bg-black/40 backdrop-blur-sm rounded">
+                    <span className={`px-2 text-[10px] font-bold tracking-widest uppercase backdrop-blur-sm rounded ${isInverted ? "text-black/40 bg-white/60" : "text-white/30 bg-black/40"}`}>
                       OR
                     </span>
                   </div>
                 </div>
 
                 <button onClick={handleGoogle} disabled={gLoading || checking}
-                  className="w-full py-2.5 rounded-lg text-sm font-semibold text-white flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:cursor-not-allowed"
-                  style={{
+                  className={`w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] disabled:cursor-not-allowed ${isInverted ? "text-black" : "text-white"}`}
+                  style={isInverted ? {
+                    background: "hsla(0,0%,0%,0.05)",
+                    border: "1px solid hsla(0,0%,0%,0.15)",
+                  } : {
                     background: "hsla(0,0%,100%,0.04)",
                     border: "1px solid hsla(0,0%,100%,0.1)",
                   }}
-                  onMouseEnter={e => { if (!gLoading && !checking) e.currentTarget.style.background = "hsla(0,0%,100%,0.07)" }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "hsla(0,0%,100%,0.04)" }}>
+                  onMouseEnter={e => { if (!gLoading && !checking) e.currentTarget.style.background = isInverted ? "hsla(0,0%,0%,0.09)" : "hsla(0,0%,100%,0.07)" }}
+                  onMouseLeave={e => { e.currentTarget.style.background = isInverted ? "hsla(0,0%,0%,0.05)" : "hsla(0,0%,100%,0.04)" }}>
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -1214,7 +1236,7 @@ export default function LoginPage() {
                       setMode(mode === "signin" ? "signup" : "signin")
                       setError(""); setSuccess("")
                     }}
-                    className="font-black transition-colors hover:text-white"
+                    className={`font-black transition-colors ${isInverted ? "hover:text-black" : "hover:text-white"}`}
                     style={{ color: p.accentTextA }}>
                     {mode === "signin" ? "Request access" : "Sign in"}
                   </button>
@@ -1229,11 +1251,11 @@ export default function LoginPage() {
               <div className="w-6 h-6 rounded-full overflow-hidden border border-white/15 flex-shrink-0">
                 <Image src="/trader-kizan-logo.jpg" alt="Trader Kizan" width={24} height={24} className="object-cover" />
               </div>
-              <span className="text-[10px] uppercase tracking-widest text-white/40">by <span className="text-white/80 font-black">Trader Kizan</span></span>
+              <span className={`text-[10px] uppercase tracking-widest ${isInverted ? "text-black/40" : "text-white/40"}`}>by <span className={`font-black ${isInverted ? "text-black/80" : "text-white/80"}`}>Trader Kizan</span></span>
             </div>
             <button
               onClick={cycleLoginStyle}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-white/10 text-[9px] font-bold uppercase tracking-widest text-white/50">
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[9px] font-bold uppercase tracking-widest ${isInverted ? "border-black/10 text-black/50" : "border-white/10 text-white/50"}`}>
               {loginStyle === "aurora" ? <Sparkles className="w-3 h-3" /> : <Orbit className="w-3 h-3" />}
               {loginStyle === "aurora" ? "Aurora" : "Orbs"}
             </button>
