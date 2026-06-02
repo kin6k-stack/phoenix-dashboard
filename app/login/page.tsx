@@ -475,7 +475,7 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-          style={{ objectPosition: "center 60%", opacity: 0.95 }}
+          style={{ objectPosition: "center 60%", opacity: isInverted ? 0.75 : 0.95 }}
         />
       ) : (
         // Moon photo — sized + positioned to act as the planet body that
@@ -737,7 +737,7 @@ function AuroraBackdrop({ p, theme, isInverted }: { p: LoginPalette; theme: Logi
       <div
         className="absolute inset-x-0 bottom-0 h-1/3 pointer-events-none"
         style={{
-          background: "linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 70%)",
+          background: isInverted ? "linear-gradient(to bottom, transparent 0%, hsl(0 0% 85%) 70%)" : "linear-gradient(to bottom, transparent 0%, hsl(0 0% 0%) 70%)",
         }}
       />
     </div>
@@ -1024,15 +1024,15 @@ export default function LoginPage() {
               />
             </div>
             <div className="leading-tight">
-              <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: isInverted ? "rgba(0,0,0,0.6)" : "rgba(255,255,255,0.9)", textShadow: isInverted ? "none" : "0 1px 4px rgba(0,0,0,0.8)" }}>by</p>
-              <p className="text-xs font-black tracking-wider uppercase" style={{ color: isInverted ? "rgba(0,0,0,0.9)" : "rgba(255,255,255,1)", textShadow: isInverted ? "none" : "0 1px 6px rgba(0,0,0,0.9)" }}>Trader Kizan</p>
+              <p className="text-[10px] uppercase tracking-widest font-bold" style={{ color: isInverted ? "rgba(0,0,0,0.7)" : "rgba(255,255,255,1)", textShadow: "0 1px 8px rgba(0,0,0,1)" }}>by</p>
+              <p className="text-xs font-black tracking-wider uppercase" style={{ color: isInverted ? "rgba(0,0,0,0.9)" : "rgba(255,255,255,1)", textShadow: "0 1px 8px rgba(0,0,0,1)" }}>Trader Kizan</p>
             </div>
           </div>
 
           {/* Style toggle */}
           <button
             onClick={cycleLoginStyle}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all text-[10px] font-bold uppercase tracking-widest ${isInverted ? "border-black/20 hover:border-black/40 hover:bg-black/[0.06] text-black/70 hover:text-black" : "border-white/20 hover:border-white/40 bg-white/[0.06] hover:bg-white/[0.1] text-white/80 hover:text-white"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all text-[10px] font-bold uppercase tracking-widest ${isInverted ? "border-black/20 hover:border-black/40 hover:bg-black/[0.06] text-black/70 hover:text-black" : "border-white/30 hover:border-white/60 bg-black/20 hover:bg-black/30 text-white hover:text-white"}`}
             title={`Switch to ${loginStyle === "aurora" ? "orbs" : "aurora"} style`}>
             {loginStyle === "aurora" ? <Sparkles className="w-3 h-3" /> : <Orbit className="w-3 h-3" />}
             <span>{loginStyle === "aurora" ? "Aurora" : "Orbs"}</span>
