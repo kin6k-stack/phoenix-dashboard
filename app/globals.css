@@ -452,20 +452,109 @@ html, body {
 }
 
 /* ── Density system ─────────────────────────────────────────── */
-html[data-density="compact"] main {
-  padding: 0.75rem !important;
-}
-html[data-density="compact"] .space-y-5 > * + * { margin-top: 0.5rem !important; }
-html[data-density="compact"] .space-y-4 > * + * { margin-top: 0.5rem !important; }
-html[data-density="compact"] .p-5 { padding: 0.75rem !important; }
-html[data-density="compact"] .p-4 { padding: 0.625rem !important; }
-html[data-density="compact"] .gap-4 { gap: 0.5rem !important; }
+/*
+   Three density tiers expressed as CSS custom properties.
+   Components that want density-awareness use var(--density-*)
+   directly in inline styles or via Tailwind arbitrary values.
 
-html[data-density="expanded"] main {
-  padding: 1.75rem !important;
+   Density tokens:
+     --density-pad-page   page-level outer padding
+     --density-pad-card   card inner padding
+     --density-gap        grid / flex gap between cards
+     --density-gap-inner  gap inside a card (between rows)
+     --density-text-xs    smallest label text
+     --density-text-sm    body / cell text
+     --density-text-base  heading text
+     --density-row-h      table / list row height
+     --density-radius     card border-radius
+*/
+
+/* default — matches current Tailwind defaults, no change */
+:root,
+html[data-density="default"] {
+  --density-pad-page:   1.5rem;       /* p-6 equivalent */
+  --density-pad-card:   1.25rem;      /* p-5 */
+  --density-gap:        1rem;         /* gap-4 */
+  --density-gap-inner:  0.75rem;      /* gap-3 */
+  --density-text-xs:    0.625rem;     /* text-[10px] */
+  --density-text-sm:    0.75rem;      /* text-xs / text-sm */
+  --density-text-base:  0.875rem;     /* text-sm→base */
+  --density-row-h:      2.5rem;       /* h-10 */
+  --density-radius:     0.5rem;       /* rounded-lg */
 }
-html[data-density="expanded"] .space-y-5 > * + * { margin-top: 1.5rem !important; }
-html[data-density="expanded"] .space-y-4 > * + * { margin-top: 1.25rem !important; }
+
+/* compact — tighter, more data visible */
+html[data-density="compact"] {
+  --density-pad-page:   0.75rem;
+  --density-pad-card:   0.625rem;
+  --density-gap:        0.5rem;
+  --density-gap-inner:  0.375rem;
+  --density-text-xs:    0.5625rem;    /* 9px */
+  --density-text-sm:    0.6875rem;    /* 11px */
+  --density-text-base:  0.75rem;      /* 12px */
+  --density-row-h:      2rem;         /* h-8 */
+  --density-radius:     0.375rem;     /* rounded */
+}
+
+/* expanded — roomier, easier on the eyes */
+html[data-density="expanded"] {
+  --density-pad-page:   2.5rem;
+  --density-pad-card:   2rem;
+  --density-gap:        1.5rem;
+  --density-gap-inner:  1.25rem;
+  --density-text-xs:    0.6875rem;    /* 11px */
+  --density-text-sm:    0.875rem;     /* 14px */
+  --density-text-base:  1rem;         /* 16px */
+  --density-row-h:      3rem;         /* h-12 */
+  --density-radius:     0.75rem;      /* rounded-xl */
+}
+
+/* ── Density: page shell padding ──────────────────────────────── */
+html[data-density="compact"] .density-page,
+html[data-density="compact"] main { padding: var(--density-pad-page) !important; }
+html[data-density="expanded"] .density-page,
+html[data-density="expanded"] main { padding: var(--density-pad-page) !important; }
+
+/* ── Density: card padding ──────────────────────────────────── */
+html[data-density="compact"]  .density-card { padding: var(--density-pad-card) !important; }
+html[data-density="expanded"] .density-card { padding: var(--density-pad-card) !important; }
+html[data-density="compact"]  .p-5, html[data-density="compact"]  .p-4 { padding: var(--density-pad-card) !important; }
+html[data-density="expanded"] .p-5, html[data-density="expanded"] .p-4 { padding: var(--density-pad-card) !important; }
+html[data-density="compact"]  .px-4 { padding-left: var(--density-pad-card) !important; padding-right: var(--density-pad-card) !important; }
+html[data-density="expanded"] .px-4 { padding-left: var(--density-pad-card) !important; padding-right: var(--density-pad-card) !important; }
+html[data-density="compact"]  .py-3, html[data-density="compact"]  .py-4 { padding-top: var(--density-gap-inner) !important; padding-bottom: var(--density-gap-inner) !important; }
+html[data-density="expanded"] .py-3, html[data-density="expanded"] .py-4 { padding-top: var(--density-gap-inner) !important; padding-bottom: var(--density-gap-inner) !important; }
+
+/* ── Density: gaps between cards ────────────────────────────── */
+html[data-density="compact"]  .gap-4, html[data-density="compact"]  .gap-6 { gap: var(--density-gap) !important; }
+html[data-density="expanded"] .gap-4, html[data-density="expanded"] .gap-6 { gap: var(--density-gap) !important; }
+html[data-density="compact"]  .space-y-4 > * + *, html[data-density="compact"]  .space-y-5 > * + *, html[data-density="compact"]  .space-y-6 > * + * { margin-top: var(--density-gap) !important; }
+html[data-density="expanded"] .space-y-4 > * + *, html[data-density="expanded"] .space-y-5 > * + *, html[data-density="expanded"] .space-y-6 > * + * { margin-top: var(--density-gap) !important; }
+html[data-density="compact"]  .gap-2, html[data-density="compact"]  .gap-3 { gap: var(--density-gap-inner) !important; }
+html[data-density="expanded"] .gap-2, html[data-density="expanded"] .gap-3 { gap: var(--density-gap-inner) !important; }
+html[data-density="compact"]  .space-y-2 > * + *, html[data-density="compact"]  .space-y-3 > * + * { margin-top: var(--density-gap-inner) !important; }
+html[data-density="expanded"] .space-y-2 > * + *, html[data-density="expanded"] .space-y-3 > * + * { margin-top: var(--density-gap-inner) !important; }
+
+/* ── Density: text scaling ───────────────────────────────────── */
+html[data-density="compact"]  .text-xs  { font-size: var(--density-text-sm)   !important; }
+html[data-density="expanded"] .text-xs  { font-size: var(--density-text-sm)   !important; }
+html[data-density="compact"]  .text-sm  { font-size: var(--density-text-sm)   !important; }
+html[data-density="expanded"] .text-sm  { font-size: var(--density-text-base) !important; }
+html[data-density="compact"]  .text-base { font-size: var(--density-text-base) !important; }
+html[data-density="expanded"] .text-base { font-size: calc(var(--density-text-base) * 1.15) !important; }
+
+/* ── Density: border radius ──────────────────────────────────── */
+html[data-density="compact"]  .rounded-lg, html[data-density="compact"]  .rounded-xl { border-radius: var(--density-radius) !important; }
+html[data-density="expanded"] .rounded-lg                                             { border-radius: var(--density-radius) !important; }
+html[data-density="expanded"] .rounded-xl                                             { border-radius: calc(var(--density-radius) * 1.33) !important; }
+
+/* ── Density: table / list row heights ───────────────────────── */
+html[data-density="compact"]  .h-10 { height: var(--density-row-h) !important; }
+html[data-density="expanded"] .h-10 { height: var(--density-row-h) !important; }
+
+/* ── Density: sidebar items ──────────────────────────────────── */
+html[data-density="compact"]  .sidebar-item { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+html[data-density="expanded"] .sidebar-item { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
 
 /* default density has no overrides — uses Tailwind defaults */
 
