@@ -19,9 +19,7 @@ import { VipBlockedScreen } from "@/components/vip-blocked-screen"
 
 
 // ─────────────────────────────────────────────────────────────────────
-// Pass R — Orb animation keyframes injected via <style> tag
-// Each orb has a unique drift path so they never move in sync.
-// Animations respect the `animations` setting from localStorage.
+// Pass R — CSS keyframe animations for orbs + aurora sunburst
 // ─────────────────────────────────────────────────────────────────────
 function OrbKeyframes() {
   return (
@@ -60,6 +58,16 @@ function OrbKeyframes() {
         55%  { transform: translate(-50px, -40px) scale(0.9);  }
         80%  { transform: translate(30px,  -20px) scale(1.08); }
         100% { transform: translate(0px,   0px)   scale(1);    }
+      }
+      @keyframes sunburstPulse {
+        0%   { opacity: 0.75; transform: translate(calc(-50% + 280px), calc(-50% - 60px)) scale(0.95); }
+        50%  { opacity: 1;    transform: translate(calc(-50% + 280px), calc(-50% - 60px)) scale(1.08); }
+        100% { opacity: 0.75; transform: translate(calc(-50% + 280px), calc(-50% - 60px)) scale(0.95); }
+      }
+      @keyframes haloBreath {
+        0%   { opacity: 0.7;  transform: translate(calc(-50% + 280px), calc(-50% - 60px)) scale(0.97); }
+        50%  { opacity: 1;    transform: translate(calc(-50% + 280px), calc(-50% - 60px)) scale(1.05); }
+        100% { opacity: 0.7;  transform: translate(calc(-50% + 280px), calc(-50% - 60px)) scale(0.97); }
       }
     `}</style>
   )
@@ -571,7 +579,7 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
 }
 
 
-function AuroraBackdrop({ p, theme, isInverted }: { p: LoginPalette; theme: LoginTheme; isInverted: boolean }) {
+function AuroraBackdrop({ p, theme, isInverted, animationsOn = true }: { p: LoginPalette; theme: LoginTheme; isInverted: boolean; animationsOn?: boolean }) {
   // Pass P v3: On Black/White theme, the black hole photo is the focal element.
   // Skip the planet-specific CSS layers (rim glow, sunburst, halo, core, bleeds)
   // that were designed to wrap a planet — they'd clash with the black hole.
@@ -738,6 +746,7 @@ function AuroraBackdrop({ p, theme, isInverted }: { p: LoginPalette; theme: Logi
           )`,
           filter: "blur(6px)",
           opacity: 1,
+          animation: animationsOn ? "sunburstPulse 4s ease-in-out infinite" : "none",
         }}
       />
 
@@ -756,6 +765,7 @@ function AuroraBackdrop({ p, theme, isInverted }: { p: LoginPalette; theme: Logi
           )`,
           filter: "blur(50px)",
           opacity: 1,
+          animation: animationsOn ? "haloBreath 5s ease-in-out infinite" : "none",
         }}
       />
 
@@ -775,6 +785,7 @@ function AuroraBackdrop({ p, theme, isInverted }: { p: LoginPalette; theme: Logi
             0 0 120px ${p.core3},
             0 0 200px ${p.core4}
           `,
+          animation: animationsOn ? "sunburstPulse 3.5s ease-in-out infinite" : "none",
         }}
       />
 
@@ -810,7 +821,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "520px", height: "520px",
           top:   "-10%", left: "-8%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.06) 35%, transparent 70%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.06) 35%, transparent 70%)"
             : `radial-gradient(circle, ${p.orb1} 0%, ${p.orb1Tail} 35%, transparent 70%)`,
           filter: "blur(70px)",
           opacity: isInverted ? 1 : 0.7,
@@ -825,7 +836,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "420px", height: "420px",
           top:   "8%", right: "-5%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.14) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
             : `radial-gradient(circle, ${p.orb2} 0%, ${p.orb2Tail} 35%, transparent 70%)`,
           filter: "blur(60px)",
           opacity: isInverted ? 1 : 0.55,
@@ -840,7 +851,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "600px", height: "600px",
           bottom: "-15%", left: "20%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.16) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.50) 0%, rgba(0,0,0,0.05) 35%, transparent 70%)"
             : `radial-gradient(circle, ${p.orb3} 0%, ${p.orb3Tail} 35%, transparent 70%)`,
           filter: "blur(80px)",
           opacity: isInverted ? 1 : 0.6,
@@ -855,7 +866,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "320px", height: "320px",
           top: "45%", right: "15%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 30%, transparent 65%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.04) 30%, transparent 65%)"
             : `radial-gradient(circle, ${p.orb4} 0%, ${p.orb4Tail} 30%, transparent 65%)`,
           filter: "blur(50px)",
           opacity: isInverted ? 1 : 0.5,
@@ -870,7 +881,7 @@ function OrbsBackdrop({ p, isInverted, animationsOn = true }: { p: LoginPalette;
           width: "180px", height: "180px",
           top: "25%", left: "35%",
           background: isInverted
-            ? "radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.07) 30%, transparent 65%)"
+            ? "radial-gradient(circle, rgba(0,0,0,0.60) 0%, rgba(0,0,0,0.07) 30%, transparent 65%)"
             : `radial-gradient(circle, ${p.orb5} 0%, ${p.orb5Tail} 30%, transparent 65%)`,
           filter: "blur(35px)",
           opacity: isInverted ? 1 : 0.7,
@@ -913,13 +924,12 @@ export default function LoginPage() {
   const { theme: loginTheme, isInverted } = useLoginTheme()
   const p = getLoginPalette(loginTheme)
 
-  // Pass R — read animations preference from localStorage
+  // Pass R — read animations preference
   const [animationsOn, setAnimationsOn] = useState(true)
   useEffect(() => {
     try {
       const raw    = localStorage.getItem("phoenix_settings")
       const parsed = raw ? JSON.parse(raw) : {}
-      // Default true if not set
       setAnimationsOn(parsed.animations !== false)
     } catch {}
   }, [])
@@ -1003,7 +1013,7 @@ export default function LoginPage() {
       {loginStyle === "aurora" ? (
         <>
           <PhotoBackdrop p={p} theme={loginTheme} />
-          <AuroraBackdrop p={p} theme={loginTheme} isInverted={isInverted} />
+          <AuroraBackdrop p={p} theme={loginTheme} isInverted={isInverted} animationsOn={animationsOn} />
         </>
       ) : (
         <OrbsBackdrop p={p} isInverted={isInverted} animationsOn={animationsOn} />
