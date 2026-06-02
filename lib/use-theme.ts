@@ -60,6 +60,8 @@ function writeSettings(settings: PhoenixSettings) {
   if (typeof window === "undefined") return
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
+    // Notify all other useTheme consumers in this tab to re-sync
+    window.dispatchEvent(new CustomEvent("phoenix-settings-changed", { detail: settings }))
   } catch (e) {
     console.warn("Failed to persist theme settings:", e)
   }
@@ -84,8 +86,22 @@ export function useTheme() {
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
-    setSettings(readSettings())
+    // Initial load
+    const initial = readSettings()
+    setSettings(initial)
+    applySettings(initial)
     setHydrated(true)
+
+    // Pass T: Listen for changes made by OTHER useTheme instances (e.g. SettingsPanel)
+    // so every consumer re-renders immediately when theme/density/animations change.
+    const onSettingsChanged = (e: Event) => {
+      const detail = (e as CustomEvent<PhoenixSettings>).detail
+      if (detail) {
+        setSettings(detail)
+      }
+    }
+    window.addEventListener("phoenix-settings-changed", onSettingsChanged)
+    return () => window.removeEventListener("phoenix-settings-changed", onSettingsChanged)
   }, [])
 
   const update = useCallback((patch: Partial<PhoenixSettings>) => {
