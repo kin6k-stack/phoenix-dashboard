@@ -444,10 +444,20 @@ function getAuthErrorMessage(code: string | undefined, mode: "signin" | "signup"
 //   - Black hole: centered, looks correct as-is
 // ─────────────────────────────────────────────────────────────────────
 function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
-  // B/W theme uses the black hole photo. All other themes share the moon photo.
   const isBlackWhite = theme === "black-white"
+
+  // Pass P v5: Read invert preference — inverted B/W uses the light/inverted black hole photo
+  const [isInverted, setIsInverted] = useState(false)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("phoenix_settings")
+      const parsed = raw ? JSON.parse(raw) : {}
+      setIsInverted(!!parsed.invert)
+    } catch {}
+  }, [])
+
   const imageSrc = isBlackWhite
-    ? "/login-backdrop-blackhole.webp"
+    ? (isInverted ? "/login-backdrop-blackhole-invert.jpg" : "/login-backdrop-blackhole.webp")
     : "/login-backdrop-planet.webp"
 
   return (
@@ -459,10 +469,11 @@ function PhotoBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
         // Black hole photo — fills frame, already well-composed in source.
         // No CSS overlays render on top for B/W (see AuroraBackdrop guard).
         <img
+          key={imageSrc}
           src={imageSrc}
           alt=""
           aria-hidden="true"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
           style={{ objectPosition: "center 60%", opacity: 0.95 }}
         />
       ) : (
@@ -665,8 +676,8 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
         style={{
           width:  "500px",
           height: "500px",
-          // Position: roughly upper-right edge of the planet
-          transform: "translate(calc(-50% + 280px), calc(-50% - 240px))",
+          // Position: upper-right arc of the planet limb (Pass P v5: dropped 180px from v4)
+          transform: "translate(calc(-50% + 280px), calc(-50% - 60px))",
           background: `radial-gradient(circle at center,
             hsl(0 0% 100%) 0%,
             ${p.hotspot1} 4%,
@@ -687,7 +698,7 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
         style={{
           width:  "900px",
           height: "900px",
-          transform: "translate(calc(-50% + 280px), calc(-50% - 240px))",
+          transform: "translate(calc(-50% + 280px), calc(-50% - 60px))",
           background: `radial-gradient(circle at center,
             ${p.halo1} 0%,
             ${p.halo2} 15%,
@@ -705,7 +716,7 @@ function AuroraBackdrop({ p, theme }: { p: LoginPalette; theme: LoginTheme }) {
         style={{
           width:  "14px",
           height: "14px",
-          transform: "translate(calc(-50% + 280px), calc(-50% - 240px))",
+          transform: "translate(calc(-50% + 280px), calc(-50% - 60px))",
           background: "white",
           borderRadius: "50%",
           boxShadow: `
