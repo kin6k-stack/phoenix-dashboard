@@ -750,10 +750,10 @@ function AuroraBackdrop({ p, theme, isInverted }: { p: LoginPalette; theme: Logi
 // Less aggressive blur, higher opacity, more saturated colors so the
 // orbs are actually visible on a black canvas.
 // ─────────────────────────────────────────────────────────────────────
-function OrbsBackdrop({ p }: { p: LoginPalette }) {
+function OrbsBackdrop({ p, isInverted }: { p: LoginPalette; isInverted?: boolean }) {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute inset-0 bg-black" />
+      <div className={`absolute inset-0 ${isInverted ? "bg-white" : "bg-black"}`} />
 
       {/* Top-left purple orb */}
       <div
@@ -819,7 +819,7 @@ function OrbsBackdrop({ p }: { p: LoginPalette }) {
       <div
         className="absolute inset-0 opacity-[0.04]"
         style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, white 1px, transparent 0)",
+          backgroundImage: `radial-gradient(circle at 1px 1px, ${isInverted ? "black" : "white"} 1px, transparent 0)`,
           backgroundSize: "28px 28px",
         }}
       />
@@ -931,7 +931,7 @@ export default function LoginPage() {
           <AuroraBackdrop p={p} theme={loginTheme} isInverted={isInverted} />
         </>
       ) : (
-        <OrbsBackdrop p={p} />
+        <OrbsBackdrop p={p} isInverted={isInverted} />
       )}
 
       {/* ── LEFT — Hero panel ─────────────────────────────────────── */}
@@ -1004,7 +1004,7 @@ export default function LoginPage() {
         <div className="flex items-end justify-between flex-shrink-0">
 
           {/* Trader Kizan credit */}
-          <div className="flex items-center gap-2.5">
+          <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full backdrop-blur-md ${isInverted ? "bg-black/10 border border-black/10" : "bg-white/[0.06] border border-white/10"}`}>
             <div className="w-8 h-8 rounded-full overflow-hidden border border-white/15 flex-shrink-0">
               <Image
                 src="/trader-kizan-logo.jpg"
@@ -1014,15 +1014,15 @@ export default function LoginPage() {
               />
             </div>
             <div className="leading-tight">
-              <p className={`text-[10px] uppercase tracking-widest font-bold ${isInverted ? "text-black/60" : "text-white/40"}`}>by</p>
-              <p className={`text-xs font-black tracking-wider uppercase ${isInverted ? "text-black" : "text-white/80"}`}>Trader Kizan</p>
+              <p className={`text-[10px] uppercase tracking-widest font-bold ${isInverted ? "text-black/60" : "text-white/60"}`}>by</p>
+              <p className={`text-xs font-black tracking-wider uppercase ${isInverted ? "text-black" : "text-white/90"}`}>Trader Kizan</p>
             </div>
           </div>
 
           {/* Style toggle */}
           <button
             onClick={cycleLoginStyle}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all text-[10px] font-bold uppercase tracking-widest ${isInverted ? "border-black/20 hover:border-black/40 hover:bg-black/[0.06] text-black/60 hover:text-black" : "border-white/10 hover:border-white/30 hover:bg-white/[0.04] text-white/50 hover:text-white/90"}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all text-[10px] font-bold uppercase tracking-widest ${isInverted ? "border-black/20 hover:border-black/40 hover:bg-black/[0.06] text-black/70 hover:text-black" : "border-white/20 hover:border-white/40 bg-white/[0.06] hover:bg-white/[0.1] text-white/80 hover:text-white"}`}
             title={`Switch to ${loginStyle === "aurora" ? "orbs" : "aurora"} style`}>
             {loginStyle === "aurora" ? <Sparkles className="w-3 h-3" /> : <Orbit className="w-3 h-3" />}
             <span>{loginStyle === "aurora" ? "Aurora" : "Orbs"}</span>
