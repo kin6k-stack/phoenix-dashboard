@@ -141,9 +141,14 @@ export default function TradingDashboard() {
         if (data.timestamp?.toDate)       tradeDate = data.timestamp.toDate().toISOString()
         else if (data.date)               tradeDate = new Date(data.date).toISOString()
         const rawBot = data.bot || data.botName || data.setup || null
+        // openedAt — written by Manual Sync v1.1 as openedAt field
+        let openedAt: string | undefined
+        if      (data.openedAt?.toDate)  openedAt = data.openedAt.toDate().toISOString()
+        else if (data.openTime)          openedAt = new Date(data.openTime).toISOString()
         return {
           id:         d.id,
           date:       tradeDate,
+          openedAt,
           symbol:     data.symbol || "Unknown",
           setup:      normalizeBotName(rawBot),
           // Pass O: schema fallback. Sync script writes `rMultiple`, legacy
@@ -152,7 +157,10 @@ export default function TradingDashboard() {
                     : data.profit    !== undefined ? Number(data.profit)
                     : 0,
           direction:  (data.direction || data.type || "BUY").toUpperCase(),
-          notes:      data.notes || "",
+          entryPrice: data.openPrice  || data.entryPrice || 0,
+          sl:         data.sl         || 0,
+          lot:        data.lots       || data.lot || 0,
+          notes:      data.notes      || "",
           screenshot: data.screenshot || "",
         }
       }))
