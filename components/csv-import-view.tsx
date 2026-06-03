@@ -77,10 +77,57 @@ const BROKER_FORMATS: Record<string, {
       }
     },
   },
+  fusion_mt4: {
+    label:   "Fusion Markets (MT4/MT5 History)",
+    // Columns: Order,Type,Symbol,Size,Open Price,S/L,T/P,Open Time,Close Price,Duration,Commission,Profit,Swap
+    headers: ["order","type","symbol","size","open price","open time","close price","profit"],
+    map: row => {
+      const profit     = parseFloat(row["profit"]     || "0")
+      const commission = parseFloat(row["commission"] || "0")
+      const swap       = parseFloat(row["swap"]       || "0")
+      const netPnl     = profit + commission + swap
+      const rawSymbol  = (row["symbol"] || "UNKNOWN").replace(/Open$/i,"").toUpperCase()
+      const type       = (row["type"] || "buy").toUpperCase()
+
+      // Parse date: "07:58 pm 05/11/2025" → ISO string
+      const parseDate = (raw: string): string => {
+        if(!raw) return new Date().toISOString()
+        try {
+          // Format: "HH:MM am/pm MM/DD/YYYY"
+          const match = raw.match(/(\d+):(\d+)\s*(am|pm)\s+(\d+)\/(\d+)\/(\d+)/i)
+          if(match) {
+            let [,hh,mm,ampm,mo,dd,yy] = match
+            let hours = parseInt(hh)
+            if(ampm.toLowerCase()==="pm" && hours<12) hours+=12
+            if(ampm.toLowerCase()==="am" && hours===12) hours=0
+            return new Date(
+              parseInt(yy), parseInt(mo)-1, parseInt(dd),
+              hours, parseInt(mm)
+            ).toISOString()
+          }
+        } catch{}
+        return new Date().toISOString()
+      }
+
+      const openedAt = parseDate(row["open time"])
+
+      return {
+        ticket:     row["order"] || String(Date.now()+Math.random()),
+        symbol:     rawSymbol,
+        direction:  type === "BUY" ? "BUY" : "SELL",
+        profit:     netPnl,
+        openPrice:  parseFloat(row["open price"]  || "0"),
+        closePrice: parseFloat(row["close price"] || "0"),
+        lots:       parseFloat(row["size"]         || "0.01"),
+        openedAt,
+        closedAt:   openedAt,  // no close time in this format — use open time
+      }
+    },
+  },
   generic: {
     label:   "Generic / Custom mapping",
     headers: [],
-    map: row => null,  // handled by custom mapper
+    map: row => null,
   },
 }
 
@@ -107,22 +154,54 @@ interface Account {
 
 // ─── CSV parser ───────────────────────────────────────────────────────────────
 
+// RFC 4180 compliant CSV line parser — handles quoted fields correctly
+function parseCSVLine(line: string): string[] {
+  const result: string[] = []
+  let i = 0
+  while(i <= line.length) {
+    if(i === line.length) { result.push(""); break }
+    if(line[i] === '"') {
+      let val = ""; i++
+      while(i < line.length) {
+        if(line[i] === '"' && line[i+1] === '"') { val += '"'; i += 2 }
+        else if(line[i] === '"') { i++; break }
+        else { val += line[i++] }
+      }
+      result.push(val)
+      if(line[i] === ',') i++
+      else break
+    } else {
+      const end = line.indexOf(',', i)
+      if(end === -1) { result.push(line.slice(i).trim()); break }
+      result.push(line.slice(i, end).trim())
+      i = end + 1
+    }
+  }
+  return result
+}
+
 function parseCSV(text: string): Record<string, string>[] {
-  const lines = text.trim().split(/\r?\n/).filter(l => l.trim())
+  // Skip comment/metadata lines (starting with #) — Fusion Markets history format
+  const lines = text.trim().split(/\r?\n/)
+    .filter(l => l.trim() && !l.trim().startsWith("#"))
   if(lines.length < 2) return []
-  const headers = lines[0].split(",").map(h => h.trim().replace(/"/g,"").toLowerCase())
-  return lines.slice(1).map(line => {
-    const vals = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) || line.split(",")
-    const row: Record<string,string> = {}
-    headers.forEach((h,i) => { row[h] = (vals[i] || "").trim().replace(/"/g,"") })
-    return row
-  }).filter(r => Object.values(r).some(v => v.trim()))
+  const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim())
+  return lines.slice(1)
+    .map(line => {
+      const vals = parseCSVLine(line)
+      const row: Record<string,string> = {}
+      headers.forEach((h, i) => { row[h] = (vals[i] ?? "").trim() })
+      return row
+    })
+    .filter(r => Object.values(r).some(v => v.trim()))
 }
 
 function detectBroker(headers: string[]): string {
   const h = headers.map(h => h.toLowerCase())
+  // Fusion Markets MT4 has "order" + "size" + "duration" — unique combo
+  if(h.includes("order") && h.includes("size") && h.includes("duration")) return "fusion_mt4"
   for(const [key, fmt] of Object.entries(BROKER_FORMATS)) {
-    if(key === "generic") continue
+    if(key === "generic" || key === "fusion_mt4") continue
     const matched = fmt.headers.filter(fh => h.some(rh => rh.includes(fh))).length
     if(matched >= Math.floor(fmt.headers.length * 0.6)) return key
   }
