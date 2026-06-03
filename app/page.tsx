@@ -19,6 +19,7 @@ import { DashboardView } from "@/components/dashboard-view"
 import { SignalHistoryView } from "@/components/signal-history"
 import LifetimeLedgerView from "@/components/lifetime-ledger-view"
 import BotHubView from "@/components/bot-hub-view"
+import CSVImportView from "@/components/csv-import-view"
 import { AccountFilterBar } from "@/components/account-filter-bar"
 import { EconomicCalendar } from "@/components/economic-calendar"
 import { MarketBiasView } from "@/components/market-bias-view"
@@ -434,6 +435,13 @@ export default function TradingDashboard() {
         return (
           <PageShell title="Bot Hub" sub="Live performance and version history for all deployed engines">
             <BotHubView />
+          </PageShell>
+        )
+
+      case "csv-import":
+        return (
+          <PageShell title="CSV Import" sub="Import trade history from any broker into your Lifetime Ledger">
+            <CSVImportView />
           </PageShell>
         )
 
