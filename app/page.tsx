@@ -17,6 +17,7 @@ import { SessionIntelligence } from "@/components/session-intelligence"
 import { PerformanceView } from "@/components/performance-view"
 import { DashboardView } from "@/components/dashboard-view"
 import { SignalHistoryView } from "@/components/signal-history"
+import LifetimeLedgerView from "@/components/lifetime-ledger-view"
 import { EconomicCalendar } from "@/components/economic-calendar"
 import { MarketBiasView } from "@/components/market-bias-view"
 import { PnLHeader } from "@/components/pnl-header"
@@ -372,6 +373,13 @@ export default function TradingDashboard() {
         return (
           <PageShell title="Candle Analysis" sub="Click any candle for OHLC, pattern, trend, RSI, and macro context">
             <CandleAnalysisView />
+          </PageShell>
+        )
+
+      case "lifetime-ledger":
+        return (
+          <PageShell title="Lifetime Ledger" sub="Cross-broker trade history and account P&L overview">
+            <LifetimeLedgerView />
           </PageShell>
         )
 

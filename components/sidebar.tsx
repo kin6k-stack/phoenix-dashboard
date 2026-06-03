@@ -1,8 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { Wallet, BookOpen,
+ useState, useEffect } from "react"
 import Image from "next/image"
-import {
+import { Wallet, BookOpen,
+
   LayoutDashboard, Calendar, BarChart3, History, Clock,
   Globe, Target, CandlestickChart, ChevronLeft,
   Settings, Wifi, Menu, X, PanelLeftOpen,
@@ -36,6 +38,12 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
     items: [
       { id: "pnl-calendar",   label: "P&L Calendar",   icon: Calendar },
       { id: "signal-history", label: "Execution Ledger", icon: History  },
+    ],
+  },
+  {
+    label: "LEDGER",
+    items: [
+      { id: "lifetime-ledger", label: "Lifetime Ledger", icon: Wallet },
     ],
   },
   {
