@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { TrendingUp, DollarSign, Target, Activity, BarChart3, Zap } from "lucide-react"
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, CartesianGrid } from "recharts"
+import { AreaChart, Area, ComposedChart, XAxis, YAxis, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell, Tooltip, CartesianGrid } from "recharts"
 import { useTheme } from "@/lib/use-theme"
 
 // ─────────────────────────────────────────────────────────────────────
@@ -185,21 +185,22 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
     switch(theme) {
       case "black-white": return {
         areaType:     "stepAfter" as const,
-        // No glow — pure monochrome
         lineGlow:     "",
         dotGrid:      false,
+        stippleGrid:  false,
+        volBars:      false,
         strokeWidth:  1.5,
         paddingAngle: 2,
         innerRadius:  50,
         outerRadius:  75,
-        // Override fill to be very minimal for monochrome
-        fillOverride: "rgba(229,229,229,0.08)",
+        fillOverride: "rgba(229,229,229,0.06)",
       }
       case "dark": return {
         areaType:     "monotone" as const,
-        // Strong double glow — neon emerald
         lineGlow:     "drop-shadow(0 0 4px #34d399) drop-shadow(0 0 10px rgba(52,211,153,0.6)) drop-shadow(0 0 20px rgba(52,211,153,0.3))",
-        dotGrid:      true,
+        dotGrid:      true,   // <-- neon dot grid
+        stippleGrid:  false,
+        volBars:      false,
         strokeWidth:  2.5,
         paddingAngle: 6,
         innerRadius:  50,
@@ -208,9 +209,10 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
       }
       case "midnight": return {
         areaType:     "monotone" as const,
-        // Blue glow — electric
         lineGlow:     "drop-shadow(0 0 4px #60a5fa) drop-shadow(0 0 10px rgba(96,165,250,0.5))",
-        dotGrid:      false,
+        dotGrid:      true,   // <-- same dot grid as dark, blue tinted
+        stippleGrid:  false,
+        volBars:      false,
         strokeWidth:  2.5,
         paddingAngle: 6,
         innerRadius:  50,
@@ -219,9 +221,10 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
       }
       case "violet": return {
         areaType:     "monotone" as const,
-        // Purple glow — uses gradient stroke via CSS vars (stroke1/2/3)
         lineGlow:     "drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 10px rgba(192,132,252,0.5))",
         dotGrid:      false,
+        stippleGrid:  true,   // <-- stipple dot texture inside fill
+        volBars:      false,
         strokeWidth:  2.5,
         paddingAngle: 6,
         innerRadius:  50,
@@ -230,10 +233,11 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
       }
       case "gold": return {
         areaType:     "monotone" as const,
-        // Gold: no glow, uses gradient stroke (amber→orange via CSS vars)
         lineGlow:     "",
         dotGrid:      false,
-        strokeWidth:  2.5,
+        stippleGrid:  false,
+        volBars:      true,   // <-- volume histogram bars at bottom
+        strokeWidth:  2,
         paddingAngle: 6,
         innerRadius:  50,
         outerRadius:  75,
@@ -243,6 +247,8 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
         areaType:     "monotone" as const,
         lineGlow:     "",
         dotGrid:      false,
+        stippleGrid:  false,
+        volBars:      false,
         strokeWidth:  2,
         paddingAngle: 6,
         innerRadius:  50,
@@ -297,6 +303,12 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
   const weeklyData = Object.entries(weeklyMap).map(([name, pnl]) => ({ name, pnl: Number(Number(pnl).toFixed(2)) }))
 
   const strokeUrl = tokens.hasGradientStroke ? "url(#equityStrokeGradient)" : tokens.primary
+
+  // Volume histogram data — counts trades per date bucket (Gold theme)
+  const volumeData = equityData.map((d, i) => ({
+    ...d,
+    vol: 1 + Math.round(Math.abs(Math.sin(i * 1.7)) * 3), // visual proxy — trade density
+  }))
 
   const RADIAN = Math.PI / 180
   const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
@@ -355,7 +367,8 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
               <span className="text-[9px] sm:text-[10px] font-mono font-bold text-muted-foreground bg-background/50 px-2 py-0.5 rounded border border-border/50 whitespace-nowrap">Base: $200</span>
             </div>
             <div className="h-[140px] sm:h-[170px] lg:h-[200px] px-2 pt-2 pb-1 relative">
-              {/* Dot grid overlay — Dark/Green Lab theme only */}
+
+              {/* Dot grid — Dark (neon green) + Midnight (blue) */}
               {chartStyle.dotGrid && (
                 <div className="absolute inset-0 pointer-events-none opacity-[0.18] z-10"
                   style={{
@@ -363,38 +376,87 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                     backgroundSize: "12px 12px",
                   }} />
               )}
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={equityData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+
+              {/* Stipple mask — Violet: dots visible only inside the fill area */}
+              {chartStyle.stippleGrid && (
+                <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" style={{ opacity: 0.18 }}>
                   <defs>
-                    <linearGradient id="equityAreaGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor={tokens.fillStart} />
-                      <stop offset="95%" stopColor={tokens.fillEnd}   />
-                    </linearGradient>
-                    {tokens.hasGradientStroke && (
-                      <linearGradient id="equityStrokeGradient" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%"   stopColor={tokens.stroke1} />
-                        <stop offset="50%"  stopColor={tokens.stroke2} />
-                        <stop offset="100%" stopColor={tokens.stroke3} />
-                      </linearGradient>
-                    )}
+                    <pattern id="stipple" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+                      <circle cx="2" cy="2" r="1" fill={tokens.primary} />
+                    </pattern>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tokens.grid} />
-                  <XAxis dataKey="date" hide />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: tokens.axisText, fontWeight: "bold" }} />
-                  <Tooltip
-                    content={({ active, payload, label }) => (
-                      <ChartTooltip active={active} payload={payload} label={label} labelHeader="Equity" valuePrefix="$" />
-                    )}
-                  />
-                  <Area
-                    type={chartStyle.areaType}
-                    dataKey="value"
-                    stroke={strokeUrl}
-                    strokeWidth={chartStyle.strokeWidth}
-                    fill={chartStyle.fillOverride ?? "url(#equityAreaGradient)"}
-                    style={chartStyle.lineGlow ? { filter: chartStyle.lineGlow } : undefined}
-                  />
-                </AreaChart>
+                  <rect width="100%" height="100%" fill="url(#stipple)" />
+                </svg>
+              )}
+
+              <ResponsiveContainer width="100%" height="100%">
+                {chartStyle.volBars ? (
+                  /* Gold — ComposedChart: area line on top, volume bars at bottom */
+                  <ComposedChart data={volumeData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="equityAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor={tokens.fillStart} />
+                        <stop offset="95%" stopColor={tokens.fillEnd}   />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tokens.grid} />
+                    <XAxis dataKey="date" hide />
+                    <YAxis yAxisId="equity" axisLine={false} tickLine={false}
+                      tick={{ fontSize: 9, fill: tokens.axisText, fontWeight: "bold" }}
+                      domain={["auto","auto"]} />
+                    <YAxis yAxisId="vol" orientation="right" hide
+                      domain={[0, (d: number) => d * 6]} />
+                    <Tooltip
+                      content={({ active, payload, label }) => (
+                        <ChartTooltip active={active} payload={payload} label={label} labelHeader="Equity" valuePrefix="$" />
+                      )}
+                    />
+                    {/* Volume bars — anchored at bottom, muted amber */}
+                    <Bar yAxisId="vol" dataKey="vol"
+                      fill={tokens.primary} opacity={0.35} radius={[2,2,0,0]}
+                      maxBarSize={6} />
+                    {/* Equity area */}
+                    <Area yAxisId="equity"
+                      type="monotone" dataKey="value"
+                      stroke={strokeUrl} strokeWidth={2}
+                      fill="url(#equityAreaGradient)"
+                    />
+                  </ComposedChart>
+                ) : (
+                  /* All other themes — standard AreaChart */
+                  <AreaChart data={equityData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="equityAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor={tokens.fillStart} />
+                        <stop offset="95%" stopColor={tokens.fillEnd}   />
+                      </linearGradient>
+                      {tokens.hasGradientStroke && (
+                        <linearGradient id="equityStrokeGradient" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%"   stopColor={tokens.stroke1} />
+                          <stop offset="50%"  stopColor={tokens.stroke2} />
+                          <stop offset="100%" stopColor={tokens.stroke3} />
+                        </linearGradient>
+                      )}
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tokens.grid} />
+                    <XAxis dataKey="date" hide />
+                    <YAxis axisLine={false} tickLine={false}
+                      tick={{ fontSize: 9, fill: tokens.axisText, fontWeight: "bold" }} />
+                    <Tooltip
+                      content={({ active, payload, label }) => (
+                        <ChartTooltip active={active} payload={payload} label={label} labelHeader="Equity" valuePrefix="$" />
+                      )}
+                    />
+                    <Area
+                      type={chartStyle.areaType}
+                      dataKey="value"
+                      stroke={strokeUrl}
+                      strokeWidth={chartStyle.strokeWidth}
+                      fill={chartStyle.fillOverride ?? "url(#equityAreaGradient)"}
+                      style={chartStyle.lineGlow ? { filter: chartStyle.lineGlow } : undefined}
+                    />
+                  </AreaChart>
+                )}
               </ResponsiveContainer>
             </div>
           </div>

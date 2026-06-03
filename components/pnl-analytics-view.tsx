@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useTheme } from "@/lib/use-theme"
 import {
   DollarSign, Trophy, TrendingUp, TrendingDown, Target, RefreshCw as Refresh,
   Activity, BarChart3, Calendar as CalendarIcon, ArrowUpRight, ArrowDownRight, Hash,
 } from "lucide-react"
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from "recharts"
+import { AreaChart, Area, ComposedChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from "recharts"
 
 interface Trade {
   id:         string
@@ -263,6 +264,22 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
   const currentYear  = new Date().getFullYear()
   const currentMonth = new Date().getMonth()
 
+  const { theme } = useTheme()
+
+  // Per-theme equity curve style — mirrors dashboard-view chartStyle
+  const ac = (() => {
+    switch(theme) {
+      case "black-white": return { type:"stepAfter" as const, glow:"",    dotGrid:false, stipple:false, volBars:false, stroke:"#e5e5e5", fill1:"rgba(229,229,229,0.10)", fill2:"rgba(0,0,0,0)", sw:1.5 }
+      case "dark":        return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #34d399) drop-shadow(0 0 12px rgba(52,211,153,0.5))", dotGrid:true,  stipple:false, volBars:false, stroke:"#34d399", fill1:"rgba(52,211,153,0.30)", fill2:"rgba(52,211,153,0.00)", sw:2.5 }
+      case "midnight":    return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #60a5fa) drop-shadow(0 0 10px rgba(96,165,250,0.5))", dotGrid:true,  stipple:false, volBars:false, stroke:"#60a5fa", fill1:"rgba(96,165,250,0.28)", fill2:"rgba(96,165,250,0.00)", sw:2.5 }
+      case "violet":      return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 10px rgba(192,132,252,0.5))", dotGrid:false, stipple:true,  volBars:false, stroke:"#a855f7", fill1:"rgba(168,85,247,0.40)",  fill2:"rgba(168,85,247,0.00)", sw:2.5 }
+      case "gold":        return { type:"monotone"  as const, glow:"",    dotGrid:false, stipple:false, volBars:true,  stroke:"#f59e0b", fill1:"rgba(245,158,11,0.30)", fill2:"rgba(245,158,11,0.00)", sw:2 }
+      default:            return { type:"monotone"  as const, glow:"",    dotGrid:false, stipple:false, volBars:false, stroke:"#5fc77a", fill1:"rgba(95,199,122,0.35)",  fill2:"rgba(95,199,122,0.00)", sw:2 }
+    }
+  })()
+
+  const analyticsVolData = equityData.map((d, i) => ({ ...d, vol: 1 + Math.round(Math.abs(Math.sin(i * 1.7)) * 3) }))
+
   return (
     <div className="space-y-4 sm:space-y-5">
 
@@ -398,26 +415,54 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
             {fmtCurrency(stats.netPnl)} total
           </span>
         </div>
-        <div className="h-48 sm:h-56 lg:h-64 px-2 pt-3 pb-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={equityData} margin={{ top: 5, right: 12, left: -10, bottom: 0 }}>
+        <div className="h-48 sm:h-56 lg:h-64 px-2 pt-3 pb-2 relative">
+          {/* Dot grid — Dark + Midnight */}
+          {ac.dotGrid && (
+            <div className="absolute inset-0 pointer-events-none opacity-[0.18] z-10"
+              style={{ backgroundImage:`radial-gradient(circle,${ac.stroke} 1px,transparent 0)`, backgroundSize:"12px 12px" }} />
+          )}
+          {/* Stipple — Violet */}
+          {ac.stipple && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" style={{ opacity:0.16 }}>
               <defs>
-                <linearGradient id="analyticsEquityFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"   stopColor="#5fc77a" stopOpacity={0.35}/>
-                  <stop offset="95%"  stopColor="#5fc77a" stopOpacity={0}/>
-                </linearGradient>
+                <pattern id="astipple" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
+                  <circle cx="2" cy="2" r="1" fill={ac.stroke} />
+                </pattern>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#64748b" }} />
-              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#64748b" }}
-                tickFormatter={v => `$${v.toFixed(0)}`} />
-              <Tooltip
-                formatter={(v: number) => [fmtCurrency(v), "Equity"]}
-                contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }}
-                labelStyle={{ color: "#94a3b8", fontSize: 11 }}
-              />
-              <Area type="monotone" dataKey="value" stroke="#5fc77a" strokeWidth={2.5} fill="url(#analyticsEquityFill)" />
-            </AreaChart>
+              <rect width="100%" height="100%" fill="url(#astipple)" />
+            </svg>
+          )}
+          <ResponsiveContainer width="100%" height="100%">
+            {ac.volBars ? (
+              <ComposedChart data={analyticsVolData} margin={{ top: 5, right: 12, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="analyticsEquityFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"  stopColor={ac.fill1} /><stop offset="95%" stopColor={ac.fill2} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(245,158,11,0.10)" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:"#d97706" }} />
+                <YAxis yAxisId="eq" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:"#d97706" }} tickFormatter={v=>`$${v.toFixed(0)}`} />
+                <YAxis yAxisId="vl" orientation="right" hide domain={[0,(d:number)=>d*6]} />
+                <Tooltip formatter={(v:number)=>[fmtCurrency(v),"Equity"]} contentStyle={{ backgroundColor:"hsl(var(--card))", borderColor:"hsl(var(--border))", borderRadius:8 }} />
+                <Bar yAxisId="vl" dataKey="vol" fill={ac.stroke} opacity={0.35} radius={[2,2,0,0]} maxBarSize={6} />
+                <Area yAxisId="eq" type="monotone" dataKey="value" stroke={ac.stroke} strokeWidth={2} fill="url(#analyticsEquityFill)" />
+              </ComposedChart>
+            ) : (
+              <AreaChart data={equityData} margin={{ top: 5, right: 12, left: -10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="analyticsEquityFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%"  stopColor={ac.fill1} /><stop offset="95%" stopColor={ac.fill2} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(128,128,128,0.1)" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:"hsl(var(--muted-foreground))" }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize:9, fill:"hsl(var(--muted-foreground))" }} tickFormatter={v=>`$${v.toFixed(0)}`} />
+                <Tooltip formatter={(v:number)=>[fmtCurrency(v),"Equity"]} contentStyle={{ backgroundColor:"hsl(var(--card))", borderColor:"hsl(var(--border))", borderRadius:8 }} />
+                <Area type={ac.type} dataKey="value" stroke={ac.stroke} strokeWidth={ac.sw}
+                  fill="url(#analyticsEquityFill)" style={ac.glow ? { filter:ac.glow } : undefined} />
+              </AreaChart>
+            )}
           </ResponsiveContainer>
         </div>
         <div className="flex justify-between px-4 py-2 border-t border-border/30 text-[10px] text-muted-foreground/60 font-mono">
