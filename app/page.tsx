@@ -19,6 +19,7 @@ import { DashboardView } from "@/components/dashboard-view"
 import { SignalHistoryView } from "@/components/signal-history"
 import LifetimeLedgerView from "@/components/lifetime-ledger-view"
 import BotHubView from "@/components/bot-hub-view"
+import { AccountFilterBar } from "@/components/account-filter-bar"
 import { EconomicCalendar } from "@/components/economic-calendar"
 import { MarketBiasView } from "@/components/market-bias-view"
 import { PnLHeader } from "@/components/pnl-header"
@@ -67,6 +68,8 @@ export default function TradingDashboard() {
   const [copyDraft,         setCopyDraft]         = useState<Partial<Trade> | null>(null)  // Pass G: bot trade copy-to-journal pre-fill
   const [trades,            setTrades]            = useState<Trade[]>([])      // USER's manual trades
   const [botTrades,         setBotTrades]         = useState<Trade[]>([])      // SHARED bot demo feed
+  const [accounts,          setAccounts]          = useState<{id:string; accountName:string; color:string; broker:string}[]>([])
+  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
   const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")
   const [symbolFilter,      setSymbolFilter]      = useState<string>("ALL")        // Pass F2: PnL symbol filter
@@ -215,6 +218,18 @@ export default function TradingDashboard() {
     })
   }, [user])
 
+  // Listener 3: registered trading accounts (for account filter bar)
+  useEffect(() => {
+    if (!user) return
+    const qAcc = query(
+      collection(db, "accounts"),
+      where("userId", "==", user.uid)
+    )
+    return onSnapshot(qAcc, snap => {
+      setAccounts(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })))
+    })
+  }, [user])
+
   useEffect(() => {
     if (selectedDate) { setEditingTrade(null); setIsAddTradeOpen(true) }
   }, [selectedDate])
@@ -248,10 +263,15 @@ export default function TradingDashboard() {
   // Applied BEFORE the month filter so calendar/analytics/yearly-table
   // all respect the user's selected symbol. "ALL" passes everything through.
   // Symbol comparison is case-insensitive and ignores broker suffixes (e.g. "XAUUSDm" → "XAUUSD").
+  // Account filter — null = show all (default)
+  const accountFilteredTrades = selectedAccountId
+    ? trades.filter(t => (t as any).accountId === selectedAccountId)
+    : trades
+
   const symbolFilteredTrades = symbolFilter === "ALL"
-    ? trades
-    : trades.filter(t => {
-        const normalized = (t.symbol || "").toUpperCase().replace(/M$/, "")  // strip trailing 'm' broker suffix
+    ? accountFilteredTrades
+    : accountFilteredTrades.filter(t => {
+        const normalized = (t.symbol || "").toUpperCase().replace(/M$/, "")
         return normalized === symbolFilter.toUpperCase()
       })
 
@@ -306,7 +326,16 @@ export default function TradingDashboard() {
               {pnlView === "calendar" ? (
                 <>
                   {/* anchor target for "View in Calendar" scroll-to-section */}
-                  <div id="pnl-calendar-section" className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 xl:auto-rows-min">
+                  {/* Account filter bar — only shown when accounts are registered */}
+              {accounts.length > 0 && (
+                <AccountFilterBar
+                  accounts={accounts}
+                  selectedAccountId={selectedAccountId}
+                  onSelect={setSelectedAccountId}
+                />
+              )}
+
+              <div id="pnl-calendar-section" className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 xl:auto-rows-min">
                     <div className="min-w-0">
                       <TradingCalendar
                         selectedDate={selectedDate}
@@ -338,6 +367,13 @@ export default function TradingDashboard() {
                   <YearlyPerformanceTable trades={symbolFilteredTrades} />
                 </>
               ) : (
+                {accounts.length > 0 && (
+                  <AccountFilterBar
+                    accounts={accounts}
+                    selectedAccountId={selectedAccountId}
+                    onSelect={setSelectedAccountId}
+                  />
+                )}
                 <PnLAnalyticsView trades={symbolFilteredTrades} />
               )}
             </div>
