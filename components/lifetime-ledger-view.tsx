@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
-import { useAuth } from "@/lib/use-auth"
+import { useAuth } from "@/lib/auth-context"
 import { Plus, Trash2, Edit2, TrendingUp, TrendingDown, Wallet, BarChart2, ChevronRight, X, Check, Building2, RefreshCw } from "lucide-react"
 
 // ─── Types ────────────────────────────────────────────────────────────────────

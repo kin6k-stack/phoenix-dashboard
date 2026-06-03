@@ -1,13 +1,11 @@
 "use client"
 
-import { Wallet, BookOpen,
- useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
-import { Wallet, BookOpen,
-
+import {
   LayoutDashboard, Calendar, BarChart3, History, Clock,
   Globe, Target, CandlestickChart, ChevronLeft,
-  Settings, Wifi, Menu, X, PanelLeftOpen,
+  Settings, Wifi, Menu, X, PanelLeftOpen, Wallet,
 } from "lucide-react"
 
 interface NavItem {
