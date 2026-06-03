@@ -35,11 +35,16 @@ export function YearlyPerformanceTable({ trades = [] }: { trades: Trade[] }) {
     return m
   }, [trades])
 
-  // Pass L: Single row showing whichever year is active. Tabs at top
-  // are the year selector. Frees up vertical space — empty future-year
-  // rows were just visual clutter.
+  // Year tabs: show any year that has trades + current year + next 2
+  // Ensures past years (e.g. 2025) always appear if trades exist there
   const yearsToShow = [activeYear]
-  const yearTabs    = [currentYear, currentYear + 1, currentYear + 2]
+  const tradeYears  = Object.keys(matrix).map(Number)
+  const yearTabs    = [...new Set([
+    ...tradeYears,
+    currentYear,
+    currentYear + 1,
+    currentYear + 2,
+  ])].sort((a, b) => a - b)
 
   const fmt = (n: number) => {
     if (n === 0) return "—"

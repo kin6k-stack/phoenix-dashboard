@@ -89,14 +89,14 @@ const BROKER_FORMATS: Record<string, {
       const rawSymbol  = (row["symbol"] || "UNKNOWN").replace(/Open$/i,"").toUpperCase()
       const type       = (row["type"] || "buy").toUpperCase()
 
-      // Parse date: "07:58 pm 05/11/2025" → ISO string
+      // Parse date: "07:58 pm 31/10/2025" → ISO string
+      // FORMAT IS DD/MM/YYYY — proven by day values up to 31
       const parseDate = (raw: string): string => {
         if(!raw) return new Date().toISOString()
         try {
-          // Format: "HH:MM am/pm MM/DD/YYYY"
           const match = raw.match(/(\d+):(\d+)\s*(am|pm)\s+(\d+)\/(\d+)\/(\d+)/i)
           if(match) {
-            let [,hh,mm,ampm,mo,dd,yy] = match
+            let [,hh,mm,ampm,dd,mo,yy] = match  // DD/MM/YYYY order
             let hours = parseInt(hh)
             if(ampm.toLowerCase()==="pm" && hours<12) hours+=12
             if(ampm.toLowerCase()==="am" && hours===12) hours=0
