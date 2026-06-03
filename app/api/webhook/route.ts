@@ -231,6 +231,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, action: 'signal_closed', profit })
     }
 
+    // ── MANUAL_TRADE → write to trades/{ticket} (personal P&L calendar) ─────
+    if (status === 'MANUAL_TRADE') {
+      const profit     = parseFloat(String(data.profit    ?? 0)) || 0
+      const openPrice  = parseFloat(String(data.openPrice ?? 0)) || 0
+      const closePrice = parseFloat(String(data.closePrice ?? 0)) || 0
+      const lots       = parseFloat(String(data.lots      ?? 0)) || 0
+      const userId     = String(data.userId || '')
+      const openedAt   = data.openedAt   ? new Date(String(data.openedAt))  : new Date()
+      const closedAt   = data.closedAt   ? new Date(String(data.closedAt))  : new Date()
+      const setup      = String(data.setup  || 'Live Trade')
+      const source     = String(data.source || 'MT5 Auto-Sync')
+      const notes      = String(data.notes  || '')
+
+      if (!userId) {
+        console.warn('[WEBHOOK v5.1] MANUAL_TRADE missing userId')
+        return NextResponse.json({ received: true, note: 'missing userId' }, { status: 200 })
+      }
+
+      await firestorePatch('trades', ticket, {
+        userId,
+        symbol,
+        direction,
+        rMultiple:  profit,
+        profit,
+        setup,
+        source,
+        date:       closedAt,
+        timestamp:  closedAt,
+        closedAt,
+        openedAt,
+        lots,
+        lot:        lots,
+        openPrice,
+        closePrice,
+        ticket,
+        notes,
+      })
+
+      console.log(`[WEBHOOK v5.1] 📝 MANUAL: ${userId} | ${symbol} | $${profit} | #${ticket}`)
+      return NextResponse.json({ success: true, action: 'manual_trade_written' })
+    }
+
     return NextResponse.json({ received: true, note: `Unknown status: ${status}` }, { status: 200 })
 
   } catch (err: unknown) {
