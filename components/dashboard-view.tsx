@@ -223,13 +223,13 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
         areaType:     "monotone" as const,
         lineGlow:     "drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 10px rgba(192,132,252,0.5))",
         dotGrid:      false,
-        stippleGrid:  true,   // <-- stipple dot texture inside fill
+        stippleGrid:  false,  // handled via SVG pattern fill — clips to curve shape
         volBars:      false,
         strokeWidth:  2.5,
         paddingAngle: 6,
         innerRadius:  50,
         outerRadius:  75,
-        fillOverride: null,
+        fillOverride: "url(#violetStipple)",  // pattern fill = dots only inside area
       }
       case "gold": return {
         areaType:     "monotone" as const,
@@ -437,6 +437,11 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
                           <stop offset="100%" stopColor={tokens.stroke3} />
                         </linearGradient>
                       )}
+                      {/* Violet stipple — pattern fill clips naturally to curve shape */}
+                      <pattern id="violetStipple" x="0" y="0" width="9" height="9" patternUnits="userSpaceOnUse">
+                        <rect width="9" height="9" fill="rgba(168,85,247,0.18)" />
+                        <circle cx="2" cy="2" r="0.9" fill="rgba(192,132,252,0.70)" />
+                      </pattern>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tokens.grid} />
                     <XAxis dataKey="date" hide />

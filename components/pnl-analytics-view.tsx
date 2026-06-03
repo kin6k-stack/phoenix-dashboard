@@ -272,7 +272,7 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
       case "black-white": return { type:"stepAfter" as const, glow:"",    dotGrid:false, stipple:false, volBars:false, stroke:"#e5e5e5", fill1:"rgba(229,229,229,0.10)", fill2:"rgba(0,0,0,0)", sw:1.5 }
       case "dark":        return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #34d399) drop-shadow(0 0 12px rgba(52,211,153,0.5))", dotGrid:true,  stipple:false, volBars:false, stroke:"#34d399", fill1:"rgba(52,211,153,0.30)", fill2:"rgba(52,211,153,0.00)", sw:2.5 }
       case "midnight":    return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #60a5fa) drop-shadow(0 0 10px rgba(96,165,250,0.5))", dotGrid:true,  stipple:false, volBars:false, stroke:"#60a5fa", fill1:"rgba(96,165,250,0.28)", fill2:"rgba(96,165,250,0.00)", sw:2.5 }
-      case "violet":      return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 10px rgba(192,132,252,0.5))", dotGrid:false, stipple:true,  volBars:false, stroke:"#a855f7", fill1:"rgba(168,85,247,0.40)",  fill2:"rgba(168,85,247,0.00)", sw:2.5 }
+      case "violet":      return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 10px rgba(192,132,252,0.5))", dotGrid:false, stipple:false, volBars:false, stroke:"#a855f7", fill1:"url(#aVioletStipple)",        fill2:"rgba(168,85,247,0.00)", sw:2.5 }
       case "gold":        return { type:"monotone"  as const, glow:"",    dotGrid:false, stipple:false, volBars:true,  stroke:"#f59e0b", fill1:"rgba(245,158,11,0.30)", fill2:"rgba(245,158,11,0.00)", sw:2 }
       default:            return { type:"monotone"  as const, glow:"",    dotGrid:false, stipple:false, volBars:false, stroke:"#5fc77a", fill1:"rgba(95,199,122,0.35)",  fill2:"rgba(95,199,122,0.00)", sw:2 }
     }
@@ -421,17 +421,7 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
             <div className="absolute inset-0 pointer-events-none opacity-[0.18] z-10"
               style={{ backgroundImage:`radial-gradient(circle,${ac.stroke} 1px,transparent 0)`, backgroundSize:"12px 12px" }} />
           )}
-          {/* Stipple — Violet */}
-          {ac.stipple && (
-            <svg className="absolute inset-0 w-full h-full pointer-events-none z-10" style={{ opacity:0.16 }}>
-              <defs>
-                <pattern id="astipple" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
-                  <circle cx="2" cy="2" r="1" fill={ac.stroke} />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#astipple)" />
-            </svg>
-          )}
+
           <ResponsiveContainer width="100%" height="100%">
             {ac.volBars ? (
               <ComposedChart data={analyticsVolData} margin={{ top: 5, right: 12, left: -10, bottom: 0 }}>
@@ -454,6 +444,10 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
                   <linearGradient id="analyticsEquityFill" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"  stopColor={ac.fill1} /><stop offset="95%" stopColor={ac.fill2} />
                   </linearGradient>
+                  <pattern id="aVioletStipple" x="0" y="0" width="9" height="9" patternUnits="userSpaceOnUse">
+                    <rect width="9" height="9" fill="rgba(168,85,247,0.18)" />
+                    <circle cx="2" cy="2" r="0.9" fill="rgba(192,132,252,0.70)" />
+                  </pattern>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(128,128,128,0.1)" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:"hsl(var(--muted-foreground))" }} />
