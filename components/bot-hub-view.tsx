@@ -237,6 +237,16 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
 
   // Load existing remote config on mount
   const { user } = useAuth()
+  const [isOwner, setIsOwner] = useState(false)
+
+  // Check if current user is the Phoenix owner
+  useEffect(() => {
+    if(!user) return
+    getDoc(doc(db, "allowedUsers", user.uid)).then(snap => {
+      setIsOwner(snap.exists() && snap.data()?.isPhoenixOwner === true)
+    })
+  }, [user])
+
   useEffect(() => {
     if(!user) return
     getDoc(doc(db, "botConfig", String(bot.magic))).then(snap => {
@@ -312,7 +322,7 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
     { id:"overview",  label:"Overview"   },
     { id:"signals",   label:"Signals"    },
     { id:"trades",    label:"All Trades" },
-    { id:"config",    label:"Config"     },
+    ...(isOwner ? [{ id:"config", label:"Config" }] : []),
     { id:"changelog", label:"Changelog"  },
   ]
 
@@ -559,8 +569,8 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
           </div>
         )}
 
-        {/* ── CONFIG ── */}
-        {tab === "config" && (
+        {/* ── CONFIG — owner only ── */}
+        {tab === "config" && isOwner && (
           <div className="space-y-4">
 
             {/* Header + Edit button */}
