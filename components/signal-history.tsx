@@ -15,7 +15,7 @@ interface Trade {
 }
 
 type PeriodFilter = "24h" | "7d" | "30d" | "all"
-type SourceTab   = "bots" | "manual"
+type SourceTab   = "manual"
 
 const PERIODS: { id: PeriodFilter; label: string; days: number | null }[] = [
   { id: "24h", label: "24h",      days: 1   },
@@ -123,7 +123,7 @@ function SignalCard({
         </p>
 
         {/* Copy-to-Journal — only shown on bot signals */}
-        {source === "bots" && onCopyToJournal && (
+        {false && onCopyToJournal && ( // copy-to-journal moved to Bot Hub
           <button
             type="button"
             onClick={() => onCopyToJournal(trade)}
@@ -152,12 +152,12 @@ export function SignalHistoryView({
   botTrades = [],
   onCopyToJournal,
 }: ExecutionLedgerViewProps) {
-  const [tab,           setTab]           = useState<SourceTab>("bots")
+  const [tab,           setTab]           = useState<SourceTab>("manual")
   const [symbolFilter,  setSymbolFilter]  = useState<string>("All")
   const [periodFilter,  setPeriodFilter]  = useState<PeriodFilter>("30d")
 
   // The active dataset depends on which tab is selected
-  const activeSet = tab === "bots" ? botTrades : trades
+  const activeSet = trades  // Bot signals moved to Bot Hub
 
   // Available symbols are derived from the active dataset (avoids showing
   // bot-only symbols on the Manual tab and vice versa)
@@ -223,8 +223,7 @@ export function SignalHistoryView({
       {/* ── Source tabs: Bots / Manual ───────────────────────────────── */}
       <div className="flex items-center bg-background/50 border border-border/40 rounded-lg p-0.5 w-fit">
         {([
-          { id: "bots",   label: "Bots",   icon: Bot,  count: botTrades.length },
-          { id: "manual", label: "Manual", icon: User, count: trades.length    },
+{ id: "manual", label: "Manual", icon: User, count: trades.length    },
         ] as const).map(t => {
           const Icon = t.icon
           const isActive = tab === t.id
@@ -302,9 +301,9 @@ export function SignalHistoryView({
         />
         <StatCard
           label="Source"
-          value={tab === "bots" ? "BOT" : "USER"}
-          sub={tab === "bots" ? "Engine telemetry feed" : "Your manual entries"}
-          valueColor={tab === "bots" ? "text-primary" : "text-amber-400"}
+          value="USER"
+          sub="Your manual entries"
+          valueColor="text-amber-400"
         />
       </div>
 
@@ -329,9 +328,9 @@ export function SignalHistoryView({
       {/* ── Recent executions list ──────────────────────────────────── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          {tab === "bots" ? <Bot className="h-3.5 w-3.5 text-muted-foreground" /> : <Activity className="h-3.5 w-3.5 text-muted-foreground" />}
+          <Activity className="h-3.5 w-3.5 text-muted-foreground" />
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            {tab === "bots" ? "Bot Executions" : "Manual Entries"}
+            Manual Entries
             {visibleTrades.length > 0 && <span className="text-muted-foreground/60"> · {visibleTrades.length} shown</span>}
           </p>
         </div>
@@ -340,12 +339,10 @@ export function SignalHistoryView({
           <div className="bg-card/40 border border-border/40 rounded-xl p-8 text-center">
             <Info className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">
-              No {tab === "bots" ? "bot executions" : "manual entries"} logged in this period
+              No manual entries logged in this period
             </p>
             <p className="text-xs text-muted-foreground/70 mt-1">
-              {tab === "bots"
-                ? "Bot trades will appear here as engines fire and close positions."
-                : "Use Log Trade in the PnL Calendar to add manual entries."}
+              "Use Log Trade in the PnL Calendar to add manual entries."
             </p>
           </div>
         ) : (

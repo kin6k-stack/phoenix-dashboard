@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { collection, onSnapshot, query, where, orderBy } from "firebase/firestore"
+import { collection, onSnapshot, query, where } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useTheme } from "@/lib/use-theme"
 import {
@@ -243,10 +243,11 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
   }, [trades])
 
   const TABS = [
-    { id:"overview",  label:"Overview"  },
-    { id:"trades",    label:"Trades"    },
-    { id:"config",    label:"Config"    },
-    { id:"changelog", label:"Changelog" },
+    { id:"overview",  label:"Overview"   },
+    { id:"signals",   label:"Signals"    },
+    { id:"trades",    label:"All Trades" },
+    { id:"config",    label:"Config"     },
+    { id:"changelog", label:"Changelog"  },
   ]
 
   return (
@@ -354,6 +355,75 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
                     style={{ width:`${wr}%`, background:bot.color, boxShadow:`0 0 8px ${bot.glow}` }} />
                 </div>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* ── SIGNALS — mirrors Execution Ledger bots tab ── */}
+        {tab === "signals" && (
+          <div className="space-y-3">
+            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">
+              Recent Signals — {bot.name} · Last 30 entries
+            </p>
+            <div className="rounded-xl border border-white/6 overflow-hidden">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    {["Time","Symbol","Dir","Entry","SL","TP1","Lot","P&L","Status"].map(h => (
+                      <th key={h} className="px-3 py-2 text-left text-[9px] font-bold uppercase tracking-widest text-white/20">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...trades]
+                    .sort((a,b) => {
+                      const ta = a.closedAt?.toDate ? a.closedAt.toDate() : new Date(a.closedAt||0)
+                      const tb = b.closedAt?.toDate ? b.closedAt.toDate() : new Date(b.closedAt||0)
+                      return tb.getTime() - ta.getTime()
+                    })
+                    .slice(0, 30)
+                    .map(t => {
+                      const d = t.closedAt?.toDate ? t.closedAt.toDate() : new Date(t.closedAt||0)
+                      const isOpen = t.status === "OPEN"
+                      const pos    = t.profit >= 0
+                      return (
+                        <tr key={t.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                          <td className="px-3 py-2 text-[10px] font-mono text-white/30">
+                            {isOpen ? <span className="animate-pulse" style={{color:bot.color}}>LIVE</span>
+                                    : d.toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
+                          </td>
+                          <td className="px-3 py-2 text-[10px] font-bold text-white">{t.symbol}</td>
+                          <td className="px-3 py-2">
+                            <span className="text-[9px] font-black px-1.5 py-0.5 rounded"
+                              style={{
+                                background: t.direction==="BUY"?"rgba(52,211,153,0.15)":"rgba(248,113,113,0.15)",
+                                color:      t.direction==="BUY"?"#34d399":"#f87171"
+                              }}>{t.direction}</span>
+                          </td>
+                          <td className="px-3 py-2 text-[10px] font-mono text-white/50">{t.entryPrice>0?t.entryPrice.toFixed(2):"—"}</td>
+                          <td className="px-3 py-2 text-[10px] font-mono text-rose-400/60">{t.sl>0?t.sl.toFixed(2):"—"}</td>
+                          <td className="px-3 py-2 text-[10px] font-mono" style={{color:`${bot.color}80`}}>{t.tp1>0?t.tp1.toFixed(2):"—"}</td>
+                          <td className="px-3 py-2 text-[10px] font-mono text-white/40">{t.lot>0?t.lot.toFixed(2):"—"}</td>
+                          <td className="px-3 py-2 text-[10px] font-black"
+                            style={{ color: isOpen?"rgba(255,255,255,0.3)": pos ? bot.color : "#f87171" }}>
+                            {isOpen ? "—" : `${pos?"+":""}$${t.profit.toFixed(2)}`}
+                          </td>
+                          <td className="px-3 py-2">
+                            {isOpen
+                              ? <span className="text-[9px] font-black px-1.5 py-0.5 rounded animate-pulse"
+                                  style={{background:`${bot.color}20`,color:bot.color}}>OPEN</span>
+                              : pos
+                                ? <CheckCircle2 size={12} style={{color:bot.color}} />
+                                : <XCircle size={12} className="text-rose-400" />}
+                          </td>
+                        </tr>
+                      )
+                    })}
+                </tbody>
+              </table>
+            </div>
+            {trades.length === 0 && (
+              <p className="text-center text-white/20 text-sm py-8">No signals recorded yet</p>
             )}
           </div>
         )}
@@ -501,10 +571,11 @@ export default function BotHubView() {
     const unsubs: (() => void)[] = []
     for(const b of BOTS) {
       setBotStats(prev => ({ ...prev, [b.id]: { trades:[], loaded:false } }))
+      // No orderBy — avoids requiring composite Firestore index.
+      // Sorting is done client-side after fetch.
       const q = query(
         collection(db, "botTrades"),
-        where("bot", "==", b.firestore),
-        orderBy("closedAt", "desc")
+        where("bot", "==", b.firestore)
       )
       const unsub = onSnapshot(q, snap => {
         const trades = snap.docs.map(d => {
