@@ -18,6 +18,7 @@ import { PerformanceView } from "@/components/performance-view"
 import { DashboardView } from "@/components/dashboard-view"
 import { SignalHistoryView } from "@/components/signal-history"
 import LifetimeLedgerView from "@/components/lifetime-ledger-view"
+import BotHubView from "@/components/bot-hub-view"
 import { EconomicCalendar } from "@/components/economic-calendar"
 import { MarketBiasView } from "@/components/market-bias-view"
 import { PnLHeader } from "@/components/pnl-header"
@@ -380,6 +381,13 @@ export default function TradingDashboard() {
         return (
           <PageShell title="Lifetime Ledger" sub="Cross-broker trade history and account P&L overview">
             <LifetimeLedgerView />
+          </PageShell>
+        )
+
+      case "bot-hub":
+        return (
+          <PageShell title="Bot Hub" sub="Live performance and version history for all deployed engines">
+            <BotHubView />
           </PageShell>
         )
 

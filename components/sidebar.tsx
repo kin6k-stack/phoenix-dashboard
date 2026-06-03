@@ -5,7 +5,7 @@ import Image from "next/image"
 import {
   LayoutDashboard, Calendar, BarChart3, History, Clock,
   Globe, Target, CandlestickChart, ChevronLeft,
-  Settings, Wifi, Menu, X, PanelLeftOpen, Wallet,
+  Settings, Wifi, Menu, X, PanelLeftOpen, Wallet, Bot,
 } from "lucide-react"
 
 interface NavItem {
@@ -42,6 +42,7 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
     label: "LEDGER",
     items: [
       { id: "lifetime-ledger", label: "Lifetime Ledger", icon: Wallet },
+      { id: "bot-hub",         label: "Bot Hub",         icon: Bot    },
     ],
   },
   {
