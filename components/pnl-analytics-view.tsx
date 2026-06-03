@@ -430,9 +430,9 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
                     <stop offset="0%"  stopColor={ac.fill1} /><stop offset="95%" stopColor={ac.fill2} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(245,158,11,0.10)" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:"#d97706" }} />
-                <YAxis yAxisId="eq" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:"#d97706" }} tickFormatter={v=>`$${v.toFixed(0)}`} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={`${ac.stroke}22`} />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:"hsl(var(--muted-foreground))" }} />
+                <YAxis yAxisId="eq" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:"hsl(var(--muted-foreground))" }} tickFormatter={v=>`$${v.toFixed(0)}`} />
                 <YAxis yAxisId="vl" orientation="right" hide domain={[0,(d:number)=>d*6]} />
                 <Tooltip formatter={(v:number)=>[fmtCurrency(v),"Equity"]} contentStyle={{ backgroundColor:"hsl(var(--card))", borderColor:"hsl(var(--border))", borderRadius:8 }} />
                 <Bar yAxisId="vl" dataKey="vol" fill={ac.stroke} opacity={0.35} radius={[2,2,0,0]} maxBarSize={6} />
