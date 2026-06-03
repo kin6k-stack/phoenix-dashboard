@@ -164,27 +164,37 @@ export default function TradingDashboard() {
     })
   }, [user])
 
-  // Listener 2: shared bot trades (read-only demo feed)
+  // Listener 2: shared bot trades (read-only signal feed)
+  // orderBy closedAt — webhook v5.1 writes closedAt, not timestamp
   useEffect(() => {
     if (!user) return
-    const q = query(collection(db, "botTrades"), orderBy("timestamp", "desc"))
+    const q = query(collection(db, "botTrades"), orderBy("closedAt", "desc"))
     return onSnapshot(q, (snapshot) => {
       setBotTrades(snapshot.docs.map(d => {
         const data = d.data()
+        // Date resolution — v5.1 writes closedAt/openedAt, legacy writes timestamp/date
         let tradeDate = new Date().toISOString()
-        if (data.timestamp?.toDate)       tradeDate = data.timestamp.toDate().toISOString()
+        if      (data.closedAt?.toDate)   tradeDate = data.closedAt.toDate().toISOString()
+        else if (data.openedAt?.toDate)   tradeDate = data.openedAt.toDate().toISOString()
+        else if (data.timestamp?.toDate)  tradeDate = data.timestamp.toDate().toISOString()
         else if (data.date)               tradeDate = new Date(data.date).toISOString()
         const rawBot = data.bot || data.botName || data.setup || null
         return {
           id:         d.id,
           date:       tradeDate,
-          symbol:     data.symbol || "Unknown",
+          symbol:     (data.symbol || "Unknown").toUpperCase(),
           setup:      normalizeBotName(rawBot),
-          // Pass O: same schema fallback for botTrades
+          // profit field — webhook v5.1 writes profit, legacy writes rMultiple
           rMultiple:  data.rMultiple !== undefined ? Number(data.rMultiple)
                     : data.profit    !== undefined ? Number(data.profit)
                     : 0,
           direction:  (data.direction || data.type || "BUY").toUpperCase(),
+          entryPrice: data.entryPrice || 0,
+          sl:         data.sl         || 0,
+          tp1:        data.tp1        || 0,
+          lot:        data.lot        || 0,
+          outcome:    data.outcome    || (data.profit >= 0 ? "WIN" : "LOSS"),
+          bot:        normalizeBotName(rawBot),
           notes:      "",
           screenshot: "",
         }

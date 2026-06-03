@@ -1,99 +1,26 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useTheme } from "@/lib/use-theme"
 import {
   DollarSign, Trophy, TrendingUp, TrendingDown, Target, RefreshCw as Refresh,
   Activity, BarChart3, Calendar as CalendarIcon, ArrowUpRight, ArrowDownRight, Hash,
 } from "lucide-react"
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip } from "recharts"
 
-
-// ── Pass U: Per-theme chart + distribution config ─────────────────────────────
-function getThemeChartConfig(theme: string) {
-  switch (theme) {
-    case "violet":
-      return {
-        stroke:     "#a855f7",
-        fillStop1:  { color: "#a855f7", opacity: 0.35 },
-        fillStop2:  { color: "#a855f7", opacity: 0 },
-        gridColor:  "rgba(168,85,247,0.1)",
-        tickColor:  "#9d7ab8",
-        glowFilter: "drop-shadow(0 0 4px rgba(168,85,247,0.55))",
-        dotGrid:    false,
-        winColor:   "#a855f7",
-        lossColor:  "#fb7185",
-        trackColor: "rgba(168,85,247,0.12)",
-        centerBg:   "rgba(15,10,24,0.8)",
-      }
-    case "black-white":
-      return {
-        stroke:     "#e5e5e5",
-        fillStop1:  { color: "#e5e5e5", opacity: 0.12 },
-        fillStop2:  { color: "#000000", opacity: 0 },
-        gridColor:  "rgba(255,255,255,0.06)",
-        tickColor:  "#737373",
-        glowFilter: "",
-        dotGrid:    false,
-        winColor:   "#e5e5e5",
-        lossColor:  "#525252",
-        trackColor: "rgba(80,80,80,0.2)",
-        centerBg:   "rgba(10,10,10,0.8)",
-      }
-    case "dark":
-      return {
-        stroke:     "#34d399",
-        fillStop1:  { color: "#34d399", opacity: 0.28 },
-        fillStop2:  { color: "#34d399", opacity: 0 },
-        gridColor:  "rgba(52,211,153,0.08)",
-        tickColor:  "#4ade80",
-        glowFilter: "drop-shadow(0 0 5px rgba(52,211,153,0.8))",
-        dotGrid:    true,
-        winColor:   "#34d399",
-        lossColor:  "#fb7185",
-        trackColor: "rgba(52,211,153,0.1)",
-        centerBg:   "rgba(10,20,15,0.8)",
-      }
-    case "gold":
-      return {
-        stroke:     "#f59e0b",
-        fillStop1:  { color: "#f59e0b", opacity: 0.28 },
-        fillStop2:  { color: "#f59e0b", opacity: 0 },
-        gridColor:  "rgba(245,158,11,0.1)",
-        tickColor:  "#d97706",
-        glowFilter: "",
-        dotGrid:    false,
-        winColor:   "#22c55e",
-        lossColor:  "#ef4444",
-        trackColor: "rgba(34,197,94,0.1)",
-        centerBg:   "rgba(20,15,5,0.8)",
-      }
-    case "midnight":
-    default:
-      return {
-        stroke:     "#60a5fa",
-        fillStop1:  { color: "#60a5fa", opacity: 0.28 },
-        fillStop2:  { color: "#60a5fa", opacity: 0 },
-        gridColor:  "rgba(96,165,250,0.08)",
-        tickColor:  "#7dd3fc",
-        glowFilter: "drop-shadow(0 0 4px rgba(96,165,250,0.5))",
-        dotGrid:    false,
-        winColor:   "#22c55e",
-        lossColor:  "#fb7185",
-        trackColor: "rgba(34,197,94,0.1)",
-        centerBg:   "rgba(10,15,30,0.8)",
-      }
-  }
-}
-
 interface Trade {
-  id:        string
-  date:      string
-  symbol:    string
-  setup:     string
-  rMultiple: number
+  id:         string
+  date:       string        // closedAt
+  openedAt?:  string        // entry time — used for hold time calculation
+  symbol:     string
+  setup:      string
+  rMultiple:  number
   direction?: string
-  notes?:    string
+  entryPrice?: number
+  sl?:        number
+  tp1?:       number
+  lot?:       number
+  outcome?:   string
+  notes?:     string
 }
 
 const MONTHS  = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
@@ -238,11 +165,34 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
     const bestDay  = dailyValues.length > 0 ? Math.max(...dailyValues) : 0
     const worstDay = dailyValues.length > 0 ? Math.min(...dailyValues) : 0
 
+    // ── Sharpe Ratio (annualised, daily returns) ──────────────────────
+    let sharpe: number | null = null
+    if (Object.keys(dailyMap).length >= 10) {
+      const vals   = Object.values(dailyMap)
+      const mean   = vals.reduce((a, b) => a + b, 0) / vals.length
+      const std    = Math.sqrt(vals.reduce((s, v) => s + (v - mean) ** 2, 0) / vals.length)
+      sharpe = std > 0 ? (mean / std) * Math.sqrt(252) : null
+    }
+
+    // ── Avg Hold Time (minutes) ────────────────────────────────────────
+    const holdMins: number[] = []
+    for (const t of trades) {
+      if (!t.openedAt) continue
+      const open  = new Date(t.openedAt).getTime()
+      const close = new Date(t.date).getTime()
+      const mins  = (close - open) / 60000
+      if (mins > 0 && mins < 10080) holdMins.push(mins) // cap at 1 week (ignores bad data)
+    }
+    const avgHoldMin = holdMins.length > 0
+      ? holdMins.reduce((a, b) => a + b, 0) / holdMins.length
+      : null
+
     return {
       netPnl, winRate, profitFactor, avgWin, avgLoss,
       maxDrawdown: maxDD, expectancy, riskReward,
       totalTrades: trades.length, wins: wins.length, losses: losses.length,
       bestDay, worstDay, grossWin, grossLoss,
+      sharpe, avgHoldMin,
     }
   }, [trades])
 
@@ -313,9 +263,6 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
   const currentYear  = new Date().getFullYear()
   const currentMonth = new Date().getMonth()
 
-  const { theme } = useTheme()
-  const cfg = getThemeChartConfig(theme)
-
   return (
     <div className="space-y-4 sm:space-y-5">
 
@@ -382,16 +329,44 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
         <StatTile
           icon={Hash}
           label="Sharpe Ratio"
-          value="Low Sample"
-          sub="needs more trades"
-          valueColor="text-muted-foreground"
+          value={
+            stats.sharpe === null
+              ? trades.length < 10 ? "Low Sample" : "—"
+              : stats.sharpe.toFixed(2)
+          }
+          sub={
+            stats.sharpe === null
+              ? trades.length < 10 ? "needs 10+ trading days" : "insufficient variance"
+              : stats.sharpe >= 2 ? "excellent" : stats.sharpe >= 1 ? "good" : "below target"
+          }
+          valueColor={
+            stats.sharpe === null ? "text-muted-foreground"
+            : stats.sharpe >= 2   ? "text-emerald-400"
+            : stats.sharpe >= 1   ? "text-yellow-400"
+            : "text-rose-400"
+          }
         />
         <StatTile
           icon={Activity}
           label="Avg Hold Time"
-          value="N/A"
-          sub="bots need open-time"
-          valueColor="text-muted-foreground"
+          value={
+            stats.avgHoldMin === null ? "N/A"
+            : stats.avgHoldMin < 60
+              ? `${Math.round(stats.avgHoldMin)}m`
+              : stats.avgHoldMin < 1440
+                ? `${(stats.avgHoldMin / 60).toFixed(1)}h`
+                : `${(stats.avgHoldMin / 1440).toFixed(1)}d`
+          }
+          sub={
+            stats.avgHoldMin === null
+              ? "needs openedAt field"
+              : stats.avgHoldMin < 60
+                ? "scalp range"
+                : stats.avgHoldMin < 480
+                  ? "intraday"
+                  : "swing"
+          }
+          valueColor={stats.avgHoldMin === null ? "text-muted-foreground" : "text-foreground"}
         />
       </div>
 
@@ -411,133 +386,44 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
         />
       </div>
 
-      {/* ═══ EQUITY CURVE + DISTRIBUTION — side by side ═══════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
-
-        {/* Equity Curve */}
-        <div className="rounded-xl border border-border/40 bg-card/60 shadow-lg overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/30">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-3.5 w-3.5" style={{ color: cfg.stroke }} />
-              <span className="text-xs font-black uppercase tracking-widest">System Equity Curve</span>
-              <span className="text-[10px] text-muted-foreground italic">({stats.totalTrades} trades)</span>
-            </div>
-            <span className="text-xs font-black font-mono" style={{ color: stats.netPnl >= 0 ? cfg.winColor : cfg.lossColor }}>
-              {fmtCurrency(stats.netPnl)} total
-            </span>
+      {/* ═══ EQUITY CURVE ════════════════════════════════════════════ */}
+      <div className="rounded-xl border border-border/40 bg-card/60 shadow-lg overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border/30 bg-background/30">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-xs font-black uppercase tracking-widest">Equity Curve</span>
+            <span className="text-[10px] text-muted-foreground italic">({stats.totalTrades} trades)</span>
           </div>
-          <div className="h-48 sm:h-56 lg:h-64 px-2 pt-3 pb-2 relative">
-            {/* Dot grid for Dark/Green theme */}
-            {cfg.dotGrid && (
-              <div className="absolute inset-0 pointer-events-none opacity-20"
-                style={{
-                  backgroundImage: `radial-gradient(circle, ${cfg.stroke}88 1px, transparent 0)`,
-                  backgroundSize: "14px 14px",
-                }} />
-            )}
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={equityData} margin={{ top: 5, right: 12, left: -10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="analyticsEquityFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"  stopColor={cfg.fillStop1.color} stopOpacity={cfg.fillStop1.opacity}/>
-                    <stop offset="95%" stopColor={cfg.fillStop2.color} stopOpacity={cfg.fillStop2.opacity}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={cfg.gridColor} />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: cfg.tickColor }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: cfg.tickColor }}
-                  tickFormatter={v => `$${v.toFixed(0)}`} />
-                <Tooltip
-                  formatter={(v: number) => [fmtCurrency(v), "Equity"]}
-                  contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }}
-                  labelStyle={{ color: cfg.tickColor, fontSize: 11 }}
-                />
-                <Area
-                  type="monotone" dataKey="value"
-                  stroke={cfg.stroke} strokeWidth={2.5}
-                  fill="url(#analyticsEquityFill)"
-                  style={cfg.glowFilter ? { filter: cfg.glowFilter } : undefined}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex justify-between px-4 py-2 border-t border-border/30 text-[10px] text-muted-foreground/60 font-mono">
-            <span>{firstDate}</span>
-            <span>{lastDate}</span>
-          </div>
+          <span className={`text-xs font-black font-mono ${stats.netPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            {fmtCurrency(stats.netPnl)} total
+          </span>
         </div>
-
-        {/* Distribution ring */}
-        <div className="rounded-xl border border-border/40 bg-card/60 shadow-lg overflow-hidden">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-border/30 bg-background/30">
-            <Activity className="h-3.5 w-3.5" style={{ color: cfg.stroke }} />
-            <span className="text-xs font-black uppercase tracking-widest">Distribution</span>
-          </div>
-          <div className="flex flex-col items-center justify-center p-6 gap-5">
-            {/* Dual-arc donut */}
-            {(() => {
-              const circumference = 2 * Math.PI * 54
-              const winRate  = stats.totalTrades > 0 ? stats.wins / stats.totalTrades : 0
-              const lossRate = 1 - winRate
-              const winOffset  = circumference - winRate  * circumference
-              const lossOffset = circumference - lossRate * circumference
-              const lossRotate = winRate * 360
-              return (
-                <div className="relative w-36 h-36">
-                  <svg className="w-36 h-36 -rotate-90" viewBox="0 0 120 120"
-                    style={cfg.glowFilter ? { filter: cfg.glowFilter } : undefined}>
-                    {/* Track */}
-                    <circle cx="60" cy="60" r="54" stroke={cfg.trackColor} strokeWidth="9" fill="none" />
-                    {/* Loss arc */}
-                    <circle cx="60" cy="60" r="54"
-                      stroke={cfg.lossColor} strokeWidth="9" strokeLinecap="butt" fill="none"
-                      strokeDasharray={circumference} strokeDashoffset={lossOffset}
-                      style={{ transform: `rotate(${lossRotate}deg)`, transformOrigin: "50% 50%" }}
-                      opacity={0.8}
-                    />
-                    {/* Win arc */}
-                    <circle cx="60" cy="60" r="54"
-                      stroke={cfg.winColor} strokeWidth="9" strokeLinecap="butt" fill="none"
-                      strokeDasharray={circumference} strokeDashoffset={winOffset}
-                      className="transition-all duration-500"
-                    />
-                  </svg>
-                  {/* Center label */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center rounded-full"
-                    style={{ background: cfg.centerBg }}>
-                    <span className="text-xl font-black text-foreground">{stats.totalTrades}</span>
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Signals</span>
-                  </div>
-                </div>
-              )
-            })()}
-
-            {/* Win % / Loss % labels */}
-            <div className="flex w-full justify-between px-2">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ background: cfg.winColor }} />
-                <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: cfg.winColor }}>
-                  Wins&nbsp;<span className="font-black">{stats.wins}</span>
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full" style={{ background: cfg.lossColor }} />
-                <span className="text-[10px] font-black uppercase tracking-wider" style={{ color: cfg.lossColor }}>
-                  Losses&nbsp;<span className="font-black">{stats.losses}</span>
-                </span>
-              </div>
-            </div>
-
-            {/* Win rate % */}
-            <div className="text-center -mt-2">
-              <span className="text-2xl font-black" style={{ color: stats.winRate >= 50 ? cfg.winColor : cfg.lossColor }}>
-                {stats.winRate.toFixed(1)}%
-              </span>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Win Rate</p>
-            </div>
-          </div>
+        <div className="h-48 sm:h-56 lg:h-64 px-2 pt-3 pb-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={equityData} margin={{ top: 5, right: 12, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="analyticsEquityFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%"   stopColor="#5fc77a" stopOpacity={0.35}/>
+                  <stop offset="95%"  stopColor="#5fc77a" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#64748b" }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: "#64748b" }}
+                tickFormatter={v => `$${v.toFixed(0)}`} />
+              <Tooltip
+                formatter={(v: number) => [fmtCurrency(v), "Equity"]}
+                contentStyle={{ backgroundColor: "hsl(var(--card))", borderColor: "hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }}
+                labelStyle={{ color: "#94a3b8", fontSize: 11 }}
+              />
+              <Area type="monotone" dataKey="value" stroke="#5fc77a" strokeWidth={2.5} fill="url(#analyticsEquityFill)" />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-
+        <div className="flex justify-between px-4 py-2 border-t border-border/30 text-[10px] text-muted-foreground/60 font-mono">
+          <span>{firstDate}</span>
+          <span>{lastDate}</span>
+        </div>
       </div>
 
       {/* ═══ BY SYMBOL ═════════════════════════════════════════════════ */}
