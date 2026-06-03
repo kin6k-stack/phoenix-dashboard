@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { collection, onSnapshot, query, where } from "firebase/firestore"
+import { collection, onSnapshot, query, where, doc, setDoc, getDoc } from "firebase/firestore"
+import { useAuth } from "@/lib/auth-context"
 import { db } from "@/lib/firebase"
 import { useTheme } from "@/lib/use-theme"
 import {
@@ -212,7 +213,72 @@ function BotCard({ bot, stats, selected, onClick }: {
 // ─── Bot detail panel ─────────────────────────────────────────────────────────
 
 function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
-  const [tab, setTab] = useState<"overview"|"trades"|"config"|"changelog">("overview")
+  const [tab,       setTab]       = useState<"overview"|"signals"|"trades"|"config"|"changelog">("overview")
+  const [editing,   setEditing]   = useState(false)
+  const [saving,    setSaving]    = useState(false)
+  const [savedMsg,  setSavedMsg]  = useState(false)
+  const [remoteConfig, setRemoteConfig] = useState<Record<string,any> | null>(null)
+
+  // Editable config state — mirrors Firestore botConfig/{magic}
+  const defaultCfg = {
+    isActive:       true,
+    normalLot:      0.01,
+    maxSLDollars:   5.0,
+    shieldRR:       1.5,
+    requireHTFBias: true,
+    requireSweep:   true,
+    requireOB:      true,
+    requirePremDis: true,
+    maxSpread:      400,
+    dailyWinGoal:   10.0,
+    dailyLossCap:   5.0,
+  }
+  const [cfg, setCfg] = useState(defaultCfg)
+
+  // Load existing remote config on mount
+  const { user } = useAuth()
+  useEffect(() => {
+    if(!user) return
+    getDoc(doc(db, "botConfig", String(bot.magic))).then(snap => {
+      if(snap.exists()) {
+        const data = snap.data()
+        setCfg({
+          isActive:       data.isActive       ?? true,
+          normalLot:      data.normalLot      ?? 0.01,
+          maxSLDollars:   data.maxSLDollars   ?? 5.0,
+          shieldRR:       data.shieldRR       ?? 1.5,
+          requireHTFBias: data.requireHTFBias ?? true,
+          requireSweep:   data.requireSweep   ?? true,
+          requireOB:      data.requireOB      ?? true,
+          requirePremDis: data.requirePremDis ?? true,
+          maxSpread:      data.maxSpread      ?? 400,
+          dailyWinGoal:   data.dailyWinGoal   ?? 10.0,
+          dailyLossCap:   data.dailyLossCap   ?? 5.0,
+        })
+        setRemoteConfig(data)
+      }
+    })
+  }, [bot.magic, user])
+
+  const saveConfig = async () => {
+    if(!user) return
+    setSaving(true)
+    try {
+      await setDoc(doc(db, "botConfig", String(bot.magic)), {
+        ...cfg,
+        magic:     bot.magic,
+        botName:   bot.name,
+        ownerId:   user.uid,
+        updatedAt: new Date(),
+      })
+      setRemoteConfig({ ...cfg })
+      setEditing(false)
+      setSavedMsg(true)
+      setTimeout(() => setSavedMsg(false), 3000)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const trades = stats.trades
   const pnl    = trades.reduce((s,t) => s+t.profit, 0)
@@ -495,20 +561,133 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
 
         {/* ── CONFIG ── */}
         {tab === "config" && (
-          <div className="space-y-3">
-            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-4">
-              Current Parameters — {bot.name} {bot.version}
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {Object.entries(bot.config).map(([k,v]) => (
-                <div key={k} className="flex items-start gap-3 rounded-xl border border-white/6 bg-white/[0.02] px-4 py-3">
-                  <Settings2 size={12} className="mt-0.5 flex-shrink-0" style={{ color:`${bot.color}80` }} />
-                  <div>
-                    <p className="text-[9px] uppercase tracking-widest text-white/30 mb-0.5">{k}</p>
-                    <p className="text-xs font-bold text-white">{v}</p>
-                  </div>
+          <div className="space-y-4">
+
+            {/* Header + Edit button */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">
+                  Live Parameters — {bot.name} {bot.version}
+                </p>
+                {remoteConfig?.updatedAt && (
+                  <p className="text-[9px] text-white/20 mt-0.5">
+                    Last pushed: {new Date(remoteConfig.updatedAt?.toDate?.() ?? remoteConfig.updatedAt).toLocaleString()}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {savedMsg && (
+                  <span className="text-[10px] font-bold" style={{color:bot.color}}>✓ Pushed to bot</span>
+                )}
+                {!editing
+                  ? <button onClick={() => setEditing(true)}
+                      className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all border"
+                      style={{background:`${bot.color}18`,borderColor:`${bot.color}40`,color:bot.color}}>
+                      Edit Config
+                    </button>
+                  : <div className="flex gap-2">
+                      <button onClick={() => setEditing(false)}
+                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white/40 border border-white/10 hover:bg-white/5 transition-all">
+                        Cancel
+                      </button>
+                      <button onClick={saveConfig} disabled={saving}
+                        className="px-4 py-1.5 rounded-lg text-[10px] font-black text-black transition-all"
+                        style={{background:bot.color,boxShadow:`0 0 12px ${bot.glow}`,opacity:saving?0.7:1}}>
+                        {saving ? "Pushing..." : "Push to Bot"}
+                      </button>
+                    </div>
+                }
+              </div>
+            </div>
+
+            {/* Kill switch */}
+            <div className="flex items-center justify-between rounded-xl border px-4 py-3"
+              style={{
+                background:  cfg.isActive ? `${bot.color}08` : "rgba(248,113,113,0.06)",
+                borderColor: cfg.isActive ? `${bot.color}25` : "rgba(248,113,113,0.25)",
+              }}>
+              <div>
+                <p className="text-xs font-black text-white">Bot Active</p>
+                <p className="text-[10px] text-white/30">Disabling stops all new entries immediately</p>
+              </div>
+              <button
+                disabled={!editing}
+                onClick={() => setCfg(p => ({...p, isActive: !p.isActive}))}
+                className="relative w-11 h-6 rounded-full transition-all duration-200 disabled:opacity-60"
+                style={{background: cfg.isActive ? bot.color : "rgba(255,255,255,0.1)"}}>
+                <span className="absolute top-0.5 transition-all duration-200 w-5 h-5 bg-white rounded-full shadow"
+                  style={{left: cfg.isActive ? "calc(100% - 22px)" : "2px"}} />
+              </button>
+            </div>
+
+            {/* Numeric params */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { key:"normalLot",    label:"Lot Size",      step:0.005, min:0.001, max:1 },
+                { key:"maxSLDollars", label:"Max SL ($)",    step:0.5,   min:1,     max:50 },
+                { key:"shieldRR",     label:"Shield R:R",    step:0.1,   min:0.5,   max:5 },
+                { key:"maxSpread",    label:"Max Spread",    step:10,    min:10,    max:2000 },
+                { key:"dailyWinGoal", label:"Daily Win %",   step:0.5,   min:1,     max:50 },
+                { key:"dailyLossCap", label:"Daily Loss %",  step:0.5,   min:1,     max:20 },
+              ].map(({key,label,step,min,max}) => (
+                <div key={key} className="rounded-xl border border-white/6 bg-white/[0.02] px-3 py-3">
+                  <p className="text-[9px] uppercase tracking-widest text-white/30 mb-2">{label}</p>
+                  {editing ? (
+                    <input
+                      type="number" step={step} min={min} max={max}
+                      value={(cfg as any)[key]}
+                      onChange={e => setCfg(p => ({...p, [key]: parseFloat(e.target.value)||0}))}
+                      className="w-full bg-white/5 border border-white/15 rounded-lg px-2 py-1 text-sm font-black text-white focus:outline-none focus:border-white/30"
+                      style={{colorScheme:"dark"}}
+                    />
+                  ) : (
+                    <p className="text-sm font-black" style={{color:bot.color}}>
+                      {(cfg as any)[key]}
+                    </p>
+                  )}
                 </div>
               ))}
+            </div>
+
+            {/* SMC filter toggles */}
+            <div>
+              <p className="text-[9px] uppercase tracking-widest text-white/20 mb-2">SMC Filters</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { key:"requireHTFBias",  label:"HTF Bias"    },
+                  { key:"requireSweep",    label:"Liq. Sweep"  },
+                  { key:"requireOB",       label:"Order Block" },
+                  { key:"requirePremDis",  label:"Prem/Disc"   },
+                ].map(({key,label}) => {
+                  const on = (cfg as any)[key]
+                  return (
+                    <button key={key}
+                      disabled={!editing}
+                      onClick={() => setCfg(p => ({...p, [key]: !(p as any)[key]}))}
+                      className="flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-all disabled:opacity-60"
+                      style={{
+                        background:  on ? `${bot.color}18` : "rgba(255,255,255,0.02)",
+                        borderColor: on ? `${bot.color}40` : "rgba(255,255,255,0.06)",
+                      }}>
+                      <span className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{background: on ? bot.color : "rgba(255,255,255,0.2)"}} />
+                      <span className="text-[10px] font-bold"
+                        style={{color: on ? bot.color : "rgba(255,255,255,0.3)"}}>
+                        {label}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* EA polling note */}
+            <div className="rounded-xl border border-white/6 bg-white/[0.02] px-4 py-3">
+              <p className="text-[9px] text-white/25 leading-relaxed">
+                📡 Changes are pushed to Firestore <strong className="text-white/40">botConfig/{bot.magic}</strong>.
+                The EA checks every 5 minutes and applies on the next new bar — no restart required.
+                Core parameters (symbol, timeframe, magic number) require EA restart.
+              </p>
             </div>
           </div>
         )}
