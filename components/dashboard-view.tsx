@@ -184,16 +184,16 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
   const chartStyle = (() => {
     switch(theme) {
       case "black-white": return {
-        areaType:     "stepAfter" as const,
+        areaType:     "monotone" as const,
         lineGlow:     "",
         dotGrid:      false,
         stippleGrid:  false,
-        volBars:      false,
-        strokeWidth:  1.5,
+        volBars:      true,   // volume bars — swapped from gold
+        strokeWidth:  2,
         paddingAngle: 2,
         innerRadius:  50,
         outerRadius:  75,
-        fillOverride: "rgba(229,229,229,0.06)",
+        fillOverride: null,
       }
       case "dark": return {
         areaType:     "monotone" as const,
@@ -232,16 +232,16 @@ export function DashboardView({ trades = [] }: { trades: any[] }) {
         fillOverride: "url(#violetStipple)",  // pattern fill = dots only inside area
       }
       case "gold": return {
-        areaType:     "monotone" as const,
+        areaType:     "stepAfter" as const,  // stepped — swapped from black-white
         lineGlow:     "",
         dotGrid:      false,
         stippleGrid:  false,
-        volBars:      true,   // <-- volume histogram bars at bottom
-        strokeWidth:  2,
+        volBars:      false,
+        strokeWidth:  1.5,
         paddingAngle: 6,
         innerRadius:  50,
         outerRadius:  75,
-        fillOverride: null,
+        fillOverride: "rgba(245,158,11,0.08)",
       }
       default: return {
         areaType:     "monotone" as const,

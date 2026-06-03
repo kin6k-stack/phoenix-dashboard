@@ -269,11 +269,11 @@ export function PnLAnalyticsView({ trades = [] }: { trades: Trade[] }) {
   // Per-theme equity curve style — mirrors dashboard-view chartStyle
   const ac = (() => {
     switch(theme) {
-      case "black-white": return { type:"stepAfter" as const, glow:"",    dotGrid:false, stipple:false, volBars:false, stroke:"#e5e5e5", fill1:"rgba(229,229,229,0.10)", fill2:"rgba(0,0,0,0)", sw:1.5 }
+      case "black-white": return { type:"monotone"  as const, glow:"",    dotGrid:false, stipple:false, volBars:true,  stroke:"#e5e5e5", fill1:"rgba(229,229,229,0.10)", fill2:"rgba(0,0,0,0)", sw:2   }
       case "dark":        return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #34d399) drop-shadow(0 0 12px rgba(52,211,153,0.5))", dotGrid:true,  stipple:false, volBars:false, stroke:"#34d399", fill1:"rgba(52,211,153,0.30)", fill2:"rgba(52,211,153,0.00)", sw:2.5 }
       case "midnight":    return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #60a5fa) drop-shadow(0 0 10px rgba(96,165,250,0.5))", dotGrid:true,  stipple:false, volBars:false, stroke:"#60a5fa", fill1:"rgba(96,165,250,0.28)", fill2:"rgba(96,165,250,0.00)", sw:2.5 }
       case "violet":      return { type:"monotone"  as const, glow:"drop-shadow(0 0 4px #c084fc) drop-shadow(0 0 10px rgba(192,132,252,0.5))", dotGrid:false, stipple:false, volBars:false, stroke:"#a855f7", fill1:"url(#aVioletStipple)",        fill2:"rgba(168,85,247,0.00)", sw:2.5 }
-      case "gold":        return { type:"monotone"  as const, glow:"",    dotGrid:false, stipple:false, volBars:true,  stroke:"#f59e0b", fill1:"rgba(245,158,11,0.30)", fill2:"rgba(245,158,11,0.00)", sw:2 }
+      case "gold":        return { type:"stepAfter" as const, glow:"",    dotGrid:false, stipple:false, volBars:false, stroke:"#f59e0b", fill1:"rgba(245,158,11,0.08)", fill2:"rgba(245,158,11,0.00)", sw:1.5 }
       default:            return { type:"monotone"  as const, glow:"",    dotGrid:false, stipple:false, volBars:false, stroke:"#5fc77a", fill1:"rgba(95,199,122,0.35)",  fill2:"rgba(95,199,122,0.00)", sw:2 }
     }
   })()
