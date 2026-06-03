@@ -237,7 +237,8 @@ export async function POST(request: NextRequest) {
       const openPrice  = parseFloat(String(data.openPrice ?? 0)) || 0
       const closePrice = parseFloat(String(data.closePrice ?? 0)) || 0
       const lots       = parseFloat(String(data.lots      ?? 0)) || 0
-      const userId     = String(data.userId || '')
+      const userId     = String(data.userId    || '')
+      const accountId  = String(data.accountId || '')   // e.g. "exness_198440704"
       const openedAt   = data.openedAt   ? new Date(String(data.openedAt))  : new Date()
       const closedAt   = data.closedAt   ? new Date(String(data.closedAt))  : new Date()
       const setup      = String(data.setup  || 'Live Trade')
@@ -249,7 +250,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true, note: 'missing userId' }, { status: 200 })
       }
 
-      await firestorePatch('trades', ticket, {
+      const tradeDoc: Record<string, unknown> = {
         userId,
         symbol,
         direction,
@@ -267,7 +268,11 @@ export async function POST(request: NextRequest) {
         closePrice,
         ticket,
         notes,
-      })
+      }
+      // Only add accountId if provided — backward compat with old trades
+      if (accountId) tradeDoc.accountId = accountId
+
+      await firestorePatch('trades', ticket, tradeDoc)
 
       console.log(`[WEBHOOK v5.1] 📝 MANUAL: ${userId} | ${symbol} | $${profit} | #${ticket}`)
       return NextResponse.json({ success: true, action: 'manual_trade_written' })

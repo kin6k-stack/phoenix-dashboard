@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, where, orderBy, getDocs } from "firebase/firestore"
+import { collection, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, doc, query, where, orderBy, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { Plus, Trash2, Edit2, TrendingUp, TrendingDown, Wallet, BarChart2, ChevronRight, X, Check, Building2, RefreshCw } from "lucide-react"
@@ -290,6 +290,11 @@ function AccountCard({
         <div className="min-w-0">
           <p className="text-xs font-black text-white truncate">{account.accountName}</p>
           <p className="text-[10px] text-white/40 truncate">{account.broker} · {account.login}</p>
+          {/* Account ID — user copies this into InpAccountId in MT5 sync script */}
+          <p className="text-[9px] font-mono text-white/20 truncate mt-0.5"
+            title="Copy this into InpAccountId in the MT5 sync script">
+            ID: {account.id}
+          </p>
         </div>
       </div>
 
@@ -402,7 +407,10 @@ function AccountTable({ accounts, statsMap, onSelect }: {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-xs text-white/50">{a.broker}</td>
-                <td className="px-4 py-3 text-xs font-mono text-white/40">{a.login}</td>
+                <td className="px-4 py-3">
+                  <p className="text-xs font-mono text-white/40">{a.login}</p>
+                  <p className="text-[9px] font-mono text-white/20" title="InpAccountId for MT5 sync script">{a.id}</p>
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1 flex-wrap">
                     {a.instruments.map(i => (
@@ -503,7 +511,11 @@ export default function LifetimeLedgerView() {
     if(editTarget) {
       await updateDoc(doc(db, "accounts", editTarget.id), { ...data })
     } else {
-      await addDoc(collection(db, "accounts"), {
+      // Deterministic ID: broker_slug_login — e.g. "exness_198440704"
+      // This is what the MT5 sync script needs to type in as InpAccountId
+      const slug = data.broker.toLowerCase().replace(/[^a-z0-9]/g, "_")
+      const accountId = `${slug}_${data.login}`
+      await setDoc(doc(db, "accounts", accountId), {
         ...data,
         userId:    user.uid,
         createdAt: new Date(),
