@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { collection, onSnapshot, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
+import { collection, onSnapshot, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "@/components/sidebar"
@@ -69,6 +69,7 @@ export default function TradingDashboard() {
   const [trades,            setTrades]            = useState<Trade[]>([])      // USER's manual trades
   const [botTrades,         setBotTrades]         = useState<Trade[]>([])      // SHARED bot demo feed
   const [accounts,          setAccounts]          = useState<{id:string; accountName:string; color:string; broker:string}[]>([])
+  const [isOwner,           setIsOwner]           = useState(false)
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
   const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")
@@ -166,6 +167,7 @@ export default function TradingDashboard() {
           sl:         data.sl         || 0,
           lot:        data.lots       || data.lot || 0,
           notes:      data.notes      || "",
+          accountId:  data.accountId  || "",   // required for account filter
           screenshot: data.screenshot || "",
         }
       }))
@@ -177,10 +179,17 @@ export default function TradingDashboard() {
     })
   }, [user])
 
-  // Listener 2: shared bot trades (read-only signal feed)
-  // orderBy closedAt — webhook v5.1 writes closedAt, not timestamp
+  // Check owner status — gates botTrades access
   useEffect(() => {
     if (!user) return
+    getDoc(doc(db, "allowedUsers", user.uid)).then(snap => {
+      setIsOwner(snap.exists() && snap.data()?.isPhoenixOwner === true)
+    })
+  }, [user])
+
+  // Listener 2: bot trades — owner only
+  useEffect(() => {
+    if (!user || !isOwner) return
     const q = query(collection(db, "botTrades"), orderBy("closedAt", "desc"))
     return onSnapshot(q, (snapshot) => {
       setBotTrades(snapshot.docs.map(d => {
@@ -305,7 +314,7 @@ export default function TradingDashboard() {
       case "dashboard":
         return (
           <div className="flex-1 overflow-auto">
-            <DashboardView trades={trades} />
+            <DashboardView trades={trades} botTrades={isOwner ? botTrades : []} />
           </div>
         )
 
@@ -398,7 +407,7 @@ export default function TradingDashboard() {
       case "performance-metrics":
         return (
           <PageShell title="Engine Telemetry" sub="Segmented algorithmic strategy and execution history">
-            <PerformanceView userTrades={trades} botTrades={botTrades} />
+            <PerformanceView userTrades={trades} botTrades={isOwner ? botTrades : []} />
           </PageShell>
         )
 
