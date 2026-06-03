@@ -325,17 +325,16 @@ export default function TradingDashboard() {
 
               {pnlView === "calendar" ? (
                 <>
-                  {/* anchor target for "View in Calendar" scroll-to-section */}
                   {/* Account filter bar — only shown when accounts are registered */}
-              {accounts.length > 0 && (
-                <AccountFilterBar
-                  accounts={accounts}
-                  selectedAccountId={selectedAccountId}
-                  onSelect={setSelectedAccountId}
-                />
-              )}
+                  {accounts.length > 0 && (
+                    <AccountFilterBar
+                      accounts={accounts}
+                      selectedAccountId={selectedAccountId}
+                      onSelect={setSelectedAccountId}
+                    />
+                  )}
 
-              <div id="pnl-calendar-section" className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 xl:auto-rows-min">
+                  <div id="pnl-calendar-section" className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 xl:auto-rows-min">
                     <div className="min-w-0">
                       <TradingCalendar
                         selectedDate={selectedDate}
@@ -367,14 +366,16 @@ export default function TradingDashboard() {
                   <YearlyPerformanceTable trades={symbolFilteredTrades} />
                 </>
               ) : (
-                {accounts.length > 0 && (
-                  <AccountFilterBar
-                    accounts={accounts}
-                    selectedAccountId={selectedAccountId}
-                    onSelect={setSelectedAccountId}
-                  />
-                )}
-                <PnLAnalyticsView trades={symbolFilteredTrades} />
+                <>
+                  {accounts.length > 0 && (
+                    <AccountFilterBar
+                      accounts={accounts}
+                      selectedAccountId={selectedAccountId}
+                      onSelect={setSelectedAccountId}
+                    />
+                  )}
+                  <PnLAnalyticsView trades={symbolFilteredTrades} />
+                </>
               )}
             </div>
           </div>
