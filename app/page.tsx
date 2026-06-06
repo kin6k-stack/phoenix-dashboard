@@ -139,10 +139,12 @@ export default function TradingDashboard() {
     // collectionGroup reads from:
     //   trades/{ticket}                         (old flat — backward compat)
     //   accounts/{accountId}/trades/{ticket}    (new subcollection — per-account)
+    // NOTE: No orderBy here — collectionGroup + where + orderBy requires a
+    // composite index that must be manually created in Firebase Console.
+    // Sorting is done client-side after the snapshot arrives.
     const q = query(
       collectionGroup(db, "trades"),
-      where("userId", "==", user.uid),
-      orderBy("timestamp", "desc")
+      where("userId", "==", user.uid)
     )
     return onSnapshot(q, (snapshot) => {
       setTrades(snapshot.docs.map(d => {
@@ -174,7 +176,11 @@ export default function TradingDashboard() {
           accountId:  data.accountId  || "",   // required for account filter
           screenshot: data.screenshot || "",
         }
-      }))
+      })
+      // Sort by date desc client-side — collectionGroup query has no orderBy
+      // (would require a composite index; sorting here avoids that dependency)
+      mapped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      setTrades(mapped)
     }, err => {
       // If we hit a permission error (e.g. before the user is on allowedUsers),
       // log it but don't crash the UI
