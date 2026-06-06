@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { collection, onSnapshot, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore"
+import { collection, collectionGroup, onSnapshot, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc, getDoc, writeBatch } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { Sidebar } from "@/components/sidebar"
@@ -136,8 +136,11 @@ export default function TradingDashboard() {
   // Listener 1: user's own trades
   useEffect(() => {
     if (!user) return
+    // collectionGroup reads from:
+    //   trades/{ticket}                         (old flat — backward compat)
+    //   accounts/{accountId}/trades/{ticket}    (new subcollection — per-account)
     const q = query(
-      collection(db, "trades"),
+      collectionGroup(db, "trades"),
       where("userId", "==", user.uid),
       orderBy("timestamp", "desc")
     )

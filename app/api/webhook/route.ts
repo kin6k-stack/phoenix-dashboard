@@ -268,14 +268,20 @@ export async function POST(request: NextRequest) {
         closePrice,
         ticket,
         notes,
+        accountId:  accountId || '',
       }
-      // Only add accountId if provided — backward compat with old trades
-      if (accountId) tradeDoc.accountId = accountId
 
-      await firestorePatch('trades', ticket, tradeDoc)
+      // Route to subcollection when accountId provided:
+      // accounts/{accountId}/trades/{ticket}
+      // Wrong accountId = delete one subcollection, not 700 individual docs
+      const collection = accountId
+        ? `accounts/${accountId}/trades`
+        : 'trades'   // fallback: no accountId = old flat collection
 
-      console.log(`[WEBHOOK v5.1] 📝 MANUAL: ${userId} | ${symbol} | $${profit} | #${ticket}`)
-      return NextResponse.json({ success: true, action: 'manual_trade_written' })
+      await firestorePatch(collection, ticket, tradeDoc)
+
+      console.log(`[WEBHOOK v5.1] 📝 MANUAL: ${userId} | ${symbol} | $${profit} | #${ticket} → ${collection}`)
+      return NextResponse.json({ success: true, action: 'manual_trade_written', collection })
     }
 
     return NextResponse.json({ received: true, note: `Unknown status: ${status}` }, { status: 200 })

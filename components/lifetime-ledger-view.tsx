@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { collection, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, doc, query, where, orderBy, getDocs } from "firebase/firestore"
+import { collection, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, doc, query, where, orderBy, getDocs, writeBatch } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { Plus, Trash2, Edit2, TrendingUp, TrendingDown, Wallet, BarChart2, ChevronRight, X, Check, Building2, RefreshCw } from "lucide-react"
@@ -248,10 +248,11 @@ function AccountCard({
 }: {
   account:  Account
   stats:    AccountStats
-  selected: boolean
-  onClick:  () => void
-  onEdit:   () => void
-  onDelete: () => void
+  selected:  boolean
+  onClick:   () => void
+  onEdit:    () => void
+  onDelete:  () => void
+  onClear:   () => void
 }) {
   const pnlPos = stats.totalPnl >= 0
 
@@ -274,6 +275,11 @@ function AccountCard({
         <button onClick={e => { e.stopPropagation(); onEdit() }}
           className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors">
           <Edit2 size={11} />
+        </button>
+        <button onClick={e => { e.stopPropagation(); onClear() }}
+          title="Delete all trades for this account"
+          className="p-1.5 rounded-lg bg-white/5 hover:bg-amber-500/20 text-white/40 hover:text-amber-400 transition-colors">
+          <RefreshCw size={11} />
         </button>
         <button onClick={e => { e.stopPropagation(); onDelete() }}
           className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-white/40 hover:text-rose-400 transition-colors">
@@ -479,11 +485,8 @@ export default function LifetimeLedgerView() {
 
     Promise.all(accounts.map(async acc => {
       try {
-        const q = query(
-          collection(db, "trades"),
-          where("userId",    "==", user.uid),
-          where("accountId", "==", acc.id)
-        )
+        // Subcollection path: accounts/{accountId}/trades
+        const q = collection(db, "accounts", acc.id, "trades")
         const snap = await getDocs(q)
         let pnl = 0, wins = 0, losses = 0
         snap.forEach(d => {
@@ -523,6 +526,37 @@ export default function LifetimeLedgerView() {
     }
     setDialogOpen(false)
     setEditTarget(null)
+  }
+
+  const handleClearTrades = async (acc: Account) => {
+    if(!confirm(`Delete ALL trades for "${acc.accountName}"?
+
+This removes every trade in accounts/${acc.id}/trades/
+The account registration stays. This cannot be undone.`)) return
+    try {
+      const tradesRef = collection(db, "accounts", acc.id, "trades")
+      const snap = await getDocs(tradesRef)
+      if(snap.empty) { alert("No trades to delete."); return }
+      // Batch delete in chunks of 500
+      const chunks: any[][] = []
+      const docs = snap.docs
+      for(let i = 0; i < docs.length; i += 499) chunks.push(docs.slice(i, i+499))
+      for(const chunk of chunks) {
+        const batch = writeBatch(db)
+        chunk.forEach(d => batch.delete(d.ref))
+        await batch.commit()
+      }
+      // Refresh stats
+      setStatsMap(prev => {
+        const m = new Map(prev)
+        m.set(acc.id, { totalPnl:0, winRate:0, tradeCount:0, wins:0, losses:0, loaded:true })
+        return m
+      })
+      alert(`Deleted ${snap.size} trades from ${acc.accountName}.`)
+    } catch(err) {
+      console.error("Clear trades failed:", err)
+      alert("Delete failed — check console for details.")
+    }
   }
 
   const handleDelete = async (acc: Account) => {
