@@ -147,7 +147,7 @@ export default function TradingDashboard() {
       where("userId", "==", user.uid)
     )
     return onSnapshot(q, (snapshot) => {
-      setTrades(snapshot.docs.map(d => {
+      const mapped = snapshot.docs.map(d => {
         const data = d.data()
         let tradeDate = new Date().toISOString()
         if (data.timestamp?.toDate)       tradeDate = data.timestamp.toDate().toISOString()
