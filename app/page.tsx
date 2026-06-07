@@ -25,6 +25,7 @@ import { EconomicCalendar } from "@/components/economic-calendar"
 import { MarketBiasView } from "@/components/market-bias-view"
 import { AssetMatrix } from "@/components/asset-matrix-view"            // ← Pass B
 import { MarketIntelligenceView } from "@/components/market-intelligence-view" // ← Pass C
+import { TickerTape }          from "@/components/ticker-tape"              // ← Pass D
 import { PnLHeader } from "@/components/pnl-header"
 import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
 import { PnLAnalyticsView } from "@/components/pnl-analytics-view"
@@ -461,6 +462,7 @@ export default function TradingDashboard() {
       <AmbientBackdrop />
       <Sidebar activeItem={activeNavItem} onItemClick={setActiveNavItem} trades={trades} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative z-10">
+        <TickerTape />
         {renderContent()}
       </div>
       <AddTradeDialog
