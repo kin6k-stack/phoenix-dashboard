@@ -23,7 +23,8 @@ import CSVImportView from "@/components/csv-import-view"
 import { AccountFilterBar } from "@/components/account-filter-bar"
 import { EconomicCalendar } from "@/components/economic-calendar"
 import { MarketBiasView } from "@/components/market-bias-view"
-import { AssetMatrix } from "@/components/asset-matrix-view"   // ← Pass B
+import { AssetMatrix } from "@/components/asset-matrix-view"            // ← Pass B
+import { MarketIntelligenceView } from "@/components/market-intelligence-view" // ← Pass C
 import { PnLHeader } from "@/components/pnl-header"
 import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
 import { PnLAnalyticsView } from "@/components/pnl-analytics-view"
@@ -362,6 +363,14 @@ export default function TradingDashboard() {
         return (
           <PageShell title="Market Bias" sub="Multi-agent AI consensus · Institutional market context engine">
             <MarketBiasView />
+          </PageShell>
+        )
+
+      // ── Pass C — Market Intelligence ──────────────────────────────────────
+      case "market-intelligence":
+        return (
+          <PageShell title="Market Intelligence" sub="Unified feed · events, catalysts, policy alerts & high-signal news">
+            <MarketIntelligenceView />
           </PageShell>
         )
 

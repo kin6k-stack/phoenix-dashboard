@@ -7,6 +7,7 @@ import {
   Globe, Target, CandlestickChart, ChevronLeft,
   Settings, Wifi, Menu, X, PanelLeftOpen, Wallet, Bot, FileUp,
   Network,
+  Newspaper,
 } from "lucide-react"
 
 interface NavItem {
@@ -27,6 +28,7 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
     label: "ANALYSIS",
     items: [
       { id: "market-bias",          label: "Market Bias",       icon: Target,           badge: { text: "AI",   variant: "live" } },
+      { id: "market-intelligence",  label: "Market Intel",      icon: Newspaper,        badge: { text: "AI",   variant: "live" } },
       { id: "asset-matrix",         label: "Asset Matrix",      icon: Network,          badge: { text: "AI",   variant: "live" } },
       { id: "session-intelligence", label: "Session Intel",     icon: Clock                                                      },
       { id: "performance-metrics",  label: "Performance",       icon: BarChart3                                                  },
