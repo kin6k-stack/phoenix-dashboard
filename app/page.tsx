@@ -385,8 +385,8 @@ export default function TradingDashboard() {
             {/* Internal tab bar */}
             <div className="flex items-center border-b border-border px-6 pt-4 pb-0 gap-1 flex-shrink-0">
               {[
-                { id: "analytics", label: "Analytics" },
-                { id: "ledger",    label: "Trade Log"  },
+                { id: "analytics", label: "Analytics"       },
+                { id: "ledger",    label: "Execution Ledger" },
               ].map(t => (
                 <button key={t.id} onClick={() => setPerfTab(t.id as any)}
                   className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all -mb-px ${
@@ -400,7 +400,7 @@ export default function TradingDashboard() {
             </div>
             {perfTab === "analytics" ? (
               <PageShell title="Performance" sub="Segmented algorithmic strategy and execution analytics">
-                <PerformanceView userTrades={trades} botTrades={isOwner ? botTrades : []} />
+                <PerformanceView userTrades={trades} botTrades={isOwner ? botTrades : []} accounts={accounts} />
               </PageShell>
             ) : (
               <PageShell title="Trade Log" sub="Complete history of all trades and engine signals">

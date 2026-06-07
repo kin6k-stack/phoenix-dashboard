@@ -1,33 +1,64 @@
 "use client"
-import { useState } from "react"
-import { Shield, BarChart3, Activity, Cpu, Zap, TrendingUp, ShieldAlert, Flame } from "lucide-react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Performance View — reworked from engine tiles to per-account tiles
+//
+// REMOVED: Combined / Core Engines / Manual Logs filter bar
+// ADDED:   One tile per registered account — groups trades by accountId
+//          Account name, broker, and color all come from the accounts prop
+//
+// Each account tile shows:
+//   • 4 stat cards: Net P&L, Profit Factor, Win Rate, Expectancy
+//   • Chronological equity curve
+//   • Peak-to-trough drawdown chart
+//   • Click trade count to open a scrollable trade ledger dialog
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { useState, useMemo } from "react"
+import {
+  TrendingUp, ShieldAlert, ArrowUpRight, ArrowDownRight,
+  Building2, BarChart2,
+} from "lucide-react"
 import {
   ResponsiveContainer, LineChart, Line, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine,
 } from "recharts"
 
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface Trade {
-  id: string
-  date: string
-  symbol: string
-  setup: string
-  rMultiple: number
+  id:         string
+  date:       string
+  symbol:     string
+  setup:      string
+  rMultiple:  number
   direction?: string
+  notes?:     string
+  accountId?: string   // ← key field for per-account grouping
 }
 
+interface Account {
+  id:          string
+  accountName: string
+  color:       string
+  broker:      string
+}
+
+interface PerformanceViewProps {
+  userTrades?: Trade[]
+  botTrades?:  Trade[]   // kept for API compatibility — not shown here (see Bot Hub)
+  accounts?:   Account[]
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function buildChartData(trades: Trade[]) {
-  let pnl  = 0
-  let peak = 0
+  let pnl = 0, peak = 0
   const data: { index: number; pnl: number; drawdown: number }[] = [{ index: 0, pnl: 0, drawdown: 0 }]
   ;[...trades]
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .forEach((t, i) => {
-      pnl += Number(t.rMultiple || 0)
+      pnl  += Number(t.rMultiple || 0)
       if (pnl > peak) peak = pnl
-      const drawdown = Number(Math.max(0, peak - pnl).toFixed(2))
-      data.push({ index: i + 1, pnl: Number(pnl.toFixed(2)), drawdown })
+      data.push({ index: i + 1, pnl: Number(pnl.toFixed(2)), drawdown: Number(Math.max(0, peak - pnl).toFixed(2)) })
     })
   return data
 }
@@ -35,7 +66,7 @@ function buildChartData(trades: Trade[]) {
 function calcStats(trades: Trade[]) {
   const wins   = trades.filter(t => t.rMultiple > 0)
   const losses = trades.filter(t => t.rMultiple < 0)
-  const gp     = wins.reduce((s, t) => s + Number(t.rMultiple), 0)
+  const gp     = wins.reduce((s, t)   => s + Number(t.rMultiple), 0)
   const gl     = Math.abs(losses.reduce((s, t) => s + Number(t.rMultiple), 0))
   const netPnl = gp - gl
   const winRate      = trades.length > 0 ? ((wins.length / trades.length) * 100).toFixed(1) : "0.0"
@@ -46,249 +77,278 @@ function calcStats(trades: Trade[]) {
   return { netPnl, profitFactor, winRate, expectancy, wins: wins.length, losses: losses.length }
 }
 
-function getEngineStyles(name: string) {
-  const n = name.toUpperCase().replace(/_/g, " ")
-  if (n.includes("SENTINEL") || n.includes("APEX"))
-    return { icon: Cpu,      bar: "bg-indigo-500",  text: "text-indigo-400",  soft: "bg-indigo-500/10",  stroke: "#818cf8" }
-  if (n.includes("HYBRID"))
-    return { icon: Zap,      bar: "bg-emerald-500", text: "text-emerald-400", soft: "bg-emerald-500/10", stroke: "#22c55e" }
-  if (n.includes("PHOENIX GOLD") || n.includes("GOLD"))
-    return { icon: Flame,    bar: "bg-amber-500",   text: "text-amber-400",   soft: "bg-amber-500/10",   stroke: "#f59e0b" }
-  if (n.includes("NQ") || n.includes("USTEC") || n.includes("NASDAQ"))
-    return { icon: BarChart3, bar: "bg-cyan-500",   text: "text-cyan-400",    soft: "bg-cyan-500/10",    stroke: "#06b6d4" }
-  if (n.includes("PHOENIX"))
-    return { icon: Zap,      bar: "bg-orange-500",  text: "text-orange-400",  soft: "bg-orange-500/10",  stroke: "#f97316" }
-  if (n.includes("MANUAL"))
-    return { icon: Activity, bar: "bg-slate-500",   text: "text-slate-400",   soft: "bg-slate-500/10",   stroke: "#94a3b8" }
-  return     { icon: Shield,   bar: "bg-violet-500",  text: "text-violet-400",  soft: "bg-violet-500/10",  stroke: "#8b5cf6" }
-}
-
-interface PerformanceViewProps {
-  userTrades?: Trade[]   // user's manual entries — feeds "Manual Execution" tile only
-  botTrades?:  Trade[]   // shared bot demo feed — feeds Sentinel / NQ / Hybrid tiles
-}
-
-export function PerformanceView({ userTrades = [], botTrades = [] }: PerformanceViewProps) {
-  const [filterMode,   setFilterMode]   = useState<"ALL" | "BOT" | "MANUAL">("ALL")
-  const [selectedBot,  setSelectedBot]  = useState<string | null>(null)
-
-  // Build engines map:
-  //   • Bot trades populate their named tile (Sentinel / NQ / Hybrid)
-  //   • User manual trades all go into the "Manual Execution" tile
-  const engines: Record<string, Trade[]> = { "Manual Execution": [] }
-  botTrades.forEach(t => {
-    const name = t.setup || "Unknown Bot"
-    if (!engines[name]) engines[name] = []
-    engines[name].push(t)
-  })
-  userTrades.forEach(t => {
-    engines["Manual Execution"].push(t)
-  })
-
-  const filteredEngines = Object.entries(engines).filter(([name]) => {
-    const n = name.toUpperCase()
-    if (filterMode === "BOT")    return !n.includes("MANUAL")
-    if (filterMode === "MANUAL") return n.includes("MANUAL")
-    return true
-  })
-
-  const selectedBotTrades = selectedBot ? (engines[selectedBot] || []) : []
-
-  // Short labels on mobile, full labels on desktop
-  const FILTER_LABELS = {
-    ALL:    { short: "All",    full: "Combined Matrix" },
-    BOT:    { short: "Bots",   full: "Core Engines" },
-    MANUAL: { short: "Manual", full: "Manual Logs" },
-  } as const
+// ── Trade dialog ──────────────────────────────────────────────────────────────
+function TradeLedgerDialog({ trades, account, onClose }: {
+  trades:  Trade[]
+  account: Account | null
+  onClose: () => void
+}) {
+  if (!account) return null
+  const sorted = [...trades].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-
-      {/* ── Filter bar — stacks on mobile, side-by-side on sm+ ──────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-card/40 backdrop-blur-md rounded-xl border border-border/40 shadow-sm">
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[10px] sm:text-xs font-black text-muted-foreground uppercase tracking-widest">Data Source Layer</span>
-          <span className="text-[10px] sm:text-[11px] text-foreground font-medium italic">Active performance pipeline</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}>
+      <div className="w-full max-w-lg rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border"
+          style={{ borderLeft: `4px solid ${account.color}` }}>
+          <div>
+            <h3 className="text-sm font-black text-foreground">{account.accountName}</h3>
+            <p className="text-[10px] text-muted-foreground">{account.broker} · {sorted.length} trades</p>
+          </div>
+          <button onClick={onClose}
+            className="text-muted-foreground hover:text-foreground text-xl leading-none transition-colors px-2">
+            ×
+          </button>
         </div>
-        <div className="flex gap-1 bg-background/50 p-1 sm:p-1.5 rounded-lg border border-border/50 w-fit">
-          {(["ALL", "BOT", "MANUAL"] as const).map(mode => (
-            <button
-              key={mode}
-              onClick={() => setFilterMode(mode)}
-              className={`px-2.5 sm:px-4 py-2 rounded-md text-[10px] font-black uppercase tracking-widest transition-colors min-h-[36px]
-                ${filterMode === mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted/60"}`}>
-              <span className="hidden sm:inline">{FILTER_LABELS[mode].full}</span>
-              <span className="sm:hidden">{FILTER_LABELS[mode].short}</span>
-            </button>
+        {/* Trade list */}
+        <div className="max-h-[380px] overflow-y-auto custom-scrollbar">
+          {sorted.length === 0 ? (
+            <p className="text-center text-sm text-muted-foreground py-10 italic">No trades found.</p>
+          ) : sorted.map(t => {
+            const isBuy = (t.direction ?? "BUY").toUpperCase() === "BUY"
+            const isWin = t.rMultiple > 0
+            return (
+              <div key={t.id}
+                className="flex items-center justify-between px-5 py-3 border-b border-border/30 hover:bg-white/[0.02] transition-colors">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black text-foreground">{t.symbol}</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${isBuy ? "bg-emerald-500/15 text-emerald-400" : "bg-rose-500/15 text-rose-400"}`}>
+                      {isBuy ? "BUY" : "SELL"}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {new Date(t.date).toLocaleString("en-US", { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" })}
+                  </span>
+                </div>
+                <span className={`text-sm font-black tabular-nums ${isWin ? "text-emerald-400" : t.rMultiple === 0 ? "text-muted-foreground" : "text-rose-400"}`}>
+                  {t.rMultiple >= 0 ? "+" : ""}${Number(t.rMultiple).toFixed(2)}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Account tile ──────────────────────────────────────────────────────────────
+function AccountTile({ account, trades, onOpenLedger }: {
+  account:     Account
+  trades:      Trade[]
+  onOpenLedger:() => void
+}) {
+  const stats     = useMemo(() => calcStats(trades), [trades])
+  const chartData = useMemo(() => buildChartData(trades), [trades])
+  const lastPnl   = chartData[chartData.length - 1]?.pnl ?? 0
+
+  return (
+    <div className="rounded-xl border border-border/40 bg-card/60 shadow-lg relative overflow-hidden">
+      {/* Colored left bar */}
+      <div className="absolute top-0 left-0 w-1.5 h-full rounded-l-xl" style={{ background: account.color }} />
+
+      {/* Header */}
+      <div className="pl-4 pr-4 pt-4 pb-3 border-b border-border/30 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-lg flex-shrink-0 flex items-center justify-center"
+            style={{ background: `${account.color}20`, border: `1px solid ${account.color}40` }}>
+            <Building2 size={14} style={{ color: account.color }} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-black text-foreground truncate">{account.accountName}</p>
+            <p className="text-[10px] text-muted-foreground">{account.broker}</p>
+          </div>
+        </div>
+        <button onClick={onOpenLedger}
+          className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-lg flex-shrink-0 hover:opacity-80 transition-opacity"
+          style={{ background: `${account.color}18`, color: account.color, border: `1px solid ${account.color}35` }}>
+          {trades.length} trades
+        </button>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* Stats — 2×2 on mobile, 4 cols on sm+ */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {[
+            { label:"Net P&L",      value:`${stats.netPnl >= 0 ? "+" : ""}$${stats.netPnl.toFixed(2)}`,   color: stats.netPnl >= 0 ? "text-emerald-400" : "text-rose-400" },
+            { label:"P. Factor",    value:stats.profitFactor,                                               color: parseFloat(stats.profitFactor) >= 1.5 ? "text-emerald-400" : parseFloat(stats.profitFactor) >= 1 ? "text-amber-400" : "text-rose-400" },
+            { label:"Win Rate",     value:`${stats.winRate}%`,                                              color: parseFloat(stats.winRate) >= 50 ? "text-blue-400" : "text-amber-400" },
+            { label:"Expectancy",   value:`$${stats.expectancy}`,                                           color: parseFloat(stats.expectancy) >= 0 ? "text-amber-400" : "text-rose-400" },
+          ].map(s => (
+            <div key={s.label} className="p-2.5 bg-background/50 rounded-lg">
+              <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">{s.label}</span>
+              <p className={`text-sm font-black tabular-nums ${s.color}`}>{s.value}</p>
+            </div>
           ))}
+        </div>
+
+        {/* W/L bar */}
+        {trades.length > 0 && (
+          <div className="space-y-1">
+            <div className="flex justify-between text-[9px] text-muted-foreground font-mono">
+              <span style={{ color: account.color }}>Wins {stats.wins}</span>
+              <span className="text-rose-400">Losses {stats.losses}</span>
+            </div>
+            <div className="h-1 rounded-full bg-rose-500/20 overflow-hidden">
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${stats.winRate}%`, background: account.color }} />
+            </div>
+          </div>
+        )}
+
+        {trades.length > 0 ? (
+          <div className="space-y-3">
+            {/* Equity curve */}
+            <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border/20 bg-background/30">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-3 h-3" style={{ color: account.color }} />
+                  <span className="text-[9px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
+                    Equity Curve
+                  </span>
+                </div>
+                <span className={`text-[9px] font-black font-mono ${lastPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                  {lastPnl >= 0 ? "+" : ""}${lastPnl.toFixed(2)}
+                </span>
+              </div>
+              <div className="h-36 px-2 pt-2 pb-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="index" stroke="#475569" fontSize={9} tickLine={false} />
+                    <YAxis stroke="#475569" fontSize={9} tickLine={false} width={44}
+                      tickFormatter={v => `$${v >= 0 ? "" : ""}${v.toFixed(0)}`}
+                      domain={["dataMin - 5", "dataMax + 5"]} />
+                    <Tooltip
+                      formatter={(v: number) => [`$${v >= 0 ? "+" : ""}${v.toFixed(2)}`, "P&L"]}
+                      contentStyle={{ backgroundColor:"#0f172a", borderColor:"#1e293b", color:"#f8fafc", fontSize:11, borderRadius:8 }}
+                    />
+                    <ReferenceLine y={0} stroke="#475569" strokeDasharray="4 4" strokeWidth={1} />
+                    <Line type="monotone" dataKey="pnl" stroke={account.color} strokeWidth={2}
+                      dot={false} activeDot={{ r:4, fill:account.color }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Drawdown */}
+            <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-border/20 bg-background/30">
+                <ShieldAlert className="w-3 h-3 text-rose-500 flex-shrink-0" />
+                <span className="text-[9px] font-mono font-bold tracking-widest text-muted-foreground uppercase">
+                  Drawdown
+                </span>
+              </div>
+              <div className="h-28 px-2 pt-2 pb-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
+                    <XAxis dataKey="index" stroke="#475569" fontSize={9} tickLine={false} />
+                    <YAxis stroke="#475569" fontSize={9} tickLine={false} inverted width={40}
+                      tickFormatter={v => `-$${v.toFixed(0)}`} />
+                    <Tooltip
+                      formatter={(v: number) => [`-$${v.toFixed(2)}`, "Drawdown"]}
+                      contentStyle={{ backgroundColor:"#0f172a", borderColor:"#1e293b", color:"#f8fafc", fontSize:11, borderRadius:8 }}
+                    />
+                    <Area type="monotone" dataKey="drawdown" stroke="#ef4444"
+                      fill="rgba(239,68,68,0.08)" strokeWidth={1.5} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-20 flex items-center justify-center">
+            <p className="text-[11px] text-muted-foreground italic font-mono text-center">
+              No trades synced yet for this account.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Main export ───────────────────────────────────────────────────────────────
+export function PerformanceView({ userTrades = [], accounts = [] }: PerformanceViewProps) {
+  const [dialogAccount, setDialogAccount] = useState<Account | null>(null)
+
+  // Group user trades by accountId
+  const byAccount = useMemo(() => {
+    const map: Record<string, Trade[]> = {}
+    for (const t of userTrades) {
+      const id = (t as any).accountId || "unassigned"
+      if (!map[id]) map[id] = []
+      map[id].push(t)
+    }
+    return map
+  }, [userTrades])
+
+  // Accounts to render — registered accounts first, then "unassigned" if any
+  const accountsToShow = useMemo(() => {
+    const result: Account[] = [...accounts]
+    if (byAccount["unassigned"]?.length > 0 && !accounts.find(a => a.id === "unassigned")) {
+      result.push({ id:"unassigned", accountName:"Unassigned Trades", color:"#888", broker:"Unknown" })
+    }
+    return result
+  }, [accounts, byAccount])
+
+  const dialogTrades = dialogAccount ? (byAccount[dialogAccount.id] ?? []) : []
+
+  if (accounts.length === 0 && userTrades.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+        <BarChart2 size={32} className="text-muted-foreground/30" />
+        <p className="text-sm text-muted-foreground/60">No accounts or trades yet.</p>
+        <p className="text-[11px] text-muted-foreground/40">Register accounts in Lifetime Ledger and sync trades to see performance here.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+
+      {/* ── Summary strip ──────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-3 p-3 bg-card/40 rounded-xl border border-border/40">
+        <BarChart2 size={14} className="text-primary" />
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Account Performance</p>
+          <p className="text-[10px] text-foreground/50 mt-0.5">
+            {accountsToShow.length} account{accountsToShow.length !== 1 ? "s" : ""} · {userTrades.length} total trades
+          </p>
+        </div>
+        <div className="ml-auto text-right">
+          <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider">Combined P&L</p>
+          <p className={`text-sm font-black font-mono ${userTrades.reduce((s,t)=>s+t.rMultiple,0) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            {userTrades.reduce((s,t)=>s+t.rMultiple,0) >= 0 ? "+" : ""}
+            ${userTrades.reduce((s,t)=>s+t.rMultiple,0).toFixed(2)}
+          </p>
         </div>
       </div>
 
-      {/* ── Bot tiles ───────────────────────────────────────────────── */}
+      {/* ── Per-account tiles ──────────────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
-        {filteredEngines.map(([name, engineTrades]) => {
-          const styles    = getEngineStyles(name)
-          const stats     = calcStats(engineTrades)
-          const chartData = buildChartData(engineTrades)
-          const lastPnl   = chartData[chartData.length - 1]?.pnl ?? 0
-
-          return (
-            <Card key={name} className="border-border/40 bg-card/60 shadow-lg relative overflow-hidden">
-              <div className={`absolute top-0 left-0 w-1.5 h-full ${styles.bar}`} />
-
-              {/* Header — wraps if needed on tiny screens */}
-              <CardHeader className="pb-3 sm:pb-4 border-b border-border/30">
-                <CardTitle className="flex items-center justify-between gap-2 text-xs sm:text-sm font-black uppercase tracking-widest">
-                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                    <div className={`p-1.5 sm:p-2 rounded ${styles.soft} flex-shrink-0`}>
-                      <styles.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${styles.text}`} />
-                    </div>
-                    <span className={`${styles.text} truncate`}>{name}</span>
-                  </div>
-                  <button onClick={() => setSelectedBot(name)}
-                    className={`text-[9px] sm:text-[10px] font-mono px-2 py-1 rounded cursor-pointer hover:brightness-125 transition-all whitespace-nowrap flex-shrink-0 ${styles.soft} ${styles.text}`}>
-                    {engineTrades.length} Trades
-                  </button>
-                </CardTitle>
-              </CardHeader>
-
-              <CardContent className="pt-4 sm:pt-5 pb-3 sm:pb-4 space-y-4 sm:space-y-5">
-
-                {/* Stats — 2 cols on phone, 4 on sm+ */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-                  <div className="p-2.5 sm:p-3 bg-background/50 rounded-lg">
-                    <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">Net P&L</span>
-                    <p className={`text-sm sm:text-base font-black tabular-nums ${stats.netPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                      {stats.netPnl >= 0 ? "+" : ""}${stats.netPnl.toFixed(2)}
-                    </p>
-                  </div>
-                  <div className="p-2.5 sm:p-3 bg-background/50 rounded-lg">
-                    <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">P. Factor</span>
-                    <p className="text-sm sm:text-base font-black text-foreground tabular-nums">{stats.profitFactor}</p>
-                  </div>
-                  <div className="p-2.5 sm:p-3 bg-background/50 rounded-lg">
-                    <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">Win Rate</span>
-                    <p className={`text-sm sm:text-base font-black tabular-nums ${parseFloat(stats.winRate) >= 50 ? "text-blue-400" : "text-amber-400"}`}>
-                      {stats.winRate}%
-                    </p>
-                  </div>
-                  <div className="p-2.5 sm:p-3 bg-background/50 rounded-lg">
-                    <span className="text-[9px] text-muted-foreground uppercase block mb-0.5">Expectancy</span>
-                    <p className={`text-sm sm:text-base font-black tabular-nums ${parseFloat(stats.expectancy) >= 0 ? "text-amber-400" : "text-rose-400"}`}>
-                      ${stats.expectancy}
-                    </p>
-                  </div>
-                </div>
-
-                {engineTrades.length > 0 ? (
-                  <div className="space-y-3">
-                    {/* Equity Curve — shorter on mobile */}
-                    <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
-                      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 border-b border-border/20 bg-background/30 gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <TrendingUp className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0" style={{ color: styles.stroke }} />
-                          <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase truncate">
-                            <span className="hidden sm:inline">Chronological </span>Equity Curve
-                          </span>
-                        </div>
-                        <span className={`text-[9px] sm:text-[10px] font-black font-mono whitespace-nowrap ${lastPnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                          {lastPnl >= 0 ? "+" : ""}${lastPnl.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="h-32 sm:h-40 md:h-44 px-2 pt-2 pb-1">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                            <XAxis dataKey="index" stroke="#475569" fontSize={9} tickLine={false} />
-                            <YAxis stroke="#475569" fontSize={9} tickLine={false} width={48}
-                              tickFormatter={v => `$${v >= 0 ? "+" : ""}${v.toFixed(0)}`}
-                              domain={["dataMin - 5", "dataMax + 5"]} />
-                            <Tooltip
-                              formatter={(v: number) => [`$${v >= 0 ? "+" : ""}${v.toFixed(2)}`, "Cumulative P&L"]}
-                              contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", color: "#f8fafc", fontSize: 11, borderRadius: 8 }} />
-                            <ReferenceLine y={0} stroke="#475569" strokeDasharray="4 4" strokeWidth={1} />
-                            <Line type="monotone" dataKey="pnl" stroke={styles.stroke} strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: styles.stroke }} />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-
-                    {/* Drawdown — shorter on mobile */}
-                    <div className="rounded-xl border border-border/30 bg-background/20 overflow-hidden">
-                      <div className="flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 border-b border-border/20 bg-background/30">
-                        <ShieldAlert className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-rose-500 flex-shrink-0" />
-                        <span className="text-[9px] sm:text-[10px] font-mono font-bold tracking-widest text-muted-foreground uppercase truncate">
-                          <span className="hidden sm:inline">Peak-to-Trough </span>Drawdown
-                        </span>
-                      </div>
-                      <div className="h-28 sm:h-32 md:h-36 px-2 pt-2 pb-1">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <AreaChart data={chartData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                            <XAxis dataKey="index" stroke="#475569" fontSize={9} tickLine={false} />
-                            <YAxis stroke="#475569" fontSize={9} tickLine={false} inverted width={42}
-                              tickFormatter={v => `-$${v.toFixed(0)}`} />
-                            <Tooltip
-                              formatter={(v: number) => [`-$${v.toFixed(2)}`, "Drawdown"]}
-                              contentStyle={{ backgroundColor: "#0f172a", borderColor: "#1e293b", color: "#f8fafc", fontSize: 11, borderRadius: 8 }} />
-                            <Area type="monotone" dataKey="drawdown" stroke="#ef4444"
-                              fill="rgba(239,68,68,0.08)" strokeWidth={1.5} />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-20 sm:h-24 flex items-center justify-center text-[10px] sm:text-[11px] text-muted-foreground italic font-mono text-center px-3">
-                    No executions recorded yet for this engine.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )
-        })}
+        {accountsToShow.map(acc => (
+          <AccountTile
+            key={acc.id}
+            account={acc}
+            trades={byAccount[acc.id] ?? []}
+            onOpenLedger={() => setDialogAccount(acc)}
+          />
+        ))}
       </div>
 
       {/* Trade ledger dialog */}
-      <Dialog open={!!selectedBot} onOpenChange={() => setSelectedBot(null)}>
-        <DialogContent className="bg-card/95 backdrop-blur-xl border-border/40 shadow-2xl max-w-[90vw] sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle className="uppercase tracking-widest text-xs sm:text-sm font-black text-foreground flex items-center gap-2">
-              {selectedBot && (() => { const s = getEngineStyles(selectedBot); return <s.icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${s.text}`} /> })()}
-              <span className="truncate">{selectedBot} — Execution Ledger</span>
-            </DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[300px] sm:max-h-[340px] overflow-y-auto space-y-2 mt-4 pr-1">
-            {selectedBotTrades.length === 0 ? (
-              <p className="text-xs italic text-muted-foreground text-center py-6">No historical executions found.</p>
-            ) : (
-              [...selectedBotTrades]
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                .map((t, i) => {
-                  const isBuy  = (t.direction || "BUY").toUpperCase() === "BUY"
-                  return (
-                    <div key={i} className="flex justify-between items-center p-2.5 sm:p-3 rounded-lg bg-background/40 border border-border/30 hover:border-border/60 transition-colors gap-2">
-                      <div className="flex flex-col gap-1 min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-[10px] sm:text-[11px] font-black tracking-widest uppercase text-foreground">{t.symbol}</span>
-                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-black tracking-wider ${isBuy ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}>
-                            {isBuy ? "BUY" : "SELL"}
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground font-mono truncate">
-                          {new Date(t.date).toLocaleString()}
-                        </span>
-                      </div>
-                      <span className={`text-xs sm:text-sm font-black tabular-nums whitespace-nowrap ${t.rMultiple < 0 ? "text-rose-400" : "text-emerald-400"}`}>
-                        {t.rMultiple >= 0 ? "+" : ""}${Number(t.rMultiple).toFixed(2)}
-                      </span>
-                    </div>
-                  )
-                })
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {dialogAccount && (
+        <TradeLedgerDialog
+          trades={dialogTrades}
+          account={dialogAccount}
+          onClose={() => setDialogAccount(null)}
+        />
+      )}
     </div>
   )
 }
