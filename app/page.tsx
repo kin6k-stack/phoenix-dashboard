@@ -467,7 +467,7 @@ export default function TradingDashboard() {
       case "lifetime-ledger":
         return (
           <PageShell title="Lifetime Ledger" sub="Cross-broker trade history and account P&L overview">
-            <LifetimeLedgerView />
+            <LifetimeLedgerView trades={trades} accounts={accounts} />
           </PageShell>
         )
 
