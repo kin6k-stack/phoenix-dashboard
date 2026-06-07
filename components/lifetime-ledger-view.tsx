@@ -481,7 +481,10 @@ export default function LifetimeLedgerView() {
       })
 
       const unsub = onSnapshot(
-        collection(db, "accounts", acc.id, "trades"),
+        query(
+          collection(db, "accounts", acc.id, "trades"),
+          where("userId", "==", user.uid)
+        ),
         snap => {
           let pnl = 0, wins = 0, losses = 0
           snap.forEach(d => {
