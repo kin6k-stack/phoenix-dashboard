@@ -66,15 +66,15 @@ export default function TradingDashboard() {
   const [selectedDate,      setSelectedDate]      = useState<Date | null>(null)
   const [isAddTradeOpen,    setIsAddTradeOpen]    = useState(false)
   const [editingTrade,      setEditingTrade]      = useState<Trade | null>(null)
-  const [copyDraft,         setCopyDraft]         = useState<Partial<Trade> | null>(null)  // Pass G: bot trade copy-to-journal pre-fill
-  const [trades,            setTrades]            = useState<Trade[]>([])      // USER's manual trades
-  const [botTrades,         setBotTrades]         = useState<Trade[]>([])      // SHARED bot demo feed
+  const [copyDraft,         setCopyDraft]         = useState<Partial<Trade> | null>(null)
+  const [trades,            setTrades]            = useState<Trade[]>([])
+  const [botTrades,         setBotTrades]         = useState<Trade[]>([])
   const [accounts,          setAccounts]          = useState<{id:string; accountName:string; color:string; broker:string}[]>([])
   const [isOwner,           setIsOwner]           = useState(false)
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
   const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")
-  const [symbolFilter,      setSymbolFilter]      = useState<string>("ALL")        // Pass F2: PnL symbol filter
+  const [symbolFilter,      setSymbolFilter]      = useState<string>("ALL")
   const [settingsOpen,      setSettingsOpen]      = useState(false)
   const [currentMonthYear,  setCurrentMonthYear]  = useState({
     month: new Date().getMonth(),
@@ -86,11 +86,6 @@ export default function TradingDashboard() {
   }, [user, authLoading, router])
 
   // ── Listen for custom nav events from child components ──
-  // (CandleAnalysisView dispatches `phoenix:nav` when its
-  //  "View Economic Events" link is clicked.
-  //  Sidebar dispatches `phoenix:settings` to open the panel.
-  //  YearlyPerformanceTable dispatches `phoenix:calendar:nav` when
-  //  the "View in Calendar" button is clicked in the month modal.)
   useEffect(() => {
     const navHandler = (e: Event) => {
       const ev = e as CustomEvent<string>
@@ -100,13 +95,9 @@ export default function TradingDashboard() {
     const calendarNavHandler = (e: Event) => {
       const ev = e as CustomEvent<{ year: number; month: number }>
       if (ev.detail && typeof ev.detail.year === "number" && typeof ev.detail.month === "number") {
-        // Switch to the PnL Calendar page if we're not already there
         setActiveNavItem("pnl-calendar")
-        // Switch back to calendar view (not analytics)
         setPnlView("calendar")
-        // Update which month the calendar is showing
         setCurrentMonthYear({ year: ev.detail.year, month: ev.detail.month })
-        // Scroll the calendar into view after a short delay so it has time to render
         setTimeout(() => {
           document.getElementById("pnl-calendar-section")?.scrollIntoView({ behavior: "smooth", block: "start" })
         }, 100)
@@ -123,25 +114,18 @@ export default function TradingDashboard() {
   }, [])
 
   // ─────────────────────────────────────────────────────────────────
-  // Trade listeners — two separate Firestore subscriptions:
+  // Listener 1 — user's own trades
   //
-  //   trades/      → user's manual entries only (filtered by userId)
-  //                  feeds: PnL Calendar, Analytics, Journal, Dashboard
+  // Reads from: accounts/{accountId}/trades/{ticket}
+  // All trades live in per-account subcollections (fresh start — no
+  // flat trades/ collection). collectionGroup("trades") picks up every
+  // subcollection named "trades" that belongs to this user.
   //
-  //   botTrades/   → shared bot demo feed (NQ, Sentinel, Hybrid)
-  //                  feeds: Performance/Engine Telemetry ONLY
-  //                  every user sees the same bot history
+  // No orderBy here — collectionGroup + where + orderBy would need a
+  // composite index. Sorting happens client-side instead.
   // ─────────────────────────────────────────────────────────────────
-
-  // Listener 1: user's own trades
   useEffect(() => {
     if (!user) return
-    // collectionGroup reads from:
-    //   trades/{ticket}                         (old flat — backward compat)
-    //   accounts/{accountId}/trades/{ticket}    (new subcollection — per-account)
-    // NOTE: No orderBy here — collectionGroup + where + orderBy requires a
-    // composite index that must be manually created in Firebase Console.
-    // Sorting is done client-side after the snapshot arrives.
     const q = query(
       collectionGroup(db, "trades"),
       where("userId", "==", user.uid)
@@ -153,7 +137,6 @@ export default function TradingDashboard() {
         if (data.timestamp?.toDate)       tradeDate = data.timestamp.toDate().toISOString()
         else if (data.date)               tradeDate = new Date(data.date).toISOString()
         const rawBot = data.bot || data.botName || data.setup || null
-        // openedAt — written by Manual Sync v1.1 as openedAt field
         let openedAt: string | undefined
         if      (data.openedAt?.toDate)  openedAt = data.openedAt.toDate().toISOString()
         else if (data.openTime)          openedAt = new Date(data.openTime).toISOString()
@@ -163,8 +146,6 @@ export default function TradingDashboard() {
           openedAt,
           symbol:     data.symbol || "Unknown",
           setup:      normalizeBotName(rawBot),
-          // Pass O: schema fallback. Sync script writes `rMultiple`, legacy
-          // historical sync wrote `profit`. Read whichever exists.
           rMultiple:  data.rMultiple !== undefined ? Number(data.rMultiple)
                     : data.profit    !== undefined ? Number(data.profit)
                     : 0,
@@ -173,23 +154,19 @@ export default function TradingDashboard() {
           sl:         data.sl         || 0,
           lot:        data.lots       || data.lot || 0,
           notes:      data.notes      || "",
-          accountId:  data.accountId  || "",   // required for account filter
+          accountId:  data.accountId  || "",
           screenshot: data.screenshot || "",
         }
       })
-      // Sort by date desc client-side — collectionGroup query has no orderBy
-      // (would require a composite index; sorting here avoids that dependency)
       mapped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       setTrades(mapped)
     }, err => {
-      // If we hit a permission error (e.g. before the user is on allowedUsers),
-      // log it but don't crash the UI
       console.warn("[trades listener]", err.message)
       setTrades([])
     })
   }, [user])
 
-  // Check owner status — gates botTrades access
+  // ── Owner check — gates botTrades access ──
   useEffect(() => {
     if (!user) return
     getDoc(doc(db, "allowedUsers", user.uid)).then(snap => {
@@ -197,14 +174,19 @@ export default function TradingDashboard() {
     })
   }, [user])
 
-  // Listener 2: bot trades — owner only
+  // ─────────────────────────────────────────────────────────────────
+  // Listener 2 — bot trades (owner only)
+  //
+  // FIX: isOwner added to dependency array. Previously only [user] was
+  // listed, so the effect ran before isOwner resolved (always false),
+  // meaning botTrades never loaded after the owner check came back.
+  // ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!user || !isOwner) return
     const q = query(collection(db, "botTrades"), orderBy("closedAt", "desc"))
     return onSnapshot(q, (snapshot) => {
       setBotTrades(snapshot.docs.map(d => {
         const data = d.data()
-        // Date resolution — v5.1 writes closedAt/openedAt, legacy writes timestamp/date
         let tradeDate = new Date().toISOString()
         if      (data.closedAt?.toDate)   tradeDate = data.closedAt.toDate().toISOString()
         else if (data.openedAt?.toDate)   tradeDate = data.openedAt.toDate().toISOString()
@@ -216,7 +198,6 @@ export default function TradingDashboard() {
           date:       tradeDate,
           symbol:     (data.symbol || "Unknown").toUpperCase(),
           setup:      normalizeBotName(rawBot),
-          // profit field — webhook v5.1 writes profit, legacy writes rMultiple
           rMultiple:  data.rMultiple !== undefined ? Number(data.rMultiple)
                     : data.profit    !== undefined ? Number(data.profit)
                     : 0,
@@ -235,9 +216,9 @@ export default function TradingDashboard() {
       console.warn("[botTrades listener]", err.message)
       setBotTrades([])
     })
-  }, [user])
+  }, [user, isOwner]) // ← FIXED: was [user] only
 
-  // Listener 3: registered trading accounts (for account filter bar)
+  // ── Listener 3 — registered trading accounts ──
   useEffect(() => {
     if (!user) return
     const qAcc = query(
@@ -253,36 +234,91 @@ export default function TradingDashboard() {
     if (selectedDate) { setEditingTrade(null); setIsAddTradeOpen(true) }
   }, [selectedDate])
 
+  // ─────────────────────────────────────────────────────────────────
+  // handleSaveTrade — ADD and UPDATE
+  //
+  // ALL trades now live under accounts/{accountId}/trades/{tradeId}.
+  // No writes to the flat trades/ collection.
+  //
+  // ADD:    requires selectedAccountId from the filter bar.
+  //         If no account is selected the user is prompted to pick one.
+  //
+  // UPDATE: looks up the trade's accountId from local state to build
+  //         the correct subcollection path.
+  // ─────────────────────────────────────────────────────────────────
   const handleSaveTrade = async (trade: any) => {
     if (!user) return
     try {
       if (trade.id) {
-        await updateDoc(doc(db, "trades", trade.id), {
-          symbol: trade.symbol.toUpperCase(), profit: Number(trade.rMultiple),
-          bot: trade.setup, direction: trade.direction,
-          timestamp: new Date(trade.date), notes: trade.notes, screenshot: trade.screenshot || "",
-        })
+        // UPDATE — find the existing trade's accountId for the correct path
+        const existing = trades.find(t => t.id === trade.id) as any
+        const accountId = existing?.accountId
+        if (!accountId) {
+          console.error("Cannot update: trade has no accountId", trade.id)
+          return
+        }
+        await updateDoc(
+          doc(db, "accounts", accountId, "trades", trade.id),
+          {
+            symbol:     trade.symbol.toUpperCase(),
+            profit:     Number(trade.rMultiple),
+            rMultiple:  Number(trade.rMultiple),
+            bot:        trade.setup,
+            direction:  trade.direction,
+            timestamp:  new Date(trade.date),
+            notes:      trade.notes,
+            screenshot: trade.screenshot || "",
+          }
+        )
       } else {
-        await addDoc(collection(db, "trades"), {
-          userId: user.uid,                                     // ← per-user scoping
-          symbol: trade.symbol.toUpperCase(), profit: Number(trade.rMultiple), type: "MANUAL",
-          bot: trade.setup || "Manual Execution", direction: trade.direction || "BUY",
-          timestamp: new Date(trade.date), notes: trade.notes || "", screenshot: trade.screenshot || "",
+        // ADD — must have an account selected in the filter bar
+        const accountId = selectedAccountId
+        if (!accountId) {
+          alert(
+            "Please select an account from the filter bar before logging a trade.\n\n" +
+            "Use the account selector at the top of the P&L Calendar page to pick which account this trade belongs to."
+          )
+          return
+        }
+        await addDoc(collection(db, "accounts", accountId, "trades"), {
+          userId:     user.uid,
+          accountId,
+          symbol:     trade.symbol.toUpperCase(),
+          profit:     Number(trade.rMultiple),
+          rMultiple:  Number(trade.rMultiple),
+          type:       "MANUAL",
+          bot:        trade.setup || "Manual Execution",
+          direction:  trade.direction || "BUY",
+          timestamp:  new Date(trade.date),
+          notes:      trade.notes || "",
+          screenshot: trade.screenshot || "",
         })
       }
-      setIsAddTradeOpen(false); setSelectedDate(null); setEditingTrade(null)
+      setIsAddTradeOpen(false)
+      setSelectedDate(null)
+      setEditingTrade(null)
     } catch (e) { console.error(e) }
   }
 
+  // ─────────────────────────────────────────────────────────────────
+  // handleDeleteTrade
+  //
+  // Looks up the trade's accountId from local state to build the
+  // correct subcollection path. Flat trades/ path is gone.
+  // ─────────────────────────────────────────────────────────────────
   const handleDeleteTrade = async (id: string) => {
-    try { await deleteDoc(doc(db, "trades", id)) } catch (e) { console.error(e) }
+    try {
+      const t = trades.find(tr => tr.id === id) as any
+      const accountId = t?.accountId
+      if (!accountId) {
+        console.error("Cannot delete: trade has no accountId", id)
+        return
+      }
+      await deleteDoc(doc(db, "accounts", accountId, "trades", id))
+    } catch (e) { console.error(e) }
   }
 
-  // ── Pass F2: Symbol filter (from PnLHeader dropdown) ──
-  // Applied BEFORE the month filter so calendar/analytics/yearly-table
-  // all respect the user's selected symbol. "ALL" passes everything through.
-  // Symbol comparison is case-insensitive and ignores broker suffixes (e.g. "XAUUSDm" → "XAUUSD").
-  // Account filter — null = show all (default)
+  // ── Filtering pipeline ──
   const accountFilteredTrades = selectedAccountId
     ? trades.filter(t => (t as any).accountId === selectedAccountId)
     : trades
@@ -304,7 +340,7 @@ export default function TradingDashboard() {
   const losses      = filteredTrades.filter(t => t.rMultiple < 0).length
   const winRate     = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0
   const netPnL      = filteredTrades.reduce((s, t) => s + t.rMultiple, 0)
-  const tradeDates  = symbolFilteredTrades.map(t => new Date(t.date))  // calendar dots also respect symbol filter
+  const tradeDates  = symbolFilteredTrades.map(t => new Date(t.date))
   const manualTradesList = filteredTrades.filter(t => t.setup.toUpperCase().includes("MANUAL"))
 
   if (authLoading) {
@@ -344,7 +380,6 @@ export default function TradingDashboard() {
 
               {pnlView === "calendar" ? (
                 <>
-                  {/* Account filter bar — only shown when accounts are registered */}
                   {accounts.length > 0 && (
                     <AccountFilterBar
                       accounts={accounts}
@@ -421,11 +456,6 @@ export default function TradingDashboard() {
           </PageShell>
         )
 
-      // ─────────────────────────────────────────────────────────────────
-      // CANDLE ANALYSIS — Round 3 rebuild
-      // Replaced TradingView iframe with custom lightweight-charts
-      // candlestick chart + click-to-explain side panel.
-      // ─────────────────────────────────────────────────────────────────
       case "candle-analysis":
         return (
           <PageShell title="Candle Analysis" sub="Click any candle for OHLC, pattern, trend, RSI, and macro context">
@@ -461,12 +491,8 @@ export default function TradingDashboard() {
               trades={trades}
               botTrades={botTrades}
               onCopyToJournal={(botTrade) => {
-                // Strip the bot trade's ID so the dialog treats this as a NEW
-                // entry (otherwise existingTrade !== null would overwrite the bot record).
-                // Keep date/symbol/setup/direction/rMultiple/notes as a pre-filled draft.
                 const { id, ...draft } = botTrade as any
                 setEditingTrade(null)
-                // Open the dialog with this draft as the initial form state
                 setCopyDraft(draft)
                 setIsAddTradeOpen(true)
               }}
