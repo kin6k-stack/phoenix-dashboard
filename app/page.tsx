@@ -154,7 +154,7 @@ export default function TradingDashboard() {
           sl:         data.sl         || 0,
           lot:        data.lots       || data.lot || 0,
           notes:      data.notes      || "",
-          accountId:  data.accountId  || "",
+          accountId:  d.ref.parent?.parent?.id || data.accountId || "",
           screenshot: data.screenshot || "",
         }
       })
