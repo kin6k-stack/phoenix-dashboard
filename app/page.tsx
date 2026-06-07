@@ -2,39 +2,49 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { collection, collectionGroup, onSnapshot, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc, getDoc, writeBatch } from "firebase/firestore"
+import { collection, collectionGroup, onSnapshot, query, orderBy, where, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
-import { Sidebar } from "@/components/sidebar"
-import { AmbientBackdrop } from "@/components/ambient-backdrop"
-import { TradingCalendar } from "@/components/trading-calendar"
+import { Sidebar }               from "@/components/sidebar"
+import { AmbientBackdrop }        from "@/components/ambient-backdrop"
+import { TradingCalendar }        from "@/components/trading-calendar"
 import { SlimMonthlyPerformance } from "@/components/slim-monthly-performance"
-import { SlimPnLChart } from "@/components/slim-pnl-chart"
-import { SlimJournal } from "@/components/slim-journal"
-import { ManualTradesCard } from "@/components/manual-trades-card"
-import { AddTradeDialog } from "@/components/add-trade-dialog"
-import { SessionIntelligence } from "@/components/session-intelligence"
-import { PerformanceView } from "@/components/performance-view"
-import { DashboardView } from "@/components/dashboard-view"
-import { SignalHistoryView } from "@/components/signal-history"
-import LifetimeLedgerView from "@/components/lifetime-ledger-view"
-import BotHubView from "@/components/bot-hub-view"
-import CSVImportView from "@/components/csv-import-view"
-import { AccountFilterBar } from "@/components/account-filter-bar"
-import { EconomicCalendar } from "@/components/economic-calendar"
-import { MarketBiasView } from "@/components/market-bias-view"
-import { AssetMatrix } from "@/components/asset-matrix-view"            // ← Pass B
-import { MarketIntelligenceView } from "@/components/market-intelligence-view" // ← Pass C
-import { TickerTape }          from "@/components/ticker-tape"              // ← Pass D
-import { PnLHeader } from "@/components/pnl-header"
+import { SlimPnLChart }           from "@/components/slim-pnl-chart"
+import { SlimJournal }            from "@/components/slim-journal"
+import { ManualTradesCard }       from "@/components/manual-trades-card"
+import { AddTradeDialog }         from "@/components/add-trade-dialog"
+import { SessionIntelligence }    from "@/components/session-intelligence"
+import { PerformanceView }        from "@/components/performance-view"
+import { DashboardView }          from "@/components/dashboard-view"
+import { SignalHistoryView }       from "@/components/signal-history"
+import LifetimeLedgerView         from "@/components/lifetime-ledger-view"
+import BotHubView                 from "@/components/bot-hub-view"
+import CSVImportView              from "@/components/csv-import-view"
+import { AccountFilterBar }       from "@/components/account-filter-bar"
+import { EconomicCalendar }       from "@/components/economic-calendar"
+import { MarketBiasView }         from "@/components/market-bias-view"
+import { AssetMatrix }            from "@/components/asset-matrix-view"
+import { MarketIntelligenceView } from "@/components/market-intelligence-view"
+import { TickerTape }             from "@/components/ticker-tape"
+import { PnLHeader }              from "@/components/pnl-header"
 import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
-import { PnLAnalyticsView } from "@/components/pnl-analytics-view"
-import { CandleAnalysisView } from "@/components/candle-analysis-view"
-import { SettingsPanel } from "@/components/settings-panel"
+import { PnLAnalyticsView }       from "@/components/pnl-analytics-view"
+import { CandleAnalysisView }     from "@/components/candle-analysis-view"
+import { SettingsPanel }          from "@/components/settings-panel"
 
 interface Trade {
   id: string; date: string; symbol: string; setup: string
   rMultiple: number; direction: string; notes: string; screenshot?: string
+}
+
+// ── Date helper — avoids UTC-midnight timezone shift ──────────────────────────
+// Storing new Date("2026-06-03") writes UTC midnight = local previous evening.
+// Storing noon-local keeps the date stable across any ±12h timezone.
+function toLocalDate(dateStr: string): Date {
+  if (!dateStr) return new Date()
+  const s = (dateStr || "").split("T")[0]          // strip time → "2026-06-03"
+  const [y, m, d] = s.split("-").map(Number)
+  return new Date(y, m - 1, d, 12, 0, 0)           // noon local — never drifts day
 }
 
 function normalizeBotName(raw: string | undefined | null): string {
@@ -66,20 +76,21 @@ export default function TradingDashboard() {
   const { user, loading: authLoading } = useAuth()
   const router = useRouter()
 
-  const [selectedDate,    setSelectedDate]    = useState<Date | null>(null)
-  const [isAddTradeOpen,  setIsAddTradeOpen]  = useState(false)
-  const [editingTrade,    setEditingTrade]    = useState<Trade | null>(null)
-  const [copyDraft,       setCopyDraft]       = useState<Partial<Trade> | null>(null)
-  const [trades,          setTrades]          = useState<Trade[]>([])
-  const [botTrades,       setBotTrades]       = useState<Trade[]>([])
-  const [accounts,        setAccounts]        = useState<{id:string; accountName:string; color:string; broker:string}[]>([])
-  const [isOwner,         setIsOwner]         = useState(false)
+  const [selectedDate,      setSelectedDate]      = useState<Date | null>(null)
+  const [isAddTradeOpen,    setIsAddTradeOpen]    = useState(false)
+  const [editingTrade,      setEditingTrade]      = useState<Trade | null>(null)
+  const [copyDraft,         setCopyDraft]         = useState<Partial<Trade> | null>(null)
+  const [trades,            setTrades]            = useState<Trade[]>([])
+  const [botTrades,         setBotTrades]         = useState<Trade[]>([])
+  const [accounts,          setAccounts]          = useState<{id:string; accountName:string; color:string; broker:string}[]>([])
+  const [isOwner,           setIsOwner]           = useState(false)
   const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
-  const [activeNavItem,   setActiveNavItem]   = useState("dashboard")
-  const [pnlView,         setPnlView]         = useState<"calendar" | "analytics">("calendar")
-  const [symbolFilter,    setSymbolFilter]    = useState<string>("ALL")
-  const [settingsOpen,    setSettingsOpen]    = useState(false)
-  const [currentMonthYear, setCurrentMonthYear] = useState({
+  const [activeNavItem,     setActiveNavItem]     = useState("dashboard")
+  const [pnlView,           setPnlView]           = useState<"calendar" | "analytics">("calendar")
+  const [perfTab,           setPerfTab]           = useState<"analytics" | "ledger">("analytics")
+  const [symbolFilter,      setSymbolFilter]      = useState<string>("ALL")
+  const [settingsOpen,      setSettingsOpen]      = useState(false)
+  const [currentMonthYear,  setCurrentMonthYear]  = useState({
     month: new Date().getMonth(),
     year:  new Date().getFullYear(),
   })
@@ -88,7 +99,6 @@ export default function TradingDashboard() {
     if (!authLoading && !user) router.push("/login")
   }, [user, authLoading, router])
 
-  // ── Custom event listeners ──
   useEffect(() => {
     const navHandler = (e: Event) => {
       const ev = e as CustomEvent<string>
@@ -97,7 +107,7 @@ export default function TradingDashboard() {
     const settingsHandler = () => setSettingsOpen(true)
     const calendarNavHandler = (e: Event) => {
       const ev = e as CustomEvent<{ year: number; month: number }>
-      if (ev.detail && typeof ev.detail.year === "number" && typeof ev.detail.month === "number") {
+      if (ev.detail && typeof ev.detail.year === "number") {
         setActiveNavItem("pnl-calendar")
         setPnlView("calendar")
         setCurrentMonthYear({ year: ev.detail.year, month: ev.detail.month })
@@ -116,13 +126,14 @@ export default function TradingDashboard() {
     }
   }, [])
 
-  // ── Listener 1 — user trades (subcollection) ──
+  // ── Listener 1 — user trades (subcollection collectionGroup) ──
   useEffect(() => {
     if (!user) return
     const q = query(collectionGroup(db, "trades"), where("userId", "==", user.uid))
-    return onSnapshot(q, (snapshot) => {
+    return onSnapshot(q, snapshot => {
       const mapped = snapshot.docs.map(d => {
         const data = d.data()
+        // FIX: read stored date → always a timestamp.toDate() or ISO string
         let tradeDate = new Date().toISOString()
         if      (data.timestamp?.toDate) tradeDate = data.timestamp.toDate().toISOString()
         else if (data.date)              tradeDate = new Date(data.date).toISOString()
@@ -134,11 +145,10 @@ export default function TradingDashboard() {
           id:         d.id,
           date:       tradeDate,
           openedAt,
-          symbol:     data.symbol || "Unknown",
+          symbol:     data.symbol   || "Unknown",
           setup:      normalizeBotName(rawBot),
           rMultiple:  data.rMultiple !== undefined ? Number(data.rMultiple)
-                    : data.profit    !== undefined ? Number(data.profit)
-                    : 0,
+                    : data.profit    !== undefined ? Number(data.profit)    : 0,
           direction:  (data.direction || data.type || "BUY").toUpperCase(),
           entryPrice: data.openPrice || data.entryPrice || 0,
           sl:         data.sl   || 0,
@@ -153,7 +163,6 @@ export default function TradingDashboard() {
     }, err => { console.warn("[trades listener]", err.message); setTrades([]) })
   }, [user])
 
-  // ── Owner gate ──
   useEffect(() => {
     if (!user) return
     getDoc(doc(db, "allowedUsers", user.uid)).then(snap => {
@@ -165,14 +174,14 @@ export default function TradingDashboard() {
   useEffect(() => {
     if (!user || !isOwner) return
     const q = query(collection(db, "botTrades"), orderBy("closedAt", "desc"))
-    return onSnapshot(q, (snapshot) => {
+    return onSnapshot(q, snapshot => {
       setBotTrades(snapshot.docs.map(d => {
         const data = d.data()
         let tradeDate = new Date().toISOString()
-        if      (data.closedAt?.toDate)   tradeDate = data.closedAt.toDate().toISOString()
-        else if (data.openedAt?.toDate)   tradeDate = data.openedAt.toDate().toISOString()
-        else if (data.timestamp?.toDate)  tradeDate = data.timestamp.toDate().toISOString()
-        else if (data.date)               tradeDate = new Date(data.date).toISOString()
+        if      (data.closedAt?.toDate)  tradeDate = data.closedAt.toDate().toISOString()
+        else if (data.openedAt?.toDate)  tradeDate = data.openedAt.toDate().toISOString()
+        else if (data.timestamp?.toDate) tradeDate = data.timestamp.toDate().toISOString()
+        else if (data.date)              tradeDate = new Date(data.date).toISOString()
         const rawBot = data.bot || data.botName || data.setup || null
         return {
           id:         d.id,
@@ -180,17 +189,13 @@ export default function TradingDashboard() {
           symbol:     (data.symbol || "Unknown").toUpperCase(),
           setup:      normalizeBotName(rawBot),
           rMultiple:  data.rMultiple !== undefined ? Number(data.rMultiple)
-                    : data.profit    !== undefined ? Number(data.profit)
-                    : 0,
+                    : data.profit    !== undefined ? Number(data.profit)    : 0,
           direction:  (data.direction || data.type || "BUY").toUpperCase(),
           entryPrice: data.entryPrice || 0,
-          sl:         data.sl  || 0,
-          tp1:        data.tp1 || 0,
-          lot:        data.lot || 0,
+          sl:         data.sl || 0, tp1: data.tp1 || 0, lot: data.lot || 0,
           outcome:    data.outcome || (data.profit >= 0 ? "WIN" : "LOSS"),
           bot:        normalizeBotName(rawBot),
-          notes:      "",
-          screenshot: "",
+          notes: "", screenshot: "",
         }
       }))
     }, err => { console.warn("[botTrades listener]", err.message); setBotTrades([]) })
@@ -199,16 +204,17 @@ export default function TradingDashboard() {
   // ── Listener 3 — accounts ──
   useEffect(() => {
     if (!user) return
-    const q = query(collection(db, "accounts"), where("userId", "==", user.uid))
-    return onSnapshot(q, snap => {
-      setAccounts(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })))
-    })
+    return onSnapshot(
+      query(collection(db, "accounts"), where("userId", "==", user.uid)),
+      snap => setAccounts(snap.docs.map(d => ({ id: d.id, ...(d.data() as any) })))
+    )
   }, [user])
 
   useEffect(() => {
     if (selectedDate) { setEditingTrade(null); setIsAddTradeOpen(true) }
   }, [selectedDate])
 
+  // ── handleSaveTrade — DATE FIX: toLocalDate() prevents timezone day-shift ──
   const handleSaveTrade = async (trade: any) => {
     if (!user) return
     try {
@@ -222,7 +228,7 @@ export default function TradingDashboard() {
           rMultiple:  Number(trade.rMultiple),
           bot:        trade.setup,
           direction:  trade.direction,
-          timestamp:  new Date(trade.date),
+          timestamp:  toLocalDate(trade.date),       // ← FIX
           notes:      trade.notes,
           screenshot: trade.screenshot || "",
         })
@@ -241,50 +247,46 @@ export default function TradingDashboard() {
           type:       "MANUAL",
           bot:        trade.setup || "Manual Execution",
           direction:  trade.direction || "BUY",
-          timestamp:  new Date(trade.date),
+          timestamp:  toLocalDate(trade.date),       // ← FIX
           notes:      trade.notes      || "",
           screenshot: trade.screenshot || "",
         })
       }
-      setIsAddTradeOpen(false)
-      setSelectedDate(null)
-      setEditingTrade(null)
+      setIsAddTradeOpen(false); setSelectedDate(null); setEditingTrade(null)
     } catch (e) { console.error(e) }
   }
 
   const handleDeleteTrade = async (id: string) => {
     try {
-      const t         = trades.find(tr => tr.id === id) as any
-      const accountId = t?.accountId
-      if (!accountId) { console.error("Cannot delete: no accountId", id); return }
-      await deleteDoc(doc(db, "accounts", accountId, "trades", id))
+      const t = trades.find(tr => tr.id === id) as any
+      if (!t?.accountId) { console.error("Cannot delete: no accountId", id); return }
+      await deleteDoc(doc(db, "accounts", t.accountId, "trades", id))
     } catch (e) { console.error(e) }
   }
 
   // ── Filtering pipeline ──
-  const accountFilteredTrades = selectedAccountId
+  const accountFiltered = selectedAccountId
     ? trades.filter(t => (t as any).accountId === selectedAccountId)
     : trades
 
-  const symbolFilteredTrades = symbolFilter === "ALL"
-    ? accountFilteredTrades
-    : accountFilteredTrades.filter(t => {
-        const normalized = (t.symbol || "").toUpperCase().replace(/M$/, "")
-        return normalized === symbolFilter.toUpperCase()
-      })
+  const symbolFiltered = symbolFilter === "ALL"
+    ? accountFiltered
+    : accountFiltered.filter(t => (t.symbol || "").toUpperCase().replace(/M$/, "") === symbolFilter.toUpperCase())
 
-  const filteredTrades = symbolFilteredTrades.filter(t => {
+  // FIX: use local date methods (.getMonth, .getFullYear) — these return local time
+  // Since we now store noon local, toISOString() won't drift across a day boundary
+  const filteredTrades = symbolFiltered.filter(t => {
     const d = new Date(t.date)
     return d.getMonth() === currentMonthYear.month && d.getFullYear() === currentMonthYear.year
   })
 
-  const totalTrades   = filteredTrades.length
-  const wins          = filteredTrades.filter(t => t.rMultiple > 0).length
-  const losses        = filteredTrades.filter(t => t.rMultiple < 0).length
-  const winRate       = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0
-  const netPnL        = filteredTrades.reduce((s, t) => s + t.rMultiple, 0)
-  const tradeDates    = symbolFilteredTrades.map(t => new Date(t.date))
-  const manualTradesList = filteredTrades.filter(t => t.setup.toUpperCase().includes("MANUAL"))
+  const totalTrades = filteredTrades.length
+  const wins        = filteredTrades.filter(t => t.rMultiple > 0).length
+  const losses      = filteredTrades.filter(t => t.rMultiple < 0).length
+  const winRate     = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0
+  const netPnL      = filteredTrades.reduce((s, t) => s + t.rMultiple, 0)
+  const tradeDates  = symbolFiltered.map(t => new Date(t.date))
+  const manualTrades= filteredTrades.filter(t => t.setup.toUpperCase().includes("MANUAL"))
 
   if (authLoading) {
     return (
@@ -313,47 +315,35 @@ export default function TradingDashboard() {
           <div className="flex-1 overflow-y-auto">
             <div className="px-3 sm:px-4 md:px-6 lg:px-8 py-4 space-y-4">
               <PnLHeader
-                totalTrades={totalTrades}
-                view={pnlView}
-                onViewChange={setPnlView}
+                totalTrades={totalTrades} view={pnlView} onViewChange={setPnlView}
                 onLogTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
-                symbolFilter={symbolFilter}
-                onSymbolFilterChange={setSymbolFilter}
+                symbolFilter={symbolFilter} onSymbolFilterChange={setSymbolFilter}
               />
               {pnlView === "calendar" ? (
                 <>
-                  {accounts.length > 0 && (
-                    <AccountFilterBar accounts={accounts} selectedAccountId={selectedAccountId} onSelect={setSelectedAccountId} />
-                  )}
+                  {accounts.length > 0 && <AccountFilterBar accounts={accounts} selectedAccountId={selectedAccountId} onSelect={setSelectedAccountId} />}
                   <div id="pnl-calendar-section" className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4 xl:auto-rows-min">
                     <div className="min-w-0">
-                      <TradingCalendar
-                        selectedDate={selectedDate} onDateSelect={setSelectedDate}
-                        tradeDates={tradeDates} trades={filteredTrades}
-                        totalTrades={totalTrades} wins={wins} netPnL={netPnL}
-                        winRate={winRate} onMonthYearChange={setCurrentMonthYear}
-                      />
+                      <TradingCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} tradeDates={tradeDates}
+                        trades={filteredTrades} totalTrades={totalTrades} wins={wins} netPnL={netPnL} winRate={winRate}
+                        onMonthYearChange={setCurrentMonthYear} />
                     </div>
                     <div className="space-y-3 xl:max-h-[580px] xl:overflow-y-auto xl:pr-1 custom-scrollbar">
                       <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />
                       <SlimPnLChart trades={filteredTrades} />
                       <SlimJournal entriesThisMonth={filteredTrades.length} screenshots={filteredTrades.filter(t => t.screenshot).length} />
-                      <ManualTradesCard
-                        trades={manualTradesList}
+                      <ManualTradesCard trades={manualTrades}
                         onAddTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
                         onEditTrade={t => { setEditingTrade(t); setIsAddTradeOpen(true) }}
-                        onDeleteTrade={handleDeleteTrade}
-                      />
+                        onDeleteTrade={handleDeleteTrade} />
                     </div>
                   </div>
-                  <YearlyPerformanceTable trades={symbolFilteredTrades} />
+                  <YearlyPerformanceTable trades={symbolFiltered} />
                 </>
               ) : (
                 <>
-                  {accounts.length > 0 && (
-                    <AccountFilterBar accounts={accounts} selectedAccountId={selectedAccountId} onSelect={setSelectedAccountId} />
-                  )}
-                  <PnLAnalyticsView trades={symbolFilteredTrades} />
+                  {accounts.length > 0 && <AccountFilterBar accounts={accounts} selectedAccountId={selectedAccountId} onSelect={setSelectedAccountId} />}
+                  <PnLAnalyticsView trades={symbolFiltered} />
                 </>
               )}
             </div>
@@ -367,7 +357,6 @@ export default function TradingDashboard() {
           </PageShell>
         )
 
-      // ── Pass C — Market Intelligence ──────────────────────────────────────
       case "market-intelligence":
         return (
           <PageShell title="Market Intelligence" sub="Unified feed · events, catalysts, policy alerts & high-signal news">
@@ -375,10 +364,9 @@ export default function TradingDashboard() {
           </PageShell>
         )
 
-      // ── Pass B — Asset Matrix ──────────────────────────────────────────────
       case "asset-matrix":
         return (
-          <PageShell title="Asset Matrix" sub="Cross-asset correlations · macro regime intelligence · engine performance">
+          <PageShell title="Asset Matrix" sub="Cross-asset correlations and macro regime intelligence">
             <AssetMatrix trades={trades} />
           </PageShell>
         )
@@ -390,11 +378,43 @@ export default function TradingDashboard() {
           </PageShell>
         )
 
+      // ── Performance + Execution Ledger merged ─────────────────────────────
       case "performance-metrics":
         return (
-          <PageShell title="Engine Telemetry" sub="Segmented algorithmic strategy and execution history">
-            <PerformanceView userTrades={trades} botTrades={isOwner ? botTrades : []} />
-          </PageShell>
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Internal tab bar */}
+            <div className="flex items-center border-b border-border px-6 pt-4 pb-0 gap-1 flex-shrink-0">
+              {[
+                { id: "analytics", label: "Analytics" },
+                { id: "ledger",    label: "Trade Log"  },
+              ].map(t => (
+                <button key={t.id} onClick={() => setPerfTab(t.id as any)}
+                  className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest border-b-2 transition-all -mb-px ${
+                    perfTab === t.id
+                      ? "text-primary border-primary"
+                      : "text-muted-foreground border-transparent hover:text-foreground"
+                  }`}>
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {perfTab === "analytics" ? (
+              <PageShell title="Performance" sub="Segmented algorithmic strategy and execution analytics">
+                <PerformanceView userTrades={trades} botTrades={isOwner ? botTrades : []} />
+              </PageShell>
+            ) : (
+              <PageShell title="Trade Log" sub="Complete history of all trades and engine signals">
+                <SignalHistoryView
+                  trades={trades}
+                  botTrades={botTrades}
+                  onCopyToJournal={(botTrade) => {
+                    const { id: _id, ...draft } = botTrade as any
+                    setEditingTrade(null); setCopyDraft(draft); setIsAddTradeOpen(true)
+                  }}
+                />
+              </PageShell>
+            )}
+          </div>
         )
 
       case "candle-analysis":
@@ -422,22 +442,6 @@ export default function TradingDashboard() {
         return (
           <PageShell title="CSV Import" sub="Import trade history from any broker into your Lifetime Ledger">
             <CSVImportView />
-          </PageShell>
-        )
-
-      case "signal-history":
-        return (
-          <PageShell title="Execution Ledger" sub="Immutable history of all fired engine signals">
-            <SignalHistoryView
-              trades={trades}
-              botTrades={botTrades}
-              onCopyToJournal={(botTrade) => {
-                const { id, ...draft } = botTrade as any
-                setEditingTrade(null)
-                setCopyDraft(draft)
-                setIsAddTradeOpen(true)
-              }}
-            />
           </PageShell>
         )
 
