@@ -250,6 +250,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true, note: 'missing userId' }, { status: 200 })
       }
 
+      const importBatch = String(data.importBatch || '')
+
       const tradeDoc: Record<string, unknown> = {
         userId,
         symbol,
@@ -269,6 +271,7 @@ export async function POST(request: NextRequest) {
         ticket,
         notes,
         accountId:  accountId || '',
+        ...(importBatch ? { importBatch } : {}),
       }
 
       // Route to subcollection when accountId provided:

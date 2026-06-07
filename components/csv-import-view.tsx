@@ -1,19 +1,22 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
-import { collection, query, where, getDocs } from "firebase/firestore"
+import { useState, useCallback, useEffect } from "react"
+import {
+  collection, query, where, getDocs, addDoc, deleteDoc,
+  doc, orderBy, writeBatch,
+} from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import {
-  Upload, FileText, CheckCircle2, XCircle, AlertTriangle,
-  ChevronDown, RefreshCw, Table2, Send
+  Upload, FileText, CheckCircle2, XCircle,
+  ChevronDown, RefreshCw, Table2, Send, Trash2, History,
 } from "lucide-react"
 
 // ─── Broker format definitions ────────────────────────────────────────────────
 
 const BROKER_FORMATS: Record<string, {
   label:      string
-  headers:    string[]   // expected CSV headers (lowercase, trimmed)
+  headers:    string[]
   map:        (row: Record<string,string>) => ParsedTrade | null
 }> = {
   tradingview: {
@@ -23,12 +26,11 @@ const BROKER_FORMATS: Record<string, {
       const type   = (row["type"] || "").toLowerCase()
       const profit = parseFloat(row["profit"] || "0")
       const price  = parseFloat(row["price"]  || "0")
-      // TradingView only has entry rows — skip exit rows (type="exit long/short")
       if(!type.includes("entry")) return null
       const dir = type.includes("long") ? "BUY" : "SELL"
       return {
         ticket:     row["trade #"] || String(Date.now()),
-        symbol:     "UNKNOWN",  // TradingView CSV doesn't include symbol
+        symbol:     "UNKNOWN",
         direction:  dir,
         profit,
         openPrice:  price,
@@ -79,7 +81,6 @@ const BROKER_FORMATS: Record<string, {
   },
   fusion_mt4: {
     label:   "Fusion Markets (MT4/MT5 History)",
-    // Columns: Order,Type,Symbol,Size,Open Price,S/L,T/P,Open Time,Close Price,Duration,Commission,Profit,Swap
     headers: ["order","type","symbol","size","open price","open time","close price","profit"],
     map: row => {
       const profit     = parseFloat(row["profit"]     || "0")
@@ -89,14 +90,12 @@ const BROKER_FORMATS: Record<string, {
       const rawSymbol  = (row["symbol"] || "UNKNOWN").replace(/Open$/i,"").toUpperCase()
       const type       = (row["type"] || "buy").toUpperCase()
 
-      // Parse date: "07:58 pm 31/10/2025" → ISO string
-      // FORMAT IS DD/MM/YYYY — proven by day values up to 31
       const parseDate = (raw: string): string => {
         if(!raw) return new Date().toISOString()
         try {
           const match = raw.match(/(\d+):(\d+)\s*(am|pm)\s+(\d+)\/(\d+)\/(\d+)/i)
           if(match) {
-            let [,hh,mm,ampm,dd,mo,yy] = match  // DD/MM/YYYY order
+            let [,hh,mm,ampm,dd,mo,yy] = match
             let hours = parseInt(hh)
             if(ampm.toLowerCase()==="pm" && hours<12) hours+=12
             if(ampm.toLowerCase()==="am" && hours===12) hours=0
@@ -110,7 +109,6 @@ const BROKER_FORMATS: Record<string, {
       }
 
       const openedAt = parseDate(row["open time"])
-
       return {
         ticket:     row["order"] || String(Date.now()+Math.random()),
         symbol:     rawSymbol,
@@ -120,14 +118,14 @@ const BROKER_FORMATS: Record<string, {
         closePrice: parseFloat(row["close price"] || "0"),
         lots:       parseFloat(row["size"]         || "0.01"),
         openedAt,
-        closedAt:   openedAt,  // no close time in this format — use open time
+        closedAt:   openedAt,
       }
     },
   },
   generic: {
     label:   "Generic / Custom mapping",
     headers: [],
-    map: row => null,
+    map: () => null,
   },
 }
 
@@ -152,9 +150,19 @@ interface Account {
   broker:      string
 }
 
+interface ImportBatch {
+  id:         string   // Firestore doc ID
+  batchId:    string   // tag stored on each trade
+  filename:   string
+  accountId:  string
+  format:     string
+  importedAt: Date
+  tradeCount: number
+  totalPnl:   number
+}
+
 // ─── CSV parser ───────────────────────────────────────────────────────────────
 
-// RFC 4180 compliant CSV line parser — handles quoted fields correctly
 function parseCSVLine(line: string): string[] {
   const result: string[] = []
   let i = 0
@@ -181,7 +189,6 @@ function parseCSVLine(line: string): string[] {
 }
 
 function parseCSV(text: string): Record<string, string>[] {
-  // Skip comment/metadata lines (starting with #) — Fusion Markets history format
   const lines = text.trim().split(/\r?\n/)
     .filter(l => l.trim() && !l.trim().startsWith("#"))
   if(lines.length < 2) return []
@@ -198,7 +205,6 @@ function parseCSV(text: string): Record<string, string>[] {
 
 function detectBroker(headers: string[]): string {
   const h = headers.map(h => h.toLowerCase())
-  // Fusion Markets MT4 has "order" + "size" + "duration" — unique combo
   if(h.includes("order") && h.includes("size") && h.includes("duration")) return "fusion_mt4"
   for(const [key, fmt] of Object.entries(BROKER_FORMATS)) {
     if(key === "generic" || key === "fusion_mt4") continue
@@ -211,10 +217,11 @@ function detectBroker(headers: string[]): string {
 // ─── Webhook sender ───────────────────────────────────────────────────────────
 
 async function sendTrade(
-  trade:     ParsedTrade,
-  accountId: string,
-  userId:    string,
-  apiKey:    string
+  trade:       ParsedTrade,
+  accountId:   string,
+  userId:      string,
+  apiKey:      string,
+  importBatch: string
 ): Promise<boolean> {
   try {
     const res = await fetch("/api/webhook", {
@@ -222,21 +229,22 @@ async function sendTrade(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         apiKey,
-        ticket:     trade.ticket,
-        symbol:     trade.symbol,
-        profit:     trade.profit,
-        type:       trade.direction,
-        status:     "MANUAL_TRADE",
+        ticket:      trade.ticket,
+        symbol:      trade.symbol,
+        profit:      trade.profit,
+        type:        trade.direction,
+        status:      "MANUAL_TRADE",
         userId,
         accountId,
-        setup:      "CSV Import",
-        source:     "CSV Import",
-        openedAt:   trade.openedAt,
-        closedAt:   trade.closedAt,
-        openPrice:  trade.openPrice,
-        closePrice: trade.closePrice,
-        lots:       trade.lots,
-        timestamp:  Date.now(),
+        setup:       "CSV Import",
+        source:      "CSV Import",
+        openedAt:    trade.openedAt,
+        closedAt:    trade.closedAt,
+        openPrice:   trade.openPrice,
+        closePrice:  trade.closePrice,
+        lots:        trade.lots,
+        timestamp:   Date.now(),
+        importBatch,
       }),
     })
     return res.ok
@@ -261,7 +269,6 @@ function GenericMapper({
     allFields.forEach(f => { m[f] = "" })
     return m
   })
-
   const ready = REQUIRED_FIELDS.every(f => mapping[f])
 
   return (
@@ -303,24 +310,33 @@ export default function CSVImportView() {
   const { user } = useAuth()
 
   // Accounts
-  const [accounts,   setAccounts]   = useState<Account[]>([])
-  const [accLoaded,  setAccLoaded]  = useState(false)
+  const [accounts,  setAccounts]  = useState<Account[]>([])
+  const [accLoaded, setAccLoaded] = useState(false)
 
   // File / parse state
-  const [file,        setFile]       = useState<File | null>(null)
-  const [rawRows,     setRawRows]    = useState<Record<string,string>[]>([])
-  const [csvHeaders,  setCsvHeaders] = useState<string[]>([])
-  const [detectedFmt, setDetectedFmt]= useState("")
-  const [selectedFmt, setSelectedFmt]= useState("")
-  const [parsedTrades,setParsedTrades]=useState<ParsedTrade[]>([])
-  const [genericMap,  setGenericMap] = useState<Record<string,string> | null>(null)
-  const [step,        setStep]       = useState<"upload"|"preview"|"mapping"|"confirm"|"done">("upload")
+  const [file,         setFile]        = useState<File | null>(null)
+  const [rawRows,      setRawRows]     = useState<Record<string,string>[]>([])
+  const [csvHeaders,   setCsvHeaders]  = useState<string[]>([])
+  const [detectedFmt,  setDetectedFmt] = useState("")
+  const [selectedFmt,  setSelectedFmt] = useState("")
+  const [parsedTrades, setParsedTrades]= useState<ParsedTrade[]>([])
+  const [genericMap,   setGenericMap]  = useState<Record<string,string> | null>(null)
+  const [step,         setStep]        = useState<"upload"|"preview"|"mapping"|"confirm"|"done">("upload")
+
+  // Batch tagging — generated once per file pick
+  const [batchId, setBatchId] = useState("")
 
   // Import state
   const [selectedAcc, setSelectedAcc] = useState("")
   const [importing,   setImporting]   = useState(false)
   const [progress,    setProgress]    = useState(0)
   const [results,     setResults]     = useState<{ok:number; fail:number}>({ok:0,fail:0})
+
+  // Import history
+  const [importHistory, setImportHistory] = useState<ImportBatch[]>([])
+  const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [deletingBatch, setDeletingBatch] = useState<string | null>(null)
+  const [showHistory,   setShowHistory]   = useState(false)
 
   // Load accounts
   const loadAccounts = useCallback(async () => {
@@ -331,8 +347,43 @@ export default function CSVImportView() {
     setAccLoaded(true)
   }, [user, accLoaded])
 
-  // Handle file drop/select
+  // Load import history from Firestore
+  useEffect(() => {
+    if(!user || historyLoaded) return
+    const load = async () => {
+      try {
+        const q = query(
+          collection(db, "importBatches"),
+          where("userId", "==", user.uid),
+          orderBy("importedAt", "desc")
+        )
+        const snap = await getDocs(q)
+        setImportHistory(snap.docs.map(d => {
+          const data = d.data()
+          return {
+            id:         d.id,
+            batchId:    data.batchId    || "",
+            filename:   data.filename   || "unknown.csv",
+            accountId:  data.accountId  || "",
+            format:     data.format     || "",
+            importedAt: data.importedAt?.toDate?.() ?? new Date(),
+            tradeCount: data.tradeCount || 0,
+            totalPnl:   data.totalPnl   || 0,
+          } as ImportBatch
+        }))
+      } catch(e) {
+        console.error("Failed to load import history:", e)
+      } finally {
+        setHistoryLoaded(true)
+      }
+    }
+    load()
+  }, [user, historyLoaded])
+
+  // Handle file drop / select
   const handleFile = useCallback((f: File) => {
+    const bid = `csv_${Date.now()}`
+    setBatchId(bid)
     setFile(f)
     const reader = new FileReader()
     reader.onload = e => {
@@ -351,19 +402,15 @@ export default function CSVImportView() {
     reader.readAsText(f)
   }, [loadAccounts])
 
-  // Parse trades from rows using selected format
+  // Parse rows → ParsedTrade[]
   const applyFormat = useCallback(() => {
     const fmt = BROKER_FORMATS[selectedFmt]
     if(!fmt) return
-    if(selectedFmt === "generic" && !genericMap) {
-      setStep("mapping")
-      return
-    }
+    if(selectedFmt === "generic" && !genericMap) { setStep("mapping"); return }
     const trades: ParsedTrade[] = []
     for(const row of rawRows) {
       let t: ParsedTrade | null = null
       if(selectedFmt === "generic" && genericMap) {
-        // Apply custom mapping
         t = {
           ticket:     row[genericMap.ticket]     || String(Date.now()+Math.random()),
           symbol:     (row[genericMap.symbol]    || "UNKNOWN").toUpperCase(),
@@ -384,31 +431,97 @@ export default function CSVImportView() {
     setStep("confirm")
   }, [selectedFmt, rawRows, genericMap])
 
-  // Run import
+  // Run the actual import
   const runImport = useCallback(async () => {
     if(!user || !selectedAcc || !parsedTrades.length) return
     setImporting(true)
     setProgress(0)
     let ok = 0, fail = 0
     for(let i = 0; i < parsedTrades.length; i++) {
-      const success = await sendTrade(parsedTrades[i], selectedAcc, user.uid, "Kin6kizan4@")
+      const success = await sendTrade(parsedTrades[i], selectedAcc, user.uid, "Kin6kizan4@", batchId)
       if(success) ok++; else fail++
       setProgress(Math.round(((i+1)/parsedTrades.length)*100))
-      // Small delay to avoid rate limiting
       if(i % 10 === 9) await new Promise(r => setTimeout(r, 500))
     }
+
+    // Save batch record to Firestore so history + undo work
+    if(ok > 0) {
+      try {
+        const totalPnl = parsedTrades.reduce((s,t) => s + t.profit, 0)
+        const ref = await addDoc(collection(db, "importBatches"), {
+          batchId,
+          userId:     user.uid,
+          filename:   file?.name || "unknown.csv",
+          accountId:  selectedAcc,
+          format:     selectedFmt,
+          importedAt: new Date(),
+          tradeCount: ok,
+          totalPnl,
+        })
+        // Optimistically add to local list
+        setImportHistory(prev => [{
+          id:         ref.id,
+          batchId,
+          filename:   file?.name || "unknown.csv",
+          accountId:  selectedAcc,
+          format:     selectedFmt,
+          importedAt: new Date(),
+          tradeCount: ok,
+          totalPnl,
+        }, ...prev])
+      } catch(e) {
+        console.error("Failed to save import batch record:", e)
+      }
+    }
+
     setResults({ok, fail})
     setImporting(false)
     setStep("done")
-  }, [user, selectedAcc, parsedTrades])
+  }, [user, selectedAcc, parsedTrades, batchId, file, selectedFmt])
+
+  // Undo an entire import batch
+  const deleteBatch = useCallback(async (batch: ImportBatch) => {
+    if(!confirm(
+      `Undo import of "${batch.filename}"?\n\nThis permanently deletes all ${batch.tradeCount} trades from that import. This cannot be undone.`
+    )) return
+    setDeletingBatch(batch.id)
+    try {
+      // Query only this account's trades subcollection with the batch tag
+      const tradesRef = collection(db, "accounts", batch.accountId, "trades")
+      const q = query(tradesRef, where("importBatch", "==", batch.batchId))
+      const snap = await getDocs(q)
+
+      // Batch delete in chunks of 499 (Firestore limit)
+      const allDocs = snap.docs
+      for(let i = 0; i < allDocs.length; i += 499) {
+        const wb = writeBatch(db)
+        allDocs.slice(i, i + 499).forEach(d => wb.delete(d.ref))
+        await wb.commit()
+      }
+
+      // Delete the importBatches record itself
+      await deleteDoc(doc(db, "importBatches", batch.id))
+
+      // Remove from local state
+      setImportHistory(prev => prev.filter(b => b.id !== batch.id))
+    } catch(e) {
+      console.error("Failed to delete batch:", e)
+      alert("Delete failed — check the console for details.")
+    } finally {
+      setDeletingBatch(null)
+    }
+  }, [])
 
   const reset = () => {
     setFile(null); setRawRows([]); setCsvHeaders([]); setDetectedFmt("")
     setSelectedFmt(""); setParsedTrades([]); setGenericMap(null)
     setStep("upload"); setProgress(0); setResults({ok:0,fail:0})
+    setBatchId("")
   }
 
-  // Supported brokers list
+  const resolveAccountName = (accountId: string) =>
+    accounts.find(a => a.id === accountId)?.accountName ?? accountId
+
   const brokerEntries = Object.entries(BROKER_FORMATS)
 
   return (
@@ -459,7 +572,6 @@ export default function CSVImportView() {
       {/* ── STEP 2: Preview + format select ── */}
       {step === "preview" && rawRows.length > 0 && (
         <div className="space-y-4">
-          {/* File info + detected format */}
           <div className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3">
             <div className="flex items-center gap-3">
               <FileText size={14} className="text-white/40" />
@@ -473,7 +585,6 @@ export default function CSVImportView() {
             </button>
           </div>
 
-          {/* Format selector */}
           <div>
             <label className="block text-[9px] uppercase tracking-widest text-white/30 mb-2">
               Detected format — confirm or change
@@ -496,21 +607,16 @@ export default function CSVImportView() {
             </div>
           </div>
 
-          {/* CSV preview table */}
           <div className="rounded-xl border border-white/8 overflow-hidden">
             <div className="px-4 py-2.5 border-b border-white/6 bg-white/[0.02]">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">
-                Preview — first 5 rows
-              </p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Preview — first 5 rows</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-[10px]">
                 <thead>
                   <tr className="border-b border-white/5">
                     {csvHeaders.map(h => (
-                      <th key={h} className="px-3 py-2 text-left font-bold uppercase tracking-wider text-white/20 whitespace-nowrap">
-                        {h}
-                      </th>
+                      <th key={h} className="px-3 py-2 text-left font-bold uppercase tracking-wider text-white/20 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -518,9 +624,7 @@ export default function CSVImportView() {
                   {rawRows.slice(0,5).map((row,i) => (
                     <tr key={i} className="border-b border-white/[0.03]">
                       {csvHeaders.map(h => (
-                        <td key={h} className="px-3 py-2 text-white/50 whitespace-nowrap max-w-[120px] truncate">
-                          {row[h]}
-                        </td>
+                        <td key={h} className="px-3 py-2 text-white/50 whitespace-nowrap max-w-[120px] truncate">{row[h]}</td>
                       ))}
                     </tr>
                   ))}
@@ -550,12 +654,11 @@ export default function CSVImportView() {
       {/* ── STEP 3: Confirm + account select ── */}
       {step === "confirm" && (
         <div className="space-y-4">
-          {/* Parsed summary */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label:"Trades parsed",  value: parsedTrades.length,                                        color:"text-white" },
-              { label:"Total profit",   value: `$${parsedTrades.reduce((s,t)=>s+t.profit,0).toFixed(2)}`,  color: parsedTrades.reduce((s,t)=>s+t.profit,0)>=0?"text-emerald-400":"text-rose-400" },
-              { label:"Win rate",       value: `${parsedTrades.length>0?(parsedTrades.filter(t=>t.profit>0).length/parsedTrades.length*100).toFixed(0):0}%`, color:"text-white" },
+              { label:"Trades parsed", value: parsedTrades.length, color:"text-white" },
+              { label:"Total profit",  value: `$${parsedTrades.reduce((s,t)=>s+t.profit,0).toFixed(2)}`, color: parsedTrades.reduce((s,t)=>s+t.profit,0)>=0?"text-emerald-400":"text-rose-400" },
+              { label:"Win rate",      value: `${parsedTrades.length>0?(parsedTrades.filter(t=>t.profit>0).length/parsedTrades.length*100).toFixed(0):0}%`, color:"text-white" },
             ].map(s => (
               <div key={s.label} className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3">
                 <p className="text-[9px] uppercase tracking-widest text-white/25 mb-1">{s.label}</p>
@@ -564,12 +667,9 @@ export default function CSVImportView() {
             ))}
           </div>
 
-          {/* Preview of parsed trades */}
           <div className="rounded-xl border border-white/8 overflow-hidden">
             <div className="px-4 py-2.5 border-b border-white/6 bg-white/[0.02]">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">
-                Parsed trades preview — first 8
-              </p>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Parsed trades preview — first 8</p>
             </div>
             <table className="w-full text-[10px]">
               <thead>
@@ -603,15 +703,10 @@ export default function CSVImportView() {
             </table>
           </div>
 
-          {/* Account selector */}
           <div>
-            <label className="block text-[9px] uppercase tracking-widest text-white/30 mb-2">
-              Import into account *
-            </label>
+            <label className="block text-[9px] uppercase tracking-widest text-white/30 mb-2">Import into account *</label>
             {accounts.length === 0 ? (
-              <p className="text-xs text-white/30 italic">
-                No accounts registered — add one in Lifetime Ledger first
-              </p>
+              <p className="text-xs text-white/30 italic">No accounts registered — add one in Lifetime Ledger first</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {accounts.map(acc => (
@@ -636,9 +731,7 @@ export default function CSVImportView() {
               className="px-4 py-2.5 rounded-xl text-xs font-bold text-white/40 border border-white/10 hover:bg-white/5 transition-all">
               Start over
             </button>
-            <button
-              onClick={runImport}
-              disabled={!selectedAcc || importing}
+            <button onClick={runImport} disabled={!selectedAcc || importing}
               className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-black text-white transition-all disabled:opacity-30"
               style={{background:"linear-gradient(135deg,#a855f7,#6366f1)", boxShadow:"0 0 20px rgba(168,85,247,0.3)"}}>
               <Send size={13} />
@@ -681,13 +774,93 @@ export default function CSVImportView() {
             )}
           </div>
           <p className="text-xs text-white/40">
-            Trades are now in your Lifetime Ledger and P&L Calendar.
+            Trades are in your Lifetime Ledger and P&L Calendar.
+            If this was a mistake, open <strong className="text-white/60">Past Imports</strong> below and click <strong className="text-white/60">Undo import</strong>.
           </p>
           <button onClick={reset}
             className="px-5 py-2 rounded-xl text-xs font-black transition-all"
             style={{background:"linear-gradient(135deg,#a855f7,#6366f1)"}}>
             Import another file
           </button>
+        </div>
+      )}
+
+      {/* ── Past Imports (always visible when not mid-flow) ── */}
+      {!importing && step !== "mapping" && (
+        <div className="space-y-3 pt-2 border-t border-white/5">
+          <button
+            onClick={() => setShowHistory(h => !h)}
+            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/30 hover:text-white/50 transition-colors">
+            <History size={11} />
+            Past Imports
+            {importHistory.length > 0 && (
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] font-black"
+                style={{background:"rgba(168,85,247,0.15)", color:"#a855f7"}}>
+                {importHistory.length}
+              </span>
+            )}
+            <ChevronDown size={10} className="transition-transform duration-200"
+              style={{transform: showHistory ? "rotate(180deg)" : "rotate(0deg)"}} />
+          </button>
+
+          {showHistory && (
+            !historyLoaded ? (
+              <div className="flex items-center gap-2 text-white/30 text-xs">
+                <RefreshCw size={11} className="animate-spin" /> Loading...
+              </div>
+            ) : importHistory.length === 0 ? (
+              <p className="text-[10px] text-white/20 italic">No past imports yet.</p>
+            ) : (
+              <div className="rounded-xl border border-white/8 overflow-hidden">
+                <table className="w-full text-[10px]">
+                  <thead>
+                    <tr className="border-b border-white/5 bg-white/[0.02]">
+                      {["File","Account","Date","Trades","P&L",""].map(h => (
+                        <th key={h} className="px-3 py-2 text-left text-[9px] uppercase tracking-widest text-white/20">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {importHistory.map(batch => (
+                      <tr key={batch.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-2">
+                            <FileText size={11} className="text-white/30 flex-shrink-0" />
+                            <span className="text-white/60 truncate max-w-[140px]">{batch.filename}</span>
+                          </div>
+                          <p className="text-[9px] text-white/20 mt-0.5 ml-[19px] uppercase tracking-wider">{batch.format}</p>
+                        </td>
+                        <td className="px-3 py-3 text-white/40">{resolveAccountName(batch.accountId)}</td>
+                        <td className="px-3 py-3 text-white/30 font-mono whitespace-nowrap">
+                          {batch.importedAt instanceof Date ? batch.importedAt.toLocaleDateString() : "—"}
+                        </td>
+                        <td className="px-3 py-3 text-white/50 font-bold">{batch.tradeCount}</td>
+                        <td className="px-3 py-3 font-black"
+                          style={{color: batch.totalPnl >= 0 ? "#34d399" : "#f87171"}}>
+                          {batch.totalPnl >= 0 ? "+" : ""}${batch.totalPnl.toFixed(2)}
+                        </td>
+                        <td className="px-3 py-3">
+                          <button
+                            onClick={() => deleteBatch(batch)}
+                            disabled={deletingBatch === batch.id}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-bold border transition-all disabled:opacity-40 whitespace-nowrap"
+                            style={{
+                              borderColor: "rgba(248,113,113,0.2)",
+                              background:  "rgba(248,113,113,0.05)",
+                              color:       "#f87171",
+                            }}>
+                            {deletingBatch === batch.id
+                              ? <><RefreshCw size={9} className="animate-spin" /> Deleting...</>
+                              : <><Trash2 size={9} /> Undo import</>}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )
+          )}
         </div>
       )}
     </div>
