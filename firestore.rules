@@ -4,15 +4,16 @@ rules_version = '2';
 // PHOENIX TRADING ECOSYSTEM — Security Rules
 //
 // Data model:
-//   trades/{id}        — user trades, scoped by userId (manual entries)
-//   botTrades/{id}     — bot trades, shared/public read-only (demo feed)
-//   notes/{id}         — per-asset, per-user notes (id = {userId}_{symbol})
-//   allowedUsers/{uid} — VIP whitelist, capped at 15
-//   marketBias/*       — public cache of Claude analysis
-//   signals/*          — public bot signals (if used)
+//   {path=**}/trades/{id} — user trades, scoped by userId (manual & subcollections)
+//   botTrades/{id}        — bot trades, shared/public read-only (demo feed)
+//   notes/{id}            — per-asset, per-user notes (id = {userId}_{symbol})
+//   allowedUsers/{uid}    — VIP whitelist, capped at 15
+//   marketBias/* — public cache of Claude analysis
+//   signals/* — public bot signals (if used)
 //
-// Server-side writes (webhooks, agent routes) use the Admin SDK and
-// bypass these rules. Client-side writes are restricted to scope.
+// Server-side writes (webhooks, sync scripts) use the Admin SDK and
+// bypass these rules completely.
+// Client-side writes are securely restricted to authenticated user scope.
 // ═══════════════════════════════════════════════════════════════════
 
 service cloud.firestore {
@@ -29,9 +30,9 @@ service cloud.firestore {
       return isSignedIn() && exists(/databases/$(database)/documents/allowedUsers/$(request.auth.uid));
     }
 
-    // ── trades — per-user manual entries ────────────────────
-    // Users can ONLY see/edit/delete their own trades.
-    match /trades/{tradeId} {
+    // ── trades — Collection Group Rule (Root & Subcollections) ──
+    // Supports group queries for multi-account syncing while enforcing strict user isolation.
+    match /{path=**}/trades/{tradeId} {
       allow read: if isSignedIn()
                   && resource.data.userId == request.auth.uid;
       allow create: if isOnAllowedList()
@@ -41,15 +42,13 @@ service cloud.firestore {
     }
 
     // ── botTrades — shared demo feed (bots' history) ────────
-    // ANY signed-in user can read. Only the Admin SDK can write
-    // (webhook route uses firebase-admin which bypasses rules).
+    // ANY whitelisted signed-in user can read. Only Admin SDK handles writes.
     match /botTrades/{tradeId} {
       allow read: if isOnAllowedList();
       allow write: if false;
     }
 
     // ── notes — per-asset, per-user (id format: {uid}_{symbol}) ──
-    // Document ID enforces ownership; rules verify userId field matches caller.
     match /notes/{noteId} {
       allow read: if isOnAllowedList()
                   && resource.data.userId == request.auth.uid;
@@ -61,11 +60,9 @@ service cloud.firestore {
     }
 
     // ── allowedUsers — VIP whitelist (read by all auth, write Admin SDK only) ──
-    // Self-add happens server-side via /api/signup endpoint (using Admin SDK).
-    // Direct client writes blocked so users can't add themselves bypassing the cap.
     match /allowedUsers/{uid} {
       allow read: if isSignedIn();
-      allow write: if false;  // Server-only (Admin SDK)
+      allow write: if false;
     }
 
     // ── marketBias — public Claude analysis cache ───────────
