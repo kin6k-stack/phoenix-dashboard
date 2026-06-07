@@ -124,6 +124,7 @@ export default function TradingDashboard() {
   // No orderBy here — collectionGroup + where + orderBy would need a
   // composite index. Sorting happens client-side instead.
   // ─────────────────────────────────────────────────────────────────
+  //
   useEffect(() => {
     if (!user) return
     const q = query(
