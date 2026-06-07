@@ -37,7 +37,7 @@ interface Trade {
 function normalizeBotName(raw: string | undefined | null): string {
   if (!raw) return "Manual Execution"
   const u = raw.toUpperCase().replace(/_/g, " ").trim()
-  if (u.includes("PHOENIX NQ") || u.includes("NQ V1"))             return "Phoenix NQ v1.6"
+  if (u.includes("PHOENIX NQ") || u.includes("NQ V"))             return "Phoenix NQ v2.1"
   if (u.includes("GOLD SENTINEL") || u.includes("SENTINEL APEX"))  return "Gold Sentinel Apex"
   if (u.includes("PHOENIX GOLD") || u.includes("GOLD HYBRID") || u.includes("PHOENIX HYBRID"))
                                                                      return "Phoenix Gold Hybrid"
@@ -124,7 +124,6 @@ export default function TradingDashboard() {
   // No orderBy here — collectionGroup + where + orderBy would need a
   // composite index. Sorting happens client-side instead.
   // ─────────────────────────────────────────────────────────────────
-  //
   useEffect(() => {
     if (!user) return
     const q = query(
@@ -155,7 +154,7 @@ export default function TradingDashboard() {
           sl:         data.sl         || 0,
           lot:        data.lots       || data.lot || 0,
           notes:      data.notes      || "",
-          accountId:  d.ref.parent?.parent?.id || data.accountId || "",
+          accountId:  data.accountId  || "",
           screenshot: data.screenshot || "",
         }
       })
@@ -467,7 +466,7 @@ export default function TradingDashboard() {
       case "lifetime-ledger":
         return (
           <PageShell title="Lifetime Ledger" sub="Cross-broker trade history and account P&L overview">
-            <LifetimeLedgerView trades={trades} accounts={accounts} />
+            <LifetimeLedgerView />
           </PageShell>
         )
 

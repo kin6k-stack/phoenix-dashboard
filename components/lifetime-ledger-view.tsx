@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { collection, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, doc, query, where, orderBy, getDocs, writeBatch } from "firebase/firestore"
+import { collection, onSnapshot, addDoc, setDoc, updateDoc, deleteDoc, doc, query, where, getDocs, writeBatch } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 import { useAuth } from "@/lib/auth-context"
 import { Plus, Trash2, Edit2, TrendingUp, TrendingDown, Wallet, BarChart2, ChevronRight, X, Check, Building2, RefreshCw } from "lucide-react"
@@ -9,16 +9,16 @@ import { Plus, Trash2, Edit2, TrendingUp, TrendingDown, Wallet, BarChart2, Chevr
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Account {
-  id:           string
-  userId:       string
-  accountName:  string
-  broker:       string
-  login:        string
-  instruments:  string[]
-  color:        string
-  currency:     string
-  createdAt:    Date
-  isActive:     boolean
+  id:          string
+  userId:      string
+  accountName: string
+  broker:      string
+  login:       string
+  instruments: string[]
+  color:       string
+  currency:    string
+  createdAt:   Date
+  isActive:    boolean
 }
 
 interface AccountStats {
@@ -35,21 +35,13 @@ interface AccountStats {
 const DEFAULT_BROKERS = ["Exness", "Fusion Markets"]
 
 const ACCOUNT_COLORS = [
-  "#a855f7", // purple
-  "#34d399", // emerald
-  "#60a5fa", // blue
-  "#f59e0b", // amber
-  "#f472b6", // pink
-  "#2dd4bf", // teal
-  "#fb923c", // orange
-  "#a3e635", // lime
-  "#e879f9", // fuchsia
-  "#38bdf8", // sky
+  "#a855f7", "#34d399", "#60a5fa", "#f59e0b", "#f472b6",
+  "#2dd4bf", "#fb923c", "#a3e635", "#e879f9", "#38bdf8",
 ]
 
 const INSTRUMENTS = ["XAUUSD (Gold)", "USTEC (NQ)", "Forex", "Indices", "Crypto", "Other"]
 
-// ─── Account Registration Dialog ─────────────────────────────────────────────
+// ─── Account Registration Dialog ──────────────────────────────────────────────
 
 function AccountDialog({
   existing,
@@ -62,27 +54,27 @@ function AccountDialog({
   onSave:    (data: Omit<Account, "id" | "userId" | "createdAt">) => void
   onClose:   () => void
 }) {
-  const [name,        setName]        = useState(existing?.accountName  ?? "")
-  const [broker,      setBroker]      = useState(existing?.broker       ?? brokers[0])
-  const [customBroker,setCustomBroker]= useState("")
-  const [addingBroker,setAddingBroker]= useState(false)
-  const [login,       setLogin]       = useState(existing?.login        ?? "")
-  const [instruments, setInstruments] = useState<string[]>(existing?.instruments ?? [])
-  const [color,       setColor]       = useState(existing?.color        ?? ACCOUNT_COLORS[0])
-  const [currency,    setCurrency]    = useState(existing?.currency     ?? "USD")
-  const [error,       setError]       = useState("")
+  const [name,         setName]         = useState(existing?.accountName ?? "")
+  const [broker,       setBroker]       = useState(existing?.broker ?? brokers[0])
+  const [customBroker, setCustomBroker] = useState("")
+  const [addingBroker, setAddingBroker] = useState(false)
+  const [login,        setLogin]        = useState(existing?.login ?? "")
+  const [instruments,  setInstruments]  = useState<string[]>(existing?.instruments ?? [])
+  const [color,        setColor]        = useState(existing?.color ?? ACCOUNT_COLORS[0])
+  const [currency,     setCurrency]     = useState(existing?.currency ?? "USD")
+  const [error,        setError]        = useState("")
 
   const toggleInstrument = (inst: string) =>
     setInstruments(prev => prev.includes(inst) ? prev.filter(i => i !== inst) : [...prev, inst])
 
   const handleSave = () => {
-    if(!name.trim())    { setError("Account name is required"); return }
-    if(!login.trim())   { setError("Login number is required");  return }
+    if(!name.trim())         { setError("Account name is required");         return }
+    if(!login.trim())        { setError("Login number is required");          return }
     if(instruments.length === 0) { setError("Select at least one instrument"); return }
     onSave({
       accountName: name.trim(),
-      broker:      addingBroker && customBroker.trim() ? customBroker.trim() : broker,
-      login:       login.trim(),
+      broker: addingBroker && customBroker.trim() ? customBroker.trim() : broker,
+      login: login.trim(),
       instruments,
       color,
       currency,
@@ -123,7 +115,7 @@ function AccountDialog({
             />
           </div>
 
-          {/* Broker + Login row */}
+          {/* Broker + Login */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Broker</label>
@@ -168,37 +160,31 @@ function AccountDialog({
             <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Instruments Traded</label>
             <div className="flex flex-wrap gap-2">
               {INSTRUMENTS.map(inst => (
-                <button
-                  key={inst}
-                  onClick={() => toggleInstrument(inst)}
+                <button key={inst} onClick={() => toggleInstrument(inst)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border"
                   style={{
-                    background:   instruments.includes(inst) ? `${color}22` : "rgba(255,255,255,0.04)",
-                    borderColor:  instruments.includes(inst) ? color         : "rgba(255,255,255,0.08)",
-                    color:        instruments.includes(inst) ? color         : "rgba(255,255,255,0.4)",
-                  }}
-                >{inst}</button>
+                    background:  instruments.includes(inst) ? `${color}22` : "rgba(255,255,255,0.04)",
+                    borderColor: instruments.includes(inst) ? color : "rgba(255,255,255,0.08)",
+                    color:       instruments.includes(inst) ? color : "rgba(255,255,255,0.4)",
+                  }}>{inst}</button>
               ))}
             </div>
           </div>
 
-          {/* Color + Currency row */}
+          {/* Color + Currency */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Account Color</label>
               <div className="flex flex-wrap gap-2">
                 {ACCOUNT_COLORS.map(c => (
-                  <button
-                    key={c}
-                    onClick={() => setColor(c)}
+                  <button key={c} onClick={() => setColor(c)}
                     className="w-6 h-6 rounded-full transition-all border-2"
                     style={{
-                      background:   c,
-                      borderColor:  color === c ? "white" : "transparent",
-                      transform:    color === c ? "scale(1.2)" : "scale(1)",
-                      boxShadow:    color === c ? `0 0 8px ${c}` : "none",
-                    }}
-                  />
+                      background:  c,
+                      borderColor: color === c ? "white" : "transparent",
+                      transform:   color === c ? "scale(1.2)" : "scale(1)",
+                      boxShadow:   color === c ? `0 0 8px ${c}` : "none",
+                    }} />
                 ))}
               </div>
             </div>
@@ -245,14 +231,15 @@ function AccountCard({
   onClick,
   onEdit,
   onDelete,
+  onClear,   // FIX: was missing from destructuring, caused runtime error on clear button click
 }: {
   account:  Account
   stats:    AccountStats
-  selected:  boolean
-  onClick:   () => void
-  onEdit:    () => void
-  onDelete:  () => void
-  onClear:   () => void
+  selected: boolean
+  onClick:  () => void
+  onEdit:   () => void
+  onDelete: () => void
+  onClear:  () => void
 }) {
   const pnlPos = stats.totalPnl >= 0
 
@@ -261,9 +248,9 @@ function AccountCard({
       onClick={onClick}
       className="relative rounded-2xl border p-4 cursor-pointer transition-all duration-200 group"
       style={{
-        background:   selected ? `${account.color}14` : "rgba(255,255,255,0.03)",
-        borderColor:  selected ? `${account.color}60` : "rgba(255,255,255,0.07)",
-        boxShadow:    selected ? `0 0 24px ${account.color}22` : "none",
+        background:  selected ? `${account.color}14` : "rgba(255,255,255,0.03)",
+        borderColor: selected ? `${account.color}60` : "rgba(255,255,255,0.07)",
+        boxShadow:   selected ? `0 0 24px ${account.color}22` : "none",
       }}>
 
       {/* Color bar */}
@@ -296,7 +283,6 @@ function AccountCard({
         <div className="min-w-0">
           <p className="text-xs font-black text-white truncate">{account.accountName}</p>
           <p className="text-[10px] text-white/40 truncate">{account.broker} · {account.login}</p>
-          {/* Account ID — user copies this into InpAccountId in MT5 sync script */}
           <p className="text-[9px] font-mono text-white/20 truncate mt-0.5"
             title="Copy this into InpAccountId in the MT5 sync script">
             ID: {account.id}
@@ -304,7 +290,7 @@ function AccountCard({
         </div>
       </div>
 
-      {/* P&L */}
+      {/* Stats */}
       {!stats.loaded ? (
         <div className="flex items-center gap-1.5 text-white/30">
           <RefreshCw size={10} className="animate-spin" />
@@ -359,11 +345,11 @@ function CombinedStats({ accounts, statsMap }: { accounts: Account[], statsMap: 
   }, [accounts, statsMap])
 
   const tiles = [
-    { label: "Total P&L",     value: `${totals.pnl >= 0 ? "+" : ""}$${totals.pnl.toFixed(2)}`, color: totals.pnl >= 0 ? "#34d399" : "#f87171" },
-    { label: "Total Trades",  value: String(totals.trades), color: "#e5e7eb" },
-    { label: "Total Wins",    value: String(totals.wins),   color: "#34d399" },
-    { label: "Total Losses",  value: String(totals.losses), color: "#f87171" },
-    { label: "Combined WR",   value: `${totals.wr.toFixed(1)}%`, color: totals.wr >= 50 ? "#34d399" : "#f87171" },
+    { label: "Total P&L",    value: `${totals.pnl >= 0 ? "+" : ""}$${totals.pnl.toFixed(2)}`, color: totals.pnl >= 0 ? "#34d399" : "#f87171" },
+    { label: "Total Trades", value: String(totals.trades), color: "#e5e7eb" },
+    { label: "Total Wins",   value: String(totals.wins),   color: "#34d399" },
+    { label: "Total Losses", value: String(totals.losses), color: "#f87171" },
+    { label: "Combined WR",  value: `${totals.wr.toFixed(1)}%`, color: totals.wr >= 50 ? "#34d399" : "#f87171" },
   ]
 
   return (
@@ -381,9 +367,9 @@ function CombinedStats({ accounts, statsMap }: { accounts: Account[], statsMap: 
 // ─── Account Breakdown Table ──────────────────────────────────────────────────
 
 function AccountTable({ accounts, statsMap, onSelect }: {
-  accounts:  Account[]
-  statsMap:  Map<string, AccountStats>
-  onSelect:  (a: Account) => void
+  accounts: Account[]
+  statsMap: Map<string, AccountStats>
+  onSelect: (a: Account) => void
 }) {
   return (
     <div className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden">
@@ -408,14 +394,15 @@ function AccountTable({ accounts, statsMap, onSelect }: {
                 className="border-b border-white/5 hover:bg-white/[0.03] cursor-pointer transition-colors group">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: a.color, boxShadow: `0 0 6px ${a.color}` }} />
+                    <div className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: a.color, boxShadow: `0 0 6px ${a.color}` }} />
                     <span className="text-xs font-bold text-white">{a.accountName}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-xs text-white/50">{a.broker}</td>
                 <td className="px-4 py-3">
                   <p className="text-xs font-mono text-white/40">{a.login}</p>
-                  <p className="text-[9px] font-mono text-white/20" title="InpAccountId for MT5 sync script">{a.id}</p>
+                  <p className="text-[9px] font-mono text-white/20">{a.id}</p>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1 flex-wrap">
@@ -428,7 +415,8 @@ function AccountTable({ accounts, statsMap, onSelect }: {
                   </div>
                 </td>
                 <td className="px-4 py-3 text-xs text-white/50">{s?.loaded ? s.tradeCount : "—"}</td>
-                <td className="px-4 py-3 text-xs font-bold" style={{ color: s?.loaded && s.wr > 0 ? "#34d399" : "#f87171" }}>
+                <td className="px-4 py-3 text-xs font-bold"
+                  style={{ color: s?.loaded && s.winRate > 0 ? "#34d399" : "#f87171" }}>
                   {s?.loaded ? `${s.winRate.toFixed(0)}%` : "—"}
                 </td>
                 <td className="px-4 py-3 text-sm font-black"
@@ -465,58 +453,78 @@ export default function LifetimeLedgerView() {
   const [dialogOpen,  setDialogOpen]  = useState(false)
   const [editTarget,  setEditTarget]  = useState<Account | null>(null)
 
-  // Listen to accounts collection
+  // ── Account listener ──────────────────────────────────────────────────────
   useEffect(() => {
     if(!user) return
     const q = query(collection(db, "accounts"), where("userId", "==", user.uid))
     return onSnapshot(q, snap => {
       const accs = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Account[]
       setAccounts(accs)
-      // Collect custom brokers
       const allBrokers = [...new Set([...DEFAULT_BROKERS, ...accs.map(a => a.broker)])]
       setBrokers(allBrokers)
     })
   }, [user])
 
-  // Load stats per account from trades subcollection
+  // ── Per-account stats — real-time listeners ───────────────────────────────
+  // FIX: was getDocs (one-time) — trades synced via webhook wouldn't show
+  // until page refresh. onSnapshot keeps tiles live as trades are added.
   useEffect(() => {
     if(!user || accounts.length === 0) return
-    const newMap = new Map<string, AccountStats>()
+    const unsubs: (() => void)[] = []
 
-    Promise.all(accounts.map(async acc => {
-      try {
-        // Subcollection path: accounts/{accountId}/trades
-        const q = collection(db, "accounts", acc.id, "trades")
-        const snap = await getDocs(q)
-        let pnl = 0, wins = 0, losses = 0
-        snap.forEach(d => {
-          const data = d.data()
-          const profit = data.rMultiple ?? data.profit ?? 0
-          pnl += Number(profit)
-          if(profit > 0) wins++
-          else if(profit < 0) losses++
-        })
-        newMap.set(acc.id, {
-          totalPnl:   pnl,
-          winRate:    snap.size > 0 ? (wins/snap.size)*100 : 0,
-          tradeCount: snap.size,
-          wins, losses,
-          loaded: true,
-        })
-      } catch {
-        newMap.set(acc.id, { totalPnl:0, winRate:0, tradeCount:0, wins:0, losses:0, loaded:true })
-      }
-    })).then(() => setStatsMap(new Map(newMap)))
+    for(const acc of accounts) {
+      // Mark loading
+      setStatsMap(prev => {
+        const m = new Map(prev)
+        if(!m.has(acc.id)) m.set(acc.id, { totalPnl:0, winRate:0, tradeCount:0, wins:0, losses:0, loaded:false })
+        return m
+      })
+
+      const unsub = onSnapshot(
+        collection(db, "accounts", acc.id, "trades"),
+        snap => {
+          let pnl = 0, wins = 0, losses = 0
+          snap.forEach(d => {
+            const data   = d.data()
+            const profit = data.rMultiple ?? data.profit ?? 0
+            pnl += Number(profit)
+            if(profit > 0)      wins++
+            else if(profit < 0) losses++
+          })
+          setStatsMap(prev => {
+            const m = new Map(prev)
+            m.set(acc.id, {
+              totalPnl:   pnl,
+              winRate:    snap.size > 0 ? (wins / snap.size) * 100 : 0,
+              tradeCount: snap.size,
+              wins,
+              losses,
+              loaded: true,
+            })
+            return m
+          })
+        },
+        () => {
+          setStatsMap(prev => {
+            const m = new Map(prev)
+            m.set(acc.id, { totalPnl:0, winRate:0, tradeCount:0, wins:0, losses:0, loaded:true })
+            return m
+          })
+        }
+      )
+      unsubs.push(unsub)
+    }
+
+    return () => unsubs.forEach(u => u())
   }, [user, accounts])
 
+  // ── Account CRUD ──────────────────────────────────────────────────────────
   const handleSave = async (data: Omit<Account, "id" | "userId" | "createdAt">) => {
     if(!user) return
     if(editTarget) {
       await updateDoc(doc(db, "accounts", editTarget.id), { ...data })
     } else {
-      // Deterministic ID: broker_slug_login — e.g. "exness_198440704"
-      // This is what the MT5 sync script needs to type in as InpAccountId
-      const slug = data.broker.toLowerCase().replace(/[^a-z0-9]/g, "_")
+      const slug      = data.broker.toLowerCase().replace(/[^a-z0-9]/g, "_")
       const accountId = `${slug}_${data.login}`
       await setDoc(doc(db, "accounts", accountId), {
         ...data,
@@ -529,29 +537,24 @@ export default function LifetimeLedgerView() {
   }
 
   const handleClearTrades = async (acc: Account) => {
-    if(!confirm(`Delete ALL trades for "${acc.accountName}"?
-
-This removes every trade in accounts/${acc.id}/trades/
-The account registration stays. This cannot be undone.`)) return
+    if(!confirm(
+      `Delete ALL trades for "${acc.accountName}"?\n\n` +
+      `This removes every trade in accounts/${acc.id}/trades/\n` +
+      `The account registration stays. This cannot be undone.`
+    )) return
     try {
       const tradesRef = collection(db, "accounts", acc.id, "trades")
-      const snap = await getDocs(tradesRef)
+      const snap      = await getDocs(tradesRef)
       if(snap.empty) { alert("No trades to delete."); return }
-      // Batch delete in chunks of 500
       const chunks: any[][] = []
-      const docs = snap.docs
-      for(let i = 0; i < docs.length; i += 499) chunks.push(docs.slice(i, i+499))
+      for(let i = 0; i < snap.docs.length; i += 499)
+        chunks.push(snap.docs.slice(i, i + 499))
       for(const chunk of chunks) {
         const batch = writeBatch(db)
         chunk.forEach(d => batch.delete(d.ref))
         await batch.commit()
       }
-      // Refresh stats
-      setStatsMap(prev => {
-        const m = new Map(prev)
-        m.set(acc.id, { totalPnl:0, winRate:0, tradeCount:0, wins:0, losses:0, loaded:true })
-        return m
-      })
+      // onSnapshot listener will update statsMap automatically
       alert(`Deleted ${snap.size} trades from ${acc.accountName}.`)
     } catch(err) {
       console.error("Clear trades failed:", err)
@@ -565,6 +568,7 @@ The account registration stays. This cannot be undone.`)) return
     if(selectedAcc?.id === acc.id) setSelectedAcc(null)
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-5 p-1">
 
@@ -577,7 +581,9 @@ The account registration stays. This cannot be undone.`)) return
           </h1>
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {accounts.length} account{accounts.length !== 1 ? "s" : ""} registered
-            {accounts.length > 0 ? ` across ${[...new Set(accounts.map(a => a.broker))].length} broker${[...new Set(accounts.map(a => a.broker))].length !== 1 ? "s" : ""}` : ""}
+            {accounts.length > 0
+              ? ` across ${[...new Set(accounts.map(a => a.broker))].length} broker${[...new Set(accounts.map(a => a.broker))].length !== 1 ? "s" : ""}`
+              : ""}
           </p>
         </div>
         <button
@@ -591,10 +597,8 @@ The account registration stays. This cannot be undone.`)) return
 
       {accounts.length > 0 && (
         <>
-          {/* Combined stats */}
           <CombinedStats accounts={accounts} statsMap={statsMap} />
 
-          {/* Account cards */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {accounts.map(acc => (
               <AccountCard
@@ -605,11 +609,11 @@ The account registration stays. This cannot be undone.`)) return
                 onClick={() => setSelectedAcc(prev => prev?.id === acc.id ? null : acc)}
                 onEdit={() => { setEditTarget(acc); setDialogOpen(true) }}
                 onDelete={() => handleDelete(acc)}
+                onClear={() => handleClearTrades(acc)}   // FIX: was missing
               />
             ))}
           </div>
 
-          {/* Breakdown table */}
           <AccountTable
             accounts={accounts}
             statsMap={statsMap}
@@ -637,7 +641,6 @@ The account registration stays. This cannot be undone.`)) return
         </div>
       )}
 
-      {/* Dialog */}
       {dialogOpen && (
         <AccountDialog
           existing={editTarget}
