@@ -6,13 +6,14 @@ import {
   LayoutDashboard, Calendar, BarChart3, History, Clock,
   Globe, Target, CandlestickChart, ChevronLeft,
   Settings, Wifi, Menu, X, PanelLeftOpen, Wallet, Bot, FileUp,
+  Network,
 } from "lucide-react"
 
 interface NavItem {
-  id:      string
-  label:   string
-  icon:    React.ElementType
-  badge?:  { text: string; variant: "pro" | "live" | "open" }
+  id:     string
+  label:  string
+  icon:   React.ElementType
+  badge?: { text: string; variant: "pro" | "live" | "open" }
 }
 
 const SECTIONS: { label: string; items: NavItem[] }[] = [
@@ -25,25 +26,26 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
   {
     label: "ANALYSIS",
     items: [
-      { id: "market-bias",          label: "Market Bias",          icon: Target,           badge: { text: "AI", variant: "live" } },
-      { id: "session-intelligence", label: "Session Intelligence", icon: Clock             },
-      { id: "performance-metrics",  label: "Performance",          icon: BarChart3         },
-      { id: "candle-analysis",      label: "Candle Analysis",      icon: CandlestickChart  },
+      { id: "market-bias",          label: "Market Bias",       icon: Target,           badge: { text: "AI",   variant: "live" } },
+      { id: "asset-matrix",         label: "Asset Matrix",      icon: Network,          badge: { text: "AI",   variant: "live" } },
+      { id: "session-intelligence", label: "Session Intel",     icon: Clock                                                      },
+      { id: "performance-metrics",  label: "Performance",       icon: BarChart3                                                  },
+      { id: "candle-analysis",      label: "Candle Analysis",   icon: CandlestickChart                                           },
     ],
   },
   {
     label: "HISTORY",
     items: [
-      { id: "pnl-calendar",   label: "P&L Calendar",   icon: Calendar },
+      { id: "pnl-calendar",  label: "P&L Calendar",    icon: Calendar },
       { id: "signal-history", label: "Execution Ledger", icon: History  },
     ],
   },
   {
     label: "LEDGER",
     items: [
-      { id: "lifetime-ledger", label: "Lifetime Ledger", icon: Wallet  },
-      { id: "bot-hub",         label: "Bot Hub",         icon: Bot     },
-      { id: "csv-import",      label: "CSV Import",      icon: FileUp  },
+      { id: "lifetime-ledger", label: "Lifetime Ledger", icon: Wallet },
+      { id: "bot-hub",         label: "Bot Hub",          icon: Bot    },
+      { id: "csv-import",      label: "CSV Import",       icon: FileUp },
     ],
   },
   {
@@ -62,16 +64,16 @@ interface SidebarProps {
 
 function getSessionLabel(): { label: string; abbr: string } {
   const h = new Date().getUTCHours()
-  if (h >= 22 || h < 8)  return { label: "Asian",   abbr: "TYO" }
-  if (h >= 8  && h < 13) return { label: "London",  abbr: "LDN" }
-  if (h >= 13 && h < 16) return { label: "Overlap", abbr: "OVL" }
-  return { label: "New York", abbr: "NYO" }
+  if (h >= 22 || h < 8)  return { label: "Asian",    abbr: "TYO" }
+  if (h >= 8  && h < 13) return { label: "London",   abbr: "LDN" }
+  if (h >= 13 && h < 16) return { label: "Overlap",  abbr: "OVL" }
+  return                         { label: "New York", abbr: "NYO" }
 }
 
 export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed,  setCollapsed]  = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [session, setSession] = useState(getSessionLabel())
+  const [session,    setSession]    = useState(getSessionLabel())
 
   useEffect(() => {
     const saved = localStorage.getItem("phx_sidebar_collapsed")
@@ -100,7 +102,6 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
     setMobileOpen(false)
   }
 
-  // Open the settings panel (defined in app/page.tsx via custom event)
   const openSettings = () => {
     window.dispatchEvent(new CustomEvent("phoenix:settings"))
     setMobileOpen(false)
@@ -108,11 +109,10 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
 
   const sevenDaysAgo = Date.now() - 7 * 86_400_000
   const recentTrades = trades.filter(t => new Date(t.date).getTime() > sevenDaysAgo)
-  const wins         = recentTrades.filter(t => t.rMultiple > 0).length
-  const dayPnl       = recentTrades.reduce((s, t) => s + Number(t.rMultiple), 0)
-  const winRate      = recentTrades.length > 0 ? Math.round((wins / recentTrades.length) * 100) : 0
+  const wins    = recentTrades.filter(t => t.rMultiple > 0).length
+  const dayPnl  = recentTrades.reduce((s, t) => s + Number(t.rMultiple), 0)
+  const winRate = recentTrades.length > 0 ? Math.round((wins / recentTrades.length) * 100) : 0
 
-  // Theme-aware badge styles — resolve via CSS tokens, not hardcoded hex
   const badgeStyles: Record<string, string> = {
     pro:  "bg-muted text-muted-foreground text-[9px] font-black tracking-wider",
     live: "bg-primary/10 text-primary text-[9px] font-black tracking-wider border border-primary/25",
@@ -123,38 +123,25 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
 
   const renderSidebarContent = (isMobile: boolean) => (
     <>
-      {/* ── Header bar ─────────────────────────────────────── */}
+      {/* Header */}
       <div className="flex items-center justify-between px-3.5 py-4 border-b border-border" style={{ minHeight: 56 }}>
-
         {collapsed && !isMobile ? (
-          <button
-            onClick={toggleCollapse}
+          <button onClick={toggleCollapse}
             className="w-full flex items-center justify-center p-2 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors group"
-            aria-label="Expand sidebar"
-            title="Expand sidebar">
+            aria-label="Expand sidebar">
             <PanelLeftOpen className="w-4 h-4 transition-transform group-hover:scale-110" />
           </button>
         ) : (
           <>
             <div className="flex items-center gap-2.5 overflow-hidden">
               <div className="w-7 h-7 rounded-lg flex-shrink-0 overflow-hidden border border-border/50">
-                <Image
-                  src="/phoenix-logo.jpg"
-                  alt="Phoenix"
-                  width={28} height={28}
-                  className="w-full h-full object-cover"
-                />
+                <Image src="/phoenix-logo.jpg" alt="Phoenix" width={28} height={28} className="w-full h-full object-cover" />
               </div>
               <div className="flex flex-col leading-none overflow-hidden">
-                <span className="text-foreground text-[13px] font-black tracking-widest uppercase whitespace-nowrap">
-                  Phoenix
-                </span>
-                <span className="text-muted-foreground text-[9px] font-bold tracking-[0.25em] uppercase whitespace-nowrap mt-0.5">
-                  Command
-                </span>
+                <span className="text-foreground text-[13px] font-black tracking-widest uppercase whitespace-nowrap">Phoenix</span>
+                <span className="text-muted-foreground text-[9px] font-bold tracking-[0.25em] uppercase whitespace-nowrap mt-0.5">Command</span>
               </div>
             </div>
-
             {isMobile ? (
               <button onClick={() => setMobileOpen(false)}
                 className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors ml-1"
@@ -164,8 +151,7 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
             ) : (
               <button onClick={toggleCollapse}
                 className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors ml-1"
-                aria-label="Collapse sidebar"
-                title="Collapse sidebar">
+                aria-label="Collapse sidebar">
                 <ChevronLeft className="w-4 h-4" />
               </button>
             )}
@@ -173,6 +159,7 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
         )}
       </div>
 
+      {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-4">
         {SECTIONS.map(section => (
           <div key={section.label}>
@@ -191,27 +178,21 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
               const showText = !collapsed || isMobile
 
               return (
-                <button
-                  key={item.id}
-                  onClick={() => handleItemClick(item.id)}
+                <button key={item.id} onClick={() => handleItemClick(item.id)}
                   title={!showText ? item.label : undefined}
-                  className={`w-full flex items-center gap-2.5 transition-all group min-h-[40px] ${
-                    isActive ? "gradient-active" : "hover:bg-white/[0.03]"
-                  }`}
+                  className={`w-full flex items-center gap-2.5 transition-all group min-h-[40px]
+                    ${isActive ? "gradient-active" : "hover:bg-white/[0.03]"}`}
                   style={{
-                    padding: showText ? "8px 12px" : "8px 0",
-                    justifyContent: showText ? "flex-start" : "center",
-                    borderLeft: isActive && showText ? "2px solid hsl(var(--primary))" : "2px solid transparent",
-                    paddingLeft: showText ? (isActive ? "10px" : "12px") : undefined,
+                    padding:       showText ? "8px 12px" : "8px 0",
+                    justifyContent:showText ? "flex-start" : "center",
+                    borderLeft:    isActive && showText ? "2px solid hsl(var(--primary))" : "2px solid transparent",
+                    paddingLeft:   showText ? (isActive ? "10px" : "12px") : undefined,
                   }}>
-                  <Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  }`} />
+                  <Icon className={`w-4 h-4 flex-shrink-0 transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`} />
                   {showText && (
                     <>
-                      <span className={`text-[13px] flex-1 text-left transition-colors whitespace-nowrap ${
-                        isActive ? "text-foreground font-semibold" : "text-muted-foreground"
-                      }`}>
+                      <span className={`text-[13px] flex-1 text-left transition-colors whitespace-nowrap
+                        ${isActive ? "text-foreground font-semibold" : "text-muted-foreground"}`}>
                         {item.label}
                       </span>
                       {item.badge && (
@@ -228,7 +209,7 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
         ))}
       </nav>
 
-      {/* ── Footer: perf summary + session + Settings ─────── */}
+      {/* Footer */}
       <div className="border-t border-border">
         {(!collapsed || isMobile) && (
           <div className="p-3 space-y-2">
@@ -250,7 +231,6 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
                 </div>
               </div>
             </div>
-
             <div className="flex items-center justify-between px-1">
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
@@ -261,7 +241,6 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
           </div>
         )}
 
-        {/* SETTINGS button — replaces Sign Out (Sign Out lives in the panel) */}
         <button onClick={openSettings}
           title={!(!collapsed || isMobile) ? "Settings" : undefined}
           className="w-full flex items-center gap-2.5 p-3 text-muted-foreground hover:text-primary hover:bg-primary/[0.06] transition-colors min-h-[44px]"
@@ -290,19 +269,12 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
           aria-label="Open menu">
           <Menu className="w-5 h-5" />
         </button>
-
         <div className="flex items-center gap-2">
           <div className="w-6 h-6 rounded overflow-hidden border border-border/50">
-            <Image
-              src="/phoenix-logo.jpg"
-              alt="Phoenix"
-              width={24} height={24}
-              className="w-full h-full object-cover"
-            />
+            <Image src="/phoenix-logo.jpg" alt="Phoenix" width={24} height={24} className="w-full h-full object-cover" />
           </div>
           <span className="text-foreground text-xs font-black tracking-widest uppercase">Phoenix Cmd</span>
         </div>
-
         <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/10">
           <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
           <span className="text-[10px] font-black text-primary">{session.abbr}</span>
@@ -312,8 +284,7 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
       <div className="md:hidden h-12 flex-shrink-0" />
 
       {/* Desktop sidebar */}
-      <aside
-        className="hidden md:flex relative flex-shrink-0 h-screen flex-col border-r border-border bg-background transition-all duration-300"
+      <aside className="hidden md:flex relative flex-shrink-0 h-screen flex-col border-r border-border bg-background transition-all duration-300"
         style={{ width: desktopW }}>
         {renderSidebarContent(false)}
       </aside>
@@ -321,11 +292,8 @@ export function Sidebar({ activeItem, onItemClick, trades = [] }: SidebarProps) 
       {/* Mobile drawer */}
       {mobileOpen && (
         <>
-          <div
-            onClick={() => setMobileOpen(false)}
-            className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-            aria-hidden="true"
-          />
+          <div onClick={() => setMobileOpen(false)}
+            className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
           <aside className="md:hidden fixed top-0 left-0 z-50 h-full w-[280px] flex flex-col border-r border-border bg-background shadow-2xl">
             {renderSidebarContent(true)}
           </aside>
