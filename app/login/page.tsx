@@ -92,7 +92,7 @@ type LoginStyle = "aurora" | "orbs"
 //   black-white→ greyscale (Phoenix + Trader Kizan logos stay full color)
 // ─────────────────────────────────────────────────────────────────────
 
-type LoginTheme = "violet" | "gold" | "midnight" | "dark" | "black-white"
+type LoginTheme = "violet" | "gold" | "midnight" | "dark" | "black-white" | "bloomberg" | "nord" | "cyber"
 
 interface LoginPalette {
   haloUpper:      string  // upper-sky ambient ellipse fill (rgba/hsla with alpha)
@@ -158,9 +158,9 @@ function useLoginTheme(): { theme: LoginTheme; hydrated: boolean; isInverted: bo
       const parsed = raw ? JSON.parse(raw) : {}
       let t = parsed.theme as string
       if (t === "oled" || !t) t = "black-white"
-      else if (t === "pink")  t = "violet"
+      else if (t === "pink")  t = "cyber"
       else if (t === "light") t = "gold"
-      if (!["violet","gold","midnight","dark","black-white"].includes(t)) t = "violet"
+      if (!["violet","gold","midnight","dark","black-white","bloomberg","nord","cyber"].includes(t)) t = "violet"
       setTheme(t as LoginTheme)
       setIsInverted(t === "black-white" && !!parsed.invert)
     } catch {
@@ -446,6 +446,105 @@ function getLoginPalette(theme: LoginTheme): LoginPalette {
         badgeBoxShadow: "hsl(270 80% 60% / 0.45)",
         badgeBorder:    "hsl(280 60% 40% / 0.4)",
       }
+    case "bloomberg": return {
+      haloUpper:   "rgba(255,107,0,0.10)",
+      nebulaA:     "rgba(255,107,0,0.07)",
+      nebulaB:     "rgba(255,140,0,0.04)",
+      nebulaC:     "rgba(200,70,0,0.02)",
+      rim1:        "rgba(255,160,60,0.92)",
+      rim2:        "rgba(255,107,0,0.62)",
+      rim3:        "rgba(200,70,0,0.32)",
+      rim4:        "rgba(140,40,0,0.16)",
+      bleedLeftA:  "rgba(255,107,0,0.35)",
+      bleedLeftB:  "rgba(255,107,0,0.00)",
+      bleedRightA: "rgba(255,107,0,0.22)",
+      bleedRightB: "rgba(255,107,0,0.00)",
+      hotspot1:    "#fff3e0",
+      hotspot2:    "#ff9500",
+      hotspot3:    "rgba(255,140,0,0.70)",
+      hotspot4:    "rgba(255,107,0,0.40)",
+      hotspot5:    "rgba(200,70,0,0.16)",
+      halo1:       "rgba(255,140,0,0.28)",
+      halo2:       "rgba(255,107,0,0.14)",
+      halo3:       "rgba(200,70,0,0.05)",
+      core1:       "rgba(255,160,60,0.70)",
+      core2:       "rgba(255,107,0,0.45)",
+      core3:       "rgba(200,80,0,0.24)",
+      liveBadgeText:      "hsl(25 100% 55%)",
+      accentTextA:        "hsl(25 100% 60%)",
+      accentTextB:        "hsl(35 100% 60%)",
+      accentTextGlowMid:  "hsl(25 100% 55% / 0.5)",
+      accentTextGlowWide: "hsl(35 100% 60% / 0.35)",
+      inputFocus:         "hsl(25 90% 55% / 0.5)",
+      badgeBoxShadow:     "hsl(25 90% 50% / 0.45)",
+      badgeBorder:        "hsl(25 70% 35% / 0.4)",
+    }
+    case "nord": return {
+      haloUpper:   "rgba(136,192,208,0.10)",
+      nebulaA:     "rgba(100,160,180,0.07)",
+      nebulaB:     "rgba(120,180,200,0.04)",
+      nebulaC:     "rgba(80,120,150,0.02)",
+      rim1:        "rgba(190,225,238,0.92)",
+      rim2:        "rgba(136,192,208,0.65)",
+      rim3:        "rgba(90,150,175,0.34)",
+      rim4:        "rgba(60,100,130,0.17)",
+      bleedLeftA:  "rgba(136,192,208,0.30)",
+      bleedLeftB:  "rgba(136,192,208,0.00)",
+      bleedRightA: "rgba(100,160,180,0.20)",
+      bleedRightB: "rgba(100,160,180,0.00)",
+      hotspot1:    "#eaf6fa",
+      hotspot2:    "#88c0d0",
+      hotspot3:    "rgba(136,192,208,0.70)",
+      hotspot4:    "rgba(100,160,180,0.40)",
+      hotspot5:    "rgba(60,100,130,0.16)",
+      halo1:       "rgba(136,192,208,0.26)",
+      halo2:       "rgba(100,160,180,0.13)",
+      halo3:       "rgba(60,100,130,0.05)",
+      core1:       "rgba(190,225,238,0.62)",
+      core2:       "rgba(136,192,208,0.42)",
+      core3:       "rgba(90,150,175,0.22)",
+      liveBadgeText:      "hsl(193 43% 70%)",
+      accentTextA:        "hsl(193 43% 75%)",
+      accentTextB:        "hsl(210 55% 65%)",
+      accentTextGlowMid:  "hsl(193 43% 70% / 0.5)",
+      accentTextGlowWide: "hsl(210 55% 65% / 0.35)",
+      inputFocus:         "hsl(193 40% 65% / 0.5)",
+      badgeBoxShadow:     "hsl(193 43% 55% / 0.45)",
+      badgeBorder:        "hsl(193 30% 40% / 0.4)",
+    }
+    case "cyber": return {
+      haloUpper:   "rgba(255,0,204,0.14)",
+      nebulaA:     "rgba(200,0,160,0.09)",
+      nebulaB:     "rgba(255,0,255,0.05)",
+      nebulaC:     "rgba(140,0,200,0.03)",
+      rim1:        "rgba(255,120,230,0.95)",
+      rim2:        "rgba(255,0,204,0.65)",
+      rim3:        "rgba(200,0,160,0.34)",
+      rim4:        "rgba(140,0,120,0.17)",
+      bleedLeftA:  "rgba(255,0,204,0.40)",
+      bleedLeftB:  "rgba(255,0,204,0.00)",
+      bleedRightA: "rgba(200,0,160,0.28)",
+      bleedRightB: "rgba(200,0,160,0.00)",
+      hotspot1:    "#fff0ff",
+      hotspot2:    "#ff00cc",
+      hotspot3:    "rgba(255,0,204,0.70)",
+      hotspot4:    "rgba(200,0,160,0.42)",
+      hotspot5:    "rgba(140,0,120,0.18)",
+      halo1:       "rgba(255,0,204,0.30)",
+      halo2:       "rgba(200,0,160,0.15)",
+      halo3:       "rgba(140,0,120,0.06)",
+      core1:       "rgba(255,120,230,0.72)",
+      core2:       "rgba(255,0,204,0.46)",
+      core3:       "rgba(200,0,160,0.26)",
+      liveBadgeText:      "hsl(300 100% 68%)",
+      accentTextA:        "hsl(300 100% 72%)",
+      accentTextB:        "hsl(270 100% 70%)",
+      accentTextGlowMid:  "hsl(300 100% 65% / 0.55)",
+      accentTextGlowWide: "hsl(270 100% 65% / 0.38)",
+      inputFocus:         "hsl(300 90% 60% / 0.5)",
+      badgeBoxShadow:     "hsl(300 90% 55% / 0.5)",
+      badgeBorder:        "hsl(300 60% 40% / 0.45)",
+    }
   }
 }
 
