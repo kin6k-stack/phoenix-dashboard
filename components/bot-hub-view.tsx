@@ -50,7 +50,7 @@ const BOTS = [
   {
     id:        "hybrid",
     name:      "Phoenix Gold Hybrid",
-    version:   "v12.1",
+    version:   "v13.0",
     magic:     88803,
     symbol:    "XAUUSDm",
     timeframe: "M5",
@@ -59,19 +59,20 @@ const BOTS = [
     icon:      "🔥",
     firestore: "Phoenix Gold Hybrid",
     config: {
-      "Mode":       "CRT M5 Gold",
-      "Anchor":     "03:00 broker (pre-London H1)",
-      "Entry":      "M5 close inside range + EMA8",
-      "SL":         "Sweep wick + 10 pts padding",
-      "TP":         "Opposite range extreme (static)",
-      "BE":         "50% of TP distance",
-      "Stagnation": "4 M5 bars (20 min)",
-      "Filters":    "H1 bias optional, loss decay 100/50/25%",
+      "Mode":       "24/4 Adaptive Scalper",
+      "Sessions":   "Asia · London · LDN+NY Overlap · NY PM",
+      "Entry":      "ST(1.4/10) + MACD(12,26,9) + PDH/PDL sweep",
+      "EMA Filter": "EMA 150/250 macro trend gate",
+      "RR":         "1.0 Asia · 1.5 London · 1.8 Overlap · 1.2 NY PM",
+      "Ghost Shield":"BE at 1.0R — remainder risk-free",
+      "Exits":      "Decay 20-35 min · Volume Abort 150% vol",
+      "Kill":       "Friday 21:00 UTC",
     },
     changelog: [
+      { version:"v13.0",date:"Jun 2026",  note:"24/4 Session-Adaptive Scalper — full stack restored. ST+MACD+EMA150/250+PDH/PDL sweeps. Ghost Shield BE at 1.0R. Session-dynamic RR 1.0-1.8. Decay + VolumeAbort. Trades Asia/London/Overlap/NY PM, skips Close window 21-22 UTC." },
       { version:"v12.1",date:"Jun 2026",  note:"CRT rebuild — London sweep traded, not blocked. 4-state machine. 50% BE. 4-bar stagnation fuse. Consecutive loss decay preserved." },
       { version:"v12.0",date:"Jun 2026",  note:"SMC rebuild — London block. H1 bias. Sweep required. $5 SL cap." },
-      { version:"v11.14",date:"May 2026", note:"Trailing removed → fixed 4R Runner. Ghost Shield added." },
+      { version:"v11.14",date:"May 2026", note:"Trailing removed → pure scalper. Ghost Shield added." },
       { version:"v11.12",date:"Apr 2026", note:"ATR trailing restored. consecutiveLoss memory added." },
       { version:"v11.0", date:"Mar 2026", note:"Initial M5 scalp engine. No session filter." },
     ],
@@ -106,6 +107,9 @@ const BOTS = [
     ],
   },
 ]
+
+// ─── Dynamic bot meta (written by bot OnInit via webhook → Firestore) ──────────
+interface BotMeta { botVersion?: string; botMode?: string; lastSeenAt?: any }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -224,6 +228,7 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
   const [saving,    setSaving]    = useState(false)
   const [savedMsg,  setSavedMsg]  = useState(false)
   const [remoteConfig, setRemoteConfig] = useState<Record<string,any> | null>(null)
+  const [botMeta, setBotMeta] = useState<BotMeta>({})
 
   // ── CRT-aligned remote config ──────────────────────────────────────────────
   // Reflects only the g_ variables that PHX_RemoteConfig.mqh actually reads.
@@ -266,9 +271,12 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
           dailyLossCap:   data.dailyLossCap   ?? 5.0,
         })
         setRemoteConfig(data)
+        if(data.botVersion) setBotMeta({ botVersion:data.botVersion, botMode:data.botMode, lastSeenAt:data.lastSeenAt })
       }
     })
   }, [bot.magic, user])
+  const liveVersion = botMeta.botVersion ?? bot.version
+  const liveMode    = botMeta.botMode    ?? bot.config["Mode"]
 
   const saveConfig = async () => {
     if(!user) return
@@ -338,7 +346,7 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
           <div>
             <h2 className="text-sm font-black text-white">{bot.name}</h2>
             <p className="text-[10px] font-mono" style={{ color:`${bot.color}80` }}>
-              {bot.symbol} · {bot.timeframe} · Magic {bot.magic} · {bot.version}
+              {bot.symbol} · {bot.timeframe} · Magic {bot.magic} · {liveVersion}{botMeta.lastSeenAt ? " · 🟢 live" : ""}
             </p>
           </div>
         </div>
