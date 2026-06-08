@@ -217,16 +217,16 @@ function AccountTile({ account, trades, onOpenLedger }: {
               <div className="h-36 px-2 pt-2 pb-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="index" stroke="#475569" fontSize={9} tickLine={false} />
-                    <YAxis stroke="#475569" fontSize={9} tickLine={false} width={44}
+                    <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                    <XAxis dataKey="index" stroke={ct.axis} fontSize={9} tickLine={false} />
+                    <YAxis stroke={ct.axis} fontSize={9} tickLine={false} width={44}
                       tickFormatter={v => `$${v >= 0 ? "" : ""}${v.toFixed(0)}`}
                       domain={["dataMin - 5", "dataMax + 5"]} />
                     <Tooltip
                       formatter={(v: number) => [`$${v >= 0 ? "+" : ""}${v.toFixed(2)}`, "P&L"]}
-                      contentStyle={{ backgroundColor:"#0f172a", borderColor:"#1e293b", color:"#f8fafc", fontSize:11, borderRadius:8 }}
+                      contentStyle={{ backgroundColor:ct.tooltipBg, borderColor:ct.tooltipBorder, color:"#f8fafc", fontSize:11, borderRadius:8 }}
                     />
-                    <ReferenceLine y={0} stroke="#475569" strokeDasharray="4 4" strokeWidth={1} />
+                    <ReferenceLine y={0} stroke={ct.axis} strokeDasharray="4 4" strokeWidth={1} />
                     <Line type="monotone" dataKey="pnl" stroke={account.color} strokeWidth={2}
                       dot={false} activeDot={{ r:4, fill:account.color }} />
                   </LineChart>
@@ -245,16 +245,16 @@ function AccountTile({ account, trades, onOpenLedger }: {
               <div className="h-28 px-2 pt-2 pb-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="index" stroke="#475569" fontSize={9} tickLine={false} />
-                    <YAxis stroke="#475569" fontSize={9} tickLine={false} inverted width={40}
+                    <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} />
+                    <XAxis dataKey="index" stroke={ct.axis} fontSize={9} tickLine={false} />
+                    <YAxis stroke={ct.axis} fontSize={9} tickLine={false} inverted width={40}
                       tickFormatter={v => `-$${v.toFixed(0)}`} />
                     <Tooltip
                       formatter={(v: number) => [`-$${v.toFixed(2)}`, "Drawdown"]}
-                      contentStyle={{ backgroundColor:"#0f172a", borderColor:"#1e293b", color:"#f8fafc", fontSize:11, borderRadius:8 }}
+                      contentStyle={{ backgroundColor:ct.tooltipBg, borderColor:ct.tooltipBorder, color:"#f8fafc", fontSize:11, borderRadius:8 }}
                     />
-                    <Area type="monotone" dataKey="drawdown" stroke="#ef4444"
-                      fill="rgba(239,68,68,0.08)" strokeWidth={1.5} />
+                    <Area type="monotone" dataKey="drawdown" stroke={ct.loss}
+                      fill={ct.lossGlow.replace("0.35","0.08")} strokeWidth={1.5} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
