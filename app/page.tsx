@@ -21,10 +21,9 @@ import LifetimeLedgerView         from "@/components/lifetime-ledger-view"
 import BotHubView                 from "@/components/bot-hub-view"
 import CSVImportView              from "@/components/csv-import-view"
 import { AccountFilterBar }       from "@/components/account-filter-bar"
-import { EconomicCalendar }       from "@/components/economic-calendar"
 import { MarketBiasView }         from "@/components/market-bias-view"
+import { IntelligenceHub }        from "@/components/intelligence-hub-view"
 import { AssetMatrix }            from "@/components/asset-matrix-view"
-import { MarketIntelligenceView } from "@/components/market-intelligence-view"
 import { TickerTape }             from "@/components/ticker-tape"
 import { PnLHeader }              from "@/components/pnl-header"
 import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
@@ -357,10 +356,10 @@ export default function TradingDashboard() {
           </PageShell>
         )
 
-      case "market-intelligence":
+      case "intelligence":
         return (
-          <PageShell title="Market Intelligence" sub="Unified feed · events, catalysts, policy alerts & high-signal news">
-            <MarketIntelligenceView />
+          <PageShell title="Intelligence Hub" sub="Events schedule · catalysts · policy monitor · high-signal news">
+            <IntelligenceHub />
           </PageShell>
         )
 
@@ -442,13 +441,6 @@ export default function TradingDashboard() {
         return (
           <PageShell title="CSV Import" sub="Import trade history from any broker into your Lifetime Ledger">
             <CSVImportView />
-          </PageShell>
-        )
-
-      case "economic-calendar":
-        return (
-          <PageShell title="Economic Calendar" sub="Live macro volatility timeline alerts">
-            <EconomicCalendar />
           </PageShell>
         )
 

@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import {
-  LayoutDashboard, Calendar, BarChart3, Clock, Globe,
+  LayoutDashboard, Calendar, BarChart3, Clock,
   Target, CandlestickChart, ChevronLeft, Settings, Wifi,
-  Menu, X, PanelLeftOpen, Wallet, Bot, FileUp, Network, Newspaper,
+  Menu, X, PanelLeftOpen, Wallet, Bot, FileUp, Network, Brain,
 } from "lucide-react"
 
 interface NavItem {
@@ -24,9 +24,9 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
   {
     label: "ANALYSIS",
     items: [
-      { id: "market-bias",          label: "Market Bias",   icon: Target,           badge: { text: "AI", variant: "live" } },
-      { id: "market-intelligence",  label: "Market Intel",  icon: Newspaper,        badge: { text: "AI", variant: "live" } },
-      { id: "asset-matrix",         label: "Asset Matrix",  icon: Network,          badge: { text: "AI", variant: "live" } },
+      { id: "market-bias",    label: "Market Bias",  icon: Target,   badge: { text: "AI", variant: "live" } },
+      { id: "intelligence",   label: "Intelligence", icon: Brain,    badge: { text: "AI", variant: "live" } },
+      { id: "asset-matrix",   label: "Asset Matrix", icon: Network,  badge: { text: "AI", variant: "live" } },
       { id: "session-intelligence", label: "Session Intel", icon: Clock                                                    },
       { id: "performance-metrics",  label: "Performance",   icon: BarChart3                                                },
       { id: "candle-analysis",      label: "Candle Analysis",icon: CandlestickChart                                        },
@@ -47,10 +47,7 @@ const SECTIONS: { label: string; items: NavItem[] }[] = [
       { id: "csv-import",      label: "CSV Import",       icon: FileUp },
     ],
   },
-  {
-    label: "TOOLS",
-    items: [{ id: "economic-calendar", label: "Economic Calendar", icon: Globe }],
-  },
+
 ]
 
 // ── Session clock helpers ─────────────────────────────────────────────────────
