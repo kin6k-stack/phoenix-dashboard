@@ -71,6 +71,136 @@ function ThemeCard({ t, active, onClick }: { t:typeof THEMES[0]; active:boolean;
   )
 }
 
+// ── Notifications section component ──────────────────────────────────────────
+function NotificationsSection({
+  soundEnabled, browserEnabled, permission,
+  toggleSounds, toggleBrowser, requestBrowserPermission, testSound
+}: {
+  soundEnabled: boolean; browserEnabled: boolean
+  permission: NotificationPermission
+  toggleSounds: (v: boolean) => void; toggleBrowser: (v: boolean) => void
+  requestBrowserPermission: () => Promise<NotificationPermission>
+  testSound: () => void
+}) {
+  const SOUND_GROUPS = [
+    {
+      label: "Trade Outcomes",
+      sounds: [
+        { id:"win",       label:"Win",        desc:"3-note ascending chord"          },
+        { id:"big_win",   label:"Big Win",     desc:"4-note fanfare for large wins"   },
+        { id:"loss",      label:"Loss",        desc:"Soft descending 2-tone"          },
+        { id:"breakeven", label:"Breakeven",   desc:"Short neutral blip"              },
+      ]
+    },
+    {
+      label: "Signals & Alerts",
+      sounds: [
+        { id:"signal",       label:"Signal",        desc:"Single clean ping"              },
+        { id:"alert",        label:"Alert",          desc:"Double-ping — urgent attention" },
+      ]
+    },
+    {
+      label: "Sessions & Milestones",
+      sounds: [
+        { id:"session_open", label:"Session Open",   desc:"Rising arpeggio — market live"  },
+        { id:"milestone",    label:"Milestone",      desc:"Triumphant 4-note"              },
+        { id:"streak",       label:"Streak",         desc:"Rolling arpeggios — win streak" },
+        { id:"new_day",      label:"New Day",         desc:"Morning chime"                  },
+      ]
+    },
+    {
+      label: "System",
+      sounds: [
+        { id:"error",        label:"Error",           desc:"Low buzz for system alerts"     },
+      ]
+    },
+  ]
+
+  const playSound = (id: string) => {
+    import("@/lib/use-notifications").then(m => m.playNotifSound(id as any))
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* Master sound toggle */}
+      <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Volume2 size={14} className="text-primary flex-shrink-0"/>
+            <div>
+              <p className="text-xs font-bold text-foreground">Trade Sounds</p>
+              <p className="text-[9px] text-muted-foreground mt-0.5">11 sounds — click any to preview</p>
+            </div>
+          </div>
+          <button onClick={() => toggleSounds(!soundEnabled)}
+            className="relative w-11 h-6 rounded-full transition-all duration-200 flex-shrink-0"
+            style={{ background: soundEnabled ? "hsl(var(--primary))" : "hsl(var(--muted))" }}>
+            <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
+              style={{ left: soundEnabled ? "calc(100% - 22px)" : "2px" }}/>
+          </button>
+        </div>
+
+        {/* Sound library — grouped */}
+        {soundEnabled && (
+          <div className="space-y-3">
+            {SOUND_GROUPS.map(group => (
+              <div key={group.label}>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1.5">{group.label}</p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {group.sounds.map(s => (
+                    <button key={s.id} onClick={() => playSound(s.id)}
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg bg-background/40 border border-border/40 hover:border-primary/30 hover:bg-primary/5 transition-all text-left group">
+                      <Volume2 size={10} className="text-muted-foreground/40 group-hover:text-primary transition-colors flex-shrink-0"/>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-black text-foreground truncate">{s.label}</p>
+                        <p className="text-[8px] text-muted-foreground/50 truncate">{s.desc}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Browser notifications */}
+      <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-4">
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Browser Notifications</p>
+        {permission === "denied" ? (
+          <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/25 text-[11px] text-destructive">
+            Blocked in browser settings. Go to browser Settings → Site Permissions → Notifications to re-enable.
+          </div>
+        ) : permission === "granted" ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Bell size={14} className="text-primary flex-shrink-0"/>
+              <div>
+                <p className="text-xs font-bold text-foreground">Push Alerts</p>
+                <p className="text-[9px] text-muted-foreground mt-0.5">Win / Loss / signal on every trade</p>
+              </div>
+            </div>
+            <button onClick={() => toggleBrowser(!browserEnabled)}
+              className="relative w-11 h-6 rounded-full transition-all duration-200 flex-shrink-0"
+              style={{ background: browserEnabled ? "hsl(var(--primary))" : "hsl(var(--muted))" }}>
+              <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
+                style={{ left: browserEnabled ? "calc(100% - 22px)" : "2px" }}/>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-[11px] text-muted-foreground">Get a desktop notification for every trade, even when the dashboard is in the background.</p>
+            <button onClick={requestBrowserPermission}
+              className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[11px] font-black bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors">
+              <Bell size={13}/> Enable Browser Notifications
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Timezone options ─────────────────────────────────────────────────────────
 const TIMEZONES = [
   { label: "Antigua / Eastern (UTC-4)",    value: "America/Antigua"     },
@@ -333,69 +463,12 @@ export function SettingsPanel({ open, onClose, isOwner = false }: SettingsPanelP
 
       // ── Notifications ─────────────────────────────────────────────────────
       case "notifications":
-        return (
-          <div className="p-4 space-y-4">
-            {/* Sound notifications */}
-            <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Audio Alerts</p>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Volume2 size={14} className="text-primary flex-shrink-0" />
-                  <div>
-                    <p className="text-xs font-bold text-foreground">Trade Sounds</p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">Win ↑ chord · Loss ↓ tone · Signal ping</p>
-                  </div>
-                </div>
-                <button onClick={() => toggleSounds(!soundEnabled)}
-                  className="relative w-11 h-6 rounded-full transition-all duration-200 flex-shrink-0"
-                  style={{ background: soundEnabled ? "hsl(var(--primary))" : "hsl(var(--muted))" }}>
-                  <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
-                    style={{ left: soundEnabled ? "calc(100% - 22px)" : "2px" }} />
-                </button>
-              </div>
-              {soundEnabled && (
-                <button onClick={testSound}
-                  className="text-[10px] font-bold text-primary/60 hover:text-primary transition-colors flex items-center gap-1.5">
-                  <Volume2 size={11}/> Test sound
-                </button>
-              )}
-            </div>
-
-            {/* Browser notifications */}
-            <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Browser Notifications</p>
-              {permission === "denied" ? (
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/25 text-[11px] text-destructive">
-                  Notifications are blocked in your browser. Enable them in browser settings → site permissions.
-                </div>
-              ) : permission === "granted" ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Bell size={14} className="text-primary flex-shrink-0" />
-                    <div>
-                      <p className="text-xs font-bold text-foreground">Push Alerts</p>
-                      <p className="text-[9px] text-muted-foreground mt-0.5">Win / Loss / new signal on every trade</p>
-                    </div>
-                  </div>
-                  <button onClick={() => toggleBrowser(!browserEnabled)}
-                    className="relative w-11 h-6 rounded-full transition-all duration-200 flex-shrink-0"
-                    style={{ background: browserEnabled ? "hsl(var(--primary))" : "hsl(var(--muted))" }}>
-                    <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
-                      style={{ left: browserEnabled ? "calc(100% - 22px)" : "2px" }} />
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-[11px] text-muted-foreground">Get a desktop notification every time a trade is logged, even when the dashboard is in the background.</p>
-                  <button onClick={requestBrowserPermission}
-                    className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[11px] font-black bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors">
-                    <Bell size={13}/> Enable Browser Notifications
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )
+        return <NotificationsSection
+          soundEnabled={soundEnabled} browserEnabled={browserEnabled}
+          permission={permission} toggleSounds={toggleSounds}
+          toggleBrowser={toggleBrowser} requestBrowserPermission={requestBrowserPermission}
+          testSound={testSound}
+        />
 
       // ── Account / MT5 ─────────────────────────────────────────────────────
       case "account":

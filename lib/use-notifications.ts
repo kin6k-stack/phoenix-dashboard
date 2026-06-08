@@ -19,7 +19,7 @@
 
 import { useState, useCallback, useRef } from "react"
 
-export type NotifType = "win" | "loss" | "signal" | "breakeven"
+export type NotifType = "win" | "loss" | "signal" | "breakeven" | "big_win" | "session_open" | "alert" | "milestone" | "streak" | "new_day" | "error"
 
 export interface NotifTrade {
   id:        string
@@ -58,31 +58,129 @@ function playTone(notes: { freq: number; at: number; duration: number }[], volum
 
 export function playNotifSound(type: NotifType) {
   switch(type) {
+
+    // ── Core trade outcomes ──────────────────────────────────────────
     case "win":
-      // Ascending 3-note — uplifting, unmistakable win
+      // Ascending 3-note chord — clear win
       playTone([
         { freq: 440, at: 0.00, duration: 0.12 },
         { freq: 554, at: 0.12, duration: 0.12 },
-        { freq: 659, at: 0.24, duration: 0.25 },
+        { freq: 659, at: 0.24, duration: 0.28 },
       ], 0.22)
       break
+
+    case "big_win":
+      // Extended 4-note fanfare — large winner
+      playTone([
+        { freq: 440, at: 0.00, duration: 0.10 },
+        { freq: 554, at: 0.10, duration: 0.10 },
+        { freq: 659, at: 0.20, duration: 0.10 },
+        { freq: 880, at: 0.30, duration: 0.45 },
+      ], 0.26)
+      break
+
     case "loss":
-      // Soft descending 2-tone — neutral, not alarming
+      // Soft descending 2-tone — not jarring
       playTone([
         { freq: 440, at: 0.00, duration: 0.15 },
-        { freq: 330, at: 0.18, duration: 0.20 },
+        { freq: 330, at: 0.18, duration: 0.22 },
       ], 0.18)
       break
-    case "signal":
-      // Single clean ping — new signal arrived
-      playTone([{ freq: 528, at: 0, duration: 0.3 }], 0.2)
-      break
+
     case "breakeven":
       // Short neutral blip
       playTone([{ freq: 392, at: 0, duration: 0.15 }], 0.15)
       break
+
+    // ── Signals & alerts ─────────────────────────────────────────────
+    case "signal":
+      // Single clean ping
+      playTone([{ freq: 528, at: 0, duration: 0.28 }], 0.20)
+      break
+
+    case "alert":
+      // Quick double-ping — attention needed now
+      playTone([
+        { freq: 660, at: 0.00, duration: 0.08 },
+        { freq: 660, at: 0.14, duration: 0.12 },
+      ], 0.24)
+      break
+
+    // ── Session & milestones ──────────────────────────────────────────
+    case "session_open":
+      // Gentle rising arpeggio — session is live
+      playTone([
+        { freq: 330, at: 0.00, duration: 0.10 },
+        { freq: 415, at: 0.10, duration: 0.10 },
+        { freq: 523, at: 0.20, duration: 0.22 },
+      ], 0.18)
+      break
+
+    case "milestone":
+      // Triumphant 4-note — profit target hit
+      playTone([
+        { freq: 523, at: 0.00, duration: 0.10 },
+        { freq: 659, at: 0.10, duration: 0.10 },
+        { freq: 784, at: 0.20, duration: 0.10 },
+        { freq: 1047,at: 0.30, duration: 0.50 },
+      ], 0.24)
+      break
+
+    case "streak":
+      // Rolling ascending arpeggios — consecutive wins
+      playTone([
+        { freq: 440, at: 0.00, duration: 0.08 },
+        { freq: 554, at: 0.08, duration: 0.08 },
+        { freq: 659, at: 0.16, duration: 0.08 },
+        { freq: 554, at: 0.24, duration: 0.08 },
+        { freq: 659, at: 0.32, duration: 0.08 },
+        { freq: 784, at: 0.40, duration: 0.25 },
+      ], 0.20)
+      break
+
+    case "new_day":
+      // Clean morning chime — new trading day open
+      playTone([
+        { freq: 523, at: 0.00, duration: 0.14 },
+        { freq: 659, at: 0.16, duration: 0.14 },
+        { freq: 784, at: 0.32, duration: 0.30 },
+      ], 0.16)
+      break
+
+    // ── System ──────────────────────────────────────────────────────
+    case "error":
+      // Low descending buzz — something went wrong
+      playTone([
+        { freq: 220, at: 0.00, duration: 0.18 },
+        { freq: 180, at: 0.20, duration: 0.25 },
+      ], 0.20)
+      break
   }
 }
+
+// Convenience: play a sound then optionally follow with another after delay
+export function playNotifSequence(types: NotifType[], delayMs = 400) {
+  if (!types.length) return
+  playNotifSound(types[0])
+  for (let i = 1; i < types.length; i++) {
+    setTimeout(() => playNotifSound(types[i]), delayMs * i)
+  }
+}
+
+// All available sounds with labels (for settings UI)
+export const NOTIF_SOUNDS: { id: NotifType; label: string; description: string }[] = [
+  { id:"win",          label:"Win",           description:"3-note ascending chord"                  },
+  { id:"big_win",      label:"Big Win",       description:"4-note fanfare for large winners"        },
+  { id:"loss",         label:"Loss",          description:"Soft descending 2-tone"                  },
+  { id:"breakeven",    label:"Breakeven",     description:"Short neutral blip"                      },
+  { id:"signal",       label:"Signal",        description:"Single clean ping"                       },
+  { id:"alert",        label:"Alert",         description:"Double-ping for urgent attention"        },
+  { id:"session_open", label:"Session Open",  description:"Rising arpeggio — market session live"  },
+  { id:"milestone",    label:"Milestone",     description:"Triumphant 4-note for profit targets"   },
+  { id:"streak",       label:"Streak",        description:"Rolling arpeggios for win streaks"       },
+  { id:"new_day",      label:"New Day",       description:"Morning chime — new trading day"         },
+  { id:"error",        label:"Error",         description:"Low buzz for system errors"              },
+]
 
 // ── Browser notification ──────────────────────────────────────────────────────
 export async function sendBrowserNotif(trade: NotifTrade) {
