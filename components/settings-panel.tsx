@@ -7,7 +7,7 @@ import { collection, getDocs, writeBatch, doc, deleteDoc, query, where } from "f
 import { useRouter } from "next/navigation"
 import {
   X, ChevronRight, ArrowLeft, Palette, Maximize2,
-  Zap, LogOut, AlertTriangle, Cpu, Globe, ShieldCheck, Trash2, Bell, Volume2, Download,
+  Zap, LogOut, AlertTriangle, Cpu, Globe, ShieldCheck, Trash2, Bell, Volume2,
 } from "lucide-react"
 import { useTheme, type Theme, type Density } from "@/lib/use-theme"
 import { MT5ConnectSection } from "@/components/mt5-connect-section"
@@ -150,83 +150,12 @@ function RegionSection() {
   )
 }
 
-// ── MQL5 script content ──────────────────────────────────────────────────────
-function getMQL5Script(userId: string): string {
-  return `//+------------------------------------------------------------------+
-//|  Phoenix_User_Trade_Sync.mq5                                     |
-//|  Syncs your closed trade history to your Phoenix Dashboard.      |
-//|  SETUP: Fill in PhoenixAccountId from your Lifetime Ledger.      |
-//+------------------------------------------------------------------+
-#property copyright "Phoenix Trading Ecosystem"
-#property version   "2.0"
-
-input string PhoenixUserId    = "${userId}";
-input string PhoenixAccountId = "";   // ← Paste your Account ID from Lifetime Ledger
-input string ApiKey           = "Kin6kizan4@";
-input string WebhookUrl       = "https://phoenix-dashboard-two.vercel.app/api/webhook";
-input int    DaysBack         = 90;
-
-bool syncDone = false;
-
-int OnInit() {
-   if(StringLen(PhoenixAccountId) == 0) {
-      Alert("Set PhoenixAccountId in EA properties. Find it in Lifetime Ledger.");
-      return INIT_FAILED;
-   }
-   Print("Phoenix Sync — uploading last ", DaysBack, " days for account: ", PhoenixAccountId);
-   datetime from = TimeCurrent() - ((long)DaysBack * 86400);
-   if(!HistorySelect(from, TimeCurrent())) return INIT_SUCCEEDED;
-   int total = HistoryDealsTotal();
-   int uploaded = 0;
-   for(int i = 0; i < total; i++) {
-      ulong ticket = HistoryDealGetTicket(i);
-      if(ticket == 0) continue;
-      if(HistoryDealGetInteger(ticket, DEAL_ENTRY) != DEAL_ENTRY_OUT) continue;
-      string sym  = HistoryDealGetString(ticket, DEAL_SYMBOL);
-      double pnl  = HistoryDealGetDouble(ticket, DEAL_PROFIT);
-      double vol  = HistoryDealGetDouble(ticket, DEAL_VOLUME);
-      long   type = HistoryDealGetInteger(ticket, DEAL_TYPE);
-      string dir  = (type == DEAL_TYPE_BUY) ? "BUY" : "SELL";
-      string dt   = TimeToString((datetime)HistoryDealGetInteger(ticket, DEAL_TIME), TIME_DATE|TIME_MINUTES);
-      StringReplace(dt, ".", "-");
-      string json = StringFormat(
-        "{\"type\":\"MANUAL_TRADE\",\"apiKey\":\"%s\",\"userId\":\"%s\",\"accountId\":\"%s\","
-        "\"ticket\":\"%s\",\"symbol\":\"%s\",\"direction\":\"%s\","
-        "\"profit\":%.2f,\"rMultiple\":%.2f,\"volume\":%.2f,\"closeTime\":\"%s\",\"source\":\"mt5_sync\"}",
-        ApiKey, PhoenixUserId, PhoenixAccountId,
-        IntegerToString((long)ticket), sym, dir, pnl, pnl, vol, dt
-      );
-      char post[]; char res[]; string hdrs;
-      StringToCharArray(json, post, 0, StringLen(json));
-      if(WebRequest("POST", WebhookUrl, "Content-Type: application/json\r\n", 5000, post, res, hdrs) == 200)
-         uploaded++;
-      Sleep(120);
-   }
-   Print("Phoenix Sync complete — uploaded: ", uploaded, " / ", total, " deals");
-   Comment("Phoenix Sync done: ", uploaded, " trades uploaded");
-   syncDone = true;
-   return INIT_SUCCEEDED;
-}
-void OnDeinit(const int r) { Comment(""); }
-void OnTick() {}
-`
-}
-
-// ── Account section component ─────────────────────────────────────────────────
+// ── Account section component ────────────────────────────────────────────────
+// MT5ConnectSection is the single method for syncing trades.
+// It uses a secure one-time token (48hr expiry) via /api/generate-token —
+// far more secure than a hardcoded shared API key.
 function AccountSection({ isOwner, userId }: { isOwner: boolean; userId?: string }) {
   const [copied, setCopied] = useState(false)
-
-  const downloadScript = () => {
-    const uid     = userId ?? "YOUR_USER_ID"
-    const content = getMQL5Script(uid)
-    const blob    = new Blob([content], { type: "text/plain" })
-    const url     = URL.createObjectURL(blob)
-    const a       = document.createElement("a")
-    a.href        = url
-    a.download    = "Phoenix_User_Trade_Sync.mq5"
-    a.click()
-    URL.revokeObjectURL(url)
-  }
 
   const copyUid = () => {
     if (!userId) return
@@ -237,9 +166,10 @@ function AccountSection({ isOwner, userId }: { isOwner: boolean; userId?: string
 
   return (
     <div className="p-4 space-y-4">
-      {/* User ID card — so they can fill it into the script */}
+
+      {/* User ID — useful for support or identifying their account */}
       <div className="rounded-xl border border-border/40 bg-card/40 p-3 space-y-1.5">
-        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Your Firebase User ID</p>
+        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Your User ID</p>
         <div className="flex items-center gap-2">
           <code className="flex-1 text-[10px] font-mono text-primary bg-background/60 px-2 py-1 rounded truncate">
             {userId ?? "—"}
@@ -249,36 +179,19 @@ function AccountSection({ isOwner, userId }: { isOwner: boolean; userId?: string
             {copied ? "Copied!" : "Copy"}
           </button>
         </div>
-        <p className="text-[9px] text-muted-foreground/60">This is pre-filled in the script below.</p>
+        <p className="text-[9px] text-muted-foreground/50">Reference ID for your Phoenix account.</p>
       </div>
 
-      {/* Setup steps */}
-      <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-3">
-        <p className="text-[10px] font-black uppercase tracking-widest text-primary">MT5 Trade Sync — Setup</p>
-        <div className="space-y-2 text-[11px] text-muted-foreground leading-relaxed">
-          <div className="flex gap-2"><span className="text-primary font-black">1.</span><span>MT5 → Tools → Options → Expert Advisors → ✓ <strong className="text-foreground">Allow WebRequest</strong></span></div>
-          <div className="flex gap-2"><span className="text-primary font-black">2.</span><span>Add URL: <code className="bg-background/60 px-1 py-0.5 rounded text-[10px] text-primary font-mono break-all">https://phoenix-dashboard-two.vercel.app</code></span></div>
-          <div className="flex gap-2"><span className="text-primary font-black">3.</span><span>Download the script below and drag it into MT5 → <strong className="text-foreground">Experts</strong> folder</span></div>
-          <div className="flex gap-2"><span className="text-primary font-black">4.</span><span>Attach to any chart. Set <strong className="text-foreground">PhoenixAccountId</strong> to your Account ID from Lifetime Ledger</span></div>
-          <div className="flex gap-2"><span className="text-primary font-black">5.</span><span>The script uploads your last 90 days of closed trades automatically, then stops</span></div>
-          {/* Step 6 — owner only: bot magic numbers */}
-          {isOwner && (
-            <div className="flex gap-2 mt-1 p-2 rounded-lg bg-primary/5 border border-primary/20">
-              <span className="text-primary font-black">★</span>
-              <span className="text-primary/80">Bot EAs: Magic Numbers — NQ v2.1 · 88801, Apex v5.1 · 88802, Hybrid v12.1 · 88803</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Download button */}
-      <button onClick={downloadScript}
-        className="w-full flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-black bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-all">
-        <Download size={15}/>
-        Download Phoenix_User_Trade_Sync.mq5
-      </button>
-
+      {/* The single, secure MT5 sync flow */}
       <MT5ConnectSection />
+
+      {/* Owner-only: bot magic numbers */}
+      {isOwner && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-1">
+          <p className="text-[9px] font-black uppercase tracking-widest text-primary">Bot Magic Numbers</p>
+          <p className="text-[10px] text-primary/80 font-mono">NQ v2.1 · 88801 &nbsp;|&nbsp; Apex v5.1 · 88802 &nbsp;|&nbsp; Hybrid v12.1 · 88803</p>
+        </div>
+      )}
     </div>
   )
 }
