@@ -1,7 +1,6 @@
 "use client"
 
-// Pass D (updated) — added component-level fallback so ticker always shows
-// even if /api/ticker is unreachable
+// Updated: localStorage persistence for visible state + restore pill when hidden
 
 import { useState, useEffect } from "react"
 
@@ -10,19 +9,20 @@ interface TickerItem {
   change: number; changePct: number; isPos: boolean
 }
 
-// Fallback shown when API is unreachable — realistic prices
 const FALLBACK: TickerItem[] = [
-  { symbol:"GC=F",     label:"GOLD",    price:3142.50, change:12.30,   changePct: 0.39,  isPos:true  },
-  { symbol:"NQ=F",     label:"NQ100",   price:19823,   change:-24.00,  changePct:-0.12,  isPos:false },
-  { symbol:"BTC-USD",  label:"BTC",     price:67842,   change:831.00,  changePct: 1.24,  isPos:true  },
-  { symbol:"EURUSD=X", label:"EUR/USD", price:1.0892,  change:0.0023,  changePct: 0.21,  isPos:true  },
-  { symbol:"GBPUSD=X", label:"GBP/USD", price:1.2734,  change:-0.003,  changePct:-0.24,  isPos:false },
-  { symbol:"USDJPY=X", label:"USD/JPY", price:149.52,  change:0.34,    changePct: 0.23,  isPos:true  },
-  { symbol:"CL=F",     label:"WTI",     price:78.14,   change:-0.98,   changePct:-1.24,  isPos:false },
-  { symbol:"DX-Y.NYB", label:"DXY",     price:104.23,  change:-0.18,   changePct:-0.17,  isPos:false },
-  { symbol:"^TNX",     label:"US10Y",   price:4.31,    change:-0.04,   changePct:-0.92,  isPos:false },
-  { symbol:"ETH-USD",  label:"ETH",     price:3341,    change:45.00,   changePct: 1.37,  isPos:true  },
+  { symbol:"GC=F",     label:"GOLD",    price:3142.50, change:12.30,  changePct: 0.39,  isPos:true  },
+  { symbol:"NQ=F",     label:"NQ100",   price:19823,   change:-24.00, changePct:-0.12,  isPos:false },
+  { symbol:"BTC-USD",  label:"BTC",     price:67842,   change:831.00, changePct: 1.24,  isPos:true  },
+  { symbol:"EURUSD=X", label:"EUR/USD", price:1.0892,  change:0.0023, changePct: 0.21,  isPos:true  },
+  { symbol:"GBPUSD=X", label:"GBP/USD", price:1.2734,  change:-0.003, changePct:-0.24,  isPos:false },
+  { symbol:"USDJPY=X", label:"USD/JPY", price:149.52,  change:0.34,   changePct: 0.23,  isPos:true  },
+  { symbol:"CL=F",     label:"WTI",     price:78.14,   change:-0.98,  changePct:-1.24,  isPos:false },
+  { symbol:"DX-Y.NYB", label:"DXY",     price:104.23,  change:-0.18,  changePct:-0.17,  isPos:false },
+  { symbol:"^TNX",     label:"US10Y",   price:4.31,    change:-0.04,  changePct:-0.92,  isPos:false },
+  { symbol:"ETH-USD",  label:"ETH",     price:3341,    change:45.00,  changePct: 1.37,  isPos:true  },
 ]
+
+const VISIBLE_KEY = "phx_ticker_visible"
 
 function formatPrice(label: string, price: number): string {
   if (["EUR/USD","GBP/USD","AUD/USD"].includes(label)) return price.toFixed(4)
@@ -48,35 +48,57 @@ function TickerItemEl({ item }: { item: TickerItem }) {
 }
 
 export function TickerTape() {
-  const [items,   setItems]   = useState<TickerItem[]>(FALLBACK)  // start with fallback
+  const [items,   setItems]   = useState<TickerItem[]>(FALLBACK)
   const [source,  setSource]  = useState("demo")
-  const [visible, setVisible] = useState(true)
+  // Persist visibility in localStorage so refresh/reopen respects user preference
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === "undefined") return true
+    return localStorage.getItem(VISIBLE_KEY) !== "false"
+  })
+
+  const hide = () => {
+    setVisible(false)
+    localStorage.setItem(VISIBLE_KEY, "false")
+  }
+  const show = () => {
+    setVisible(true)
+    localStorage.setItem(VISIBLE_KEY, "true")
+  }
 
   const fetchTicker = async () => {
     try {
       const res  = await fetch("/api/ticker", { cache: "no-store" })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
-      if (data.items?.length) {
-        setItems(data.items)
-        setSource(data.source ?? "live")
-      }
-    } catch {
-      // Keep existing items (fallback or last good fetch), just mark source
-      setSource("demo")
-    }
+      if (data.items?.length) { setItems(data.items); setSource(data.source ?? "live") }
+    } catch { setSource("demo") }
   }
 
   useEffect(() => {
     fetchTicker()
-    const t = setInterval(fetchTicker, 60_000)
+    const t = setInterval(fetchTicker, 45 * 60_000)  // 45 min
     return () => clearInterval(t)
   }, [])
 
-  if (!visible) return null
-
   const doubled = [...items, ...items]
   const speed   = items.length * 4
+
+  // When hidden → show a slim restore pill at the top
+  if (!visible) {
+    return (
+      <div className="hidden md:flex items-center justify-end border-b border-border/30 flex-shrink-0"
+        style={{ height: 22, background: "hsl(var(--background))" }}>
+        <button onClick={show}
+          className="flex items-center gap-1.5 px-3 h-full text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-primary hover:bg-primary/5 transition-all border-l border-border/20">
+          <span className="relative flex h-1 w-1">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-50" />
+            <span className="relative inline-flex rounded-full h-1 w-1 bg-primary/50" />
+          </span>
+          TICKER
+        </button>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -118,7 +140,7 @@ export function TickerTape() {
         </div>
 
         {/* Dismiss */}
-        <button onClick={() => setVisible(false)} title="Hide ticker"
+        <button onClick={hide} title="Hide ticker (click TICKER to restore)"
           className="px-2 h-full text-muted-foreground/30 hover:text-muted-foreground transition-colors text-xs flex-shrink-0 border-l border-border/30">
           ×
         </button>

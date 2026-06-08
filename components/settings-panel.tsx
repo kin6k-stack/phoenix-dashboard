@@ -7,13 +7,14 @@ import { collection, getDocs, writeBatch, doc, deleteDoc, query, where } from "f
 import { useRouter } from "next/navigation"
 import {
   X, ChevronRight, ArrowLeft, Palette, Maximize2,
-  Zap, LogOut, AlertTriangle, Cpu, Globe, ShieldCheck, Trash2,
+  Zap, LogOut, AlertTriangle, Cpu, Globe, ShieldCheck, Trash2, Bell, Volume2, Download,
 } from "lucide-react"
 import { useTheme, type Theme, type Density } from "@/lib/use-theme"
 import { MT5ConnectSection } from "@/components/mt5-connect-section"
 import { useAuth } from "@/lib/auth-context"
+import { useNotifications } from "@/lib/use-notifications"
 
-interface SettingsPanelProps { open: boolean; onClose: () => void }
+interface SettingsPanelProps { open: boolean; onClose: () => void; isOwner?: boolean }
 
 // ── Theme catalogue ───────────────────────────────────────────────────────────
 const THEMES: { id:Theme; label:string; description:string; bg:string; accent:string; border:string; glow:string }[] = [
@@ -34,8 +35,9 @@ const DENSITIES: { id:Density; label:string }[] = [
 ]
 
 const SECTIONS = [
-  { id:"appearance", label:"Appearance", icon:Palette,    description:"Theme, layout density, animations" },
-  { id:"account",    label:"Account",    icon:Cpu,        description:"MT5 connection & sync settings"    },
+  { id:"appearance",   label:"Appearance",   icon:Palette,    description:"Theme, layout density, animations" },
+  { id:"notifications",label:"Notifications",icon:Bell,       description:"Sounds and browser alerts"          },
+  { id:"account",      label:"Account",      icon:Cpu,        description:"MT5 connection & sync settings"    },
   { id:"region",     label:"Region",     icon:Globe,      description:"Timezone & session calibration"    },
   { id:"security",   label:"Security",   icon:ShieldCheck,description:"Sign out & account management"     },
 ]
@@ -148,14 +150,153 @@ function RegionSection() {
   )
 }
 
+// ── MQL5 script content ──────────────────────────────────────────────────────
+function getMQL5Script(userId: string): string {
+  return `//+------------------------------------------------------------------+
+//|  Phoenix_User_Trade_Sync.mq5                                     |
+//|  Syncs your closed trade history to your Phoenix Dashboard.      |
+//|  SETUP: Fill in PhoenixAccountId from your Lifetime Ledger.      |
+//+------------------------------------------------------------------+
+#property copyright "Phoenix Trading Ecosystem"
+#property version   "2.0"
+
+input string PhoenixUserId    = "${userId}";
+input string PhoenixAccountId = "";   // ← Paste your Account ID from Lifetime Ledger
+input string ApiKey           = "Kin6kizan4@";
+input string WebhookUrl       = "https://phoenix-dashboard-two.vercel.app/api/webhook";
+input int    DaysBack         = 90;
+
+bool syncDone = false;
+
+int OnInit() {
+   if(StringLen(PhoenixAccountId) == 0) {
+      Alert("Set PhoenixAccountId in EA properties. Find it in Lifetime Ledger.");
+      return INIT_FAILED;
+   }
+   Print("Phoenix Sync — uploading last ", DaysBack, " days for account: ", PhoenixAccountId);
+   datetime from = TimeCurrent() - ((long)DaysBack * 86400);
+   if(!HistorySelect(from, TimeCurrent())) return INIT_SUCCEEDED;
+   int total = HistoryDealsTotal();
+   int uploaded = 0;
+   for(int i = 0; i < total; i++) {
+      ulong ticket = HistoryDealGetTicket(i);
+      if(ticket == 0) continue;
+      if(HistoryDealGetInteger(ticket, DEAL_ENTRY) != DEAL_ENTRY_OUT) continue;
+      string sym  = HistoryDealGetString(ticket, DEAL_SYMBOL);
+      double pnl  = HistoryDealGetDouble(ticket, DEAL_PROFIT);
+      double vol  = HistoryDealGetDouble(ticket, DEAL_VOLUME);
+      long   type = HistoryDealGetInteger(ticket, DEAL_TYPE);
+      string dir  = (type == DEAL_TYPE_BUY) ? "BUY" : "SELL";
+      string dt   = TimeToString((datetime)HistoryDealGetInteger(ticket, DEAL_TIME), TIME_DATE|TIME_MINUTES);
+      StringReplace(dt, ".", "-");
+      string json = StringFormat(
+        "{\"type\":\"MANUAL_TRADE\",\"apiKey\":\"%s\",\"userId\":\"%s\",\"accountId\":\"%s\","
+        "\"ticket\":\"%s\",\"symbol\":\"%s\",\"direction\":\"%s\","
+        "\"profit\":%.2f,\"rMultiple\":%.2f,\"volume\":%.2f,\"closeTime\":\"%s\",\"source\":\"mt5_sync\"}",
+        ApiKey, PhoenixUserId, PhoenixAccountId,
+        IntegerToString((long)ticket), sym, dir, pnl, pnl, vol, dt
+      );
+      char post[]; char res[]; string hdrs;
+      StringToCharArray(json, post, 0, StringLen(json));
+      if(WebRequest("POST", WebhookUrl, "Content-Type: application/json\r\n", 5000, post, res, hdrs) == 200)
+         uploaded++;
+      Sleep(120);
+   }
+   Print("Phoenix Sync complete — uploaded: ", uploaded, " / ", total, " deals");
+   Comment("Phoenix Sync done: ", uploaded, " trades uploaded");
+   syncDone = true;
+   return INIT_SUCCEEDED;
+}
+void OnDeinit(const int r) { Comment(""); }
+void OnTick() {}
+`
+}
+
+// ── Account section component ─────────────────────────────────────────────────
+function AccountSection({ isOwner, userId }: { isOwner: boolean; userId?: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const downloadScript = () => {
+    const uid     = userId ?? "YOUR_USER_ID"
+    const content = getMQL5Script(uid)
+    const blob    = new Blob([content], { type: "text/plain" })
+    const url     = URL.createObjectURL(blob)
+    const a       = document.createElement("a")
+    a.href        = url
+    a.download    = "Phoenix_User_Trade_Sync.mq5"
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const copyUid = () => {
+    if (!userId) return
+    navigator.clipboard.writeText(userId)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* User ID card — so they can fill it into the script */}
+      <div className="rounded-xl border border-border/40 bg-card/40 p-3 space-y-1.5">
+        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Your Firebase User ID</p>
+        <div className="flex items-center gap-2">
+          <code className="flex-1 text-[10px] font-mono text-primary bg-background/60 px-2 py-1 rounded truncate">
+            {userId ?? "—"}
+          </code>
+          <button onClick={copyUid}
+            className="text-[10px] font-black px-2 py-1 rounded bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors flex-shrink-0">
+            {copied ? "Copied!" : "Copy"}
+          </button>
+        </div>
+        <p className="text-[9px] text-muted-foreground/60">This is pre-filled in the script below.</p>
+      </div>
+
+      {/* Setup steps */}
+      <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-3">
+        <p className="text-[10px] font-black uppercase tracking-widest text-primary">MT5 Trade Sync — Setup</p>
+        <div className="space-y-2 text-[11px] text-muted-foreground leading-relaxed">
+          <div className="flex gap-2"><span className="text-primary font-black">1.</span><span>MT5 → Tools → Options → Expert Advisors → ✓ <strong className="text-foreground">Allow WebRequest</strong></span></div>
+          <div className="flex gap-2"><span className="text-primary font-black">2.</span><span>Add URL: <code className="bg-background/60 px-1 py-0.5 rounded text-[10px] text-primary font-mono break-all">https://phoenix-dashboard-two.vercel.app</code></span></div>
+          <div className="flex gap-2"><span className="text-primary font-black">3.</span><span>Download the script below and drag it into MT5 → <strong className="text-foreground">Experts</strong> folder</span></div>
+          <div className="flex gap-2"><span className="text-primary font-black">4.</span><span>Attach to any chart. Set <strong className="text-foreground">PhoenixAccountId</strong> to your Account ID from Lifetime Ledger</span></div>
+          <div className="flex gap-2"><span className="text-primary font-black">5.</span><span>The script uploads your last 90 days of closed trades automatically, then stops</span></div>
+          {/* Step 6 — owner only: bot magic numbers */}
+          {isOwner && (
+            <div className="flex gap-2 mt-1 p-2 rounded-lg bg-primary/5 border border-primary/20">
+              <span className="text-primary font-black">★</span>
+              <span className="text-primary/80">Bot EAs: Magic Numbers — NQ v2.1 · 88801, Apex v5.1 · 88802, Hybrid v12.1 · 88803</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Download button */}
+      <button onClick={downloadScript}
+        className="w-full flex items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-black bg-primary/10 border border-primary/30 text-primary hover:bg-primary/20 transition-all">
+        <Download size={15}/>
+        Download Phoenix_User_Trade_Sync.mq5
+      </button>
+
+      <MT5ConnectSection />
+    </div>
+  )
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
-export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
+export function SettingsPanel({ open, onClose, isOwner = false }: SettingsPanelProps) {
   const { theme, density, animations, invert, setTheme, setDensity, setAnimations, setInvert } = useTheme()
   const { user } = useAuth()
   const router = useRouter()
   const [activeSection, setActiveSection] = useState<string|null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState("")
+  const {
+    soundEnabled, browserEnabled, permission,
+    toggleSounds, toggleBrowser, requestBrowserPermission,
+  } = useNotifications()
+  // lazily import playNotifSound to avoid SSR issues
+  const testSound = () => import("@/lib/use-notifications").then(m => m.playNotifSound("win"))
 
   useEffect(() => {
     if (!open) return
@@ -277,23 +418,75 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           </div>
         )
 
-      // ── Account / MT5 ─────────────────────────────────────────────────────
-      case "account":
+      // ── Notifications ─────────────────────────────────────────────────────
+      case "notifications":
         return (
           <div className="p-4 space-y-4">
-            <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary">MT5 Auto-Sync Setup</p>
-              <div className="space-y-2 text-[11px] text-muted-foreground leading-relaxed">
-                <div className="flex gap-2"><span className="text-primary font-black">1.</span><span>In MT5 → Tools → Options → Expert Advisors → enable <strong className="text-foreground">Allow WebRequest</strong></span></div>
-                <div className="flex gap-2"><span className="text-primary font-black">2.</span><span>Add webhook URL: <code className="bg-background/60 px-1 py-0.5 rounded text-[10px] text-primary font-mono">https://phoenix-dashboard-two.vercel.app/api/webhook</code></span></div>
-                <div className="flex gap-2"><span className="text-primary font-black">3.</span><span>Attach the <strong className="text-foreground">Phoenix_Auto_Sync.mq5</strong> EA to any chart — set your Account ID from the Lifetime Ledger</span></div>
-                <div className="flex gap-2"><span className="text-primary font-black">4.</span><span>API Key: <code className="bg-background/60 px-1 py-0.5 rounded text-[10px] text-primary font-mono">Kin6kizan4@</code></span></div>
-                <div className="flex gap-2"><span className="text-primary font-black">5.</span><span>Each bot EA must have the matching <strong className="text-foreground">Magic Number</strong> set (88801 NQ · 88802 Apex · 88803 Hybrid)</span></div>
+            {/* Sound notifications */}
+            <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Audio Alerts</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Volume2 size={14} className="text-primary flex-shrink-0" />
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Trade Sounds</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">Win ↑ chord · Loss ↓ tone · Signal ping</p>
+                  </div>
+                </div>
+                <button onClick={() => toggleSounds(!soundEnabled)}
+                  className="relative w-11 h-6 rounded-full transition-all duration-200 flex-shrink-0"
+                  style={{ background: soundEnabled ? "hsl(var(--primary))" : "hsl(var(--muted))" }}>
+                  <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
+                    style={{ left: soundEnabled ? "calc(100% - 22px)" : "2px" }} />
+                </button>
               </div>
+              {soundEnabled && (
+                <button onClick={testSound}
+                  className="text-[10px] font-bold text-primary/60 hover:text-primary transition-colors flex items-center gap-1.5">
+                  <Volume2 size={11}/> Test sound
+                </button>
+              )}
             </div>
-            <MT5ConnectSection />
+
+            {/* Browser notifications */}
+            <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Browser Notifications</p>
+              {permission === "denied" ? (
+                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/25 text-[11px] text-destructive">
+                  Notifications are blocked in your browser. Enable them in browser settings → site permissions.
+                </div>
+              ) : permission === "granted" ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Bell size={14} className="text-primary flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-foreground">Push Alerts</p>
+                      <p className="text-[9px] text-muted-foreground mt-0.5">Win / Loss / new signal on every trade</p>
+                    </div>
+                  </div>
+                  <button onClick={() => toggleBrowser(!browserEnabled)}
+                    className="relative w-11 h-6 rounded-full transition-all duration-200 flex-shrink-0"
+                    style={{ background: browserEnabled ? "hsl(var(--primary))" : "hsl(var(--muted))" }}>
+                    <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
+                      style={{ left: browserEnabled ? "calc(100% - 22px)" : "2px" }} />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <p className="text-[11px] text-muted-foreground">Get a desktop notification every time a trade is logged, even when the dashboard is in the background.</p>
+                  <button onClick={requestBrowserPermission}
+                    className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[11px] font-black bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors">
+                    <Bell size={13}/> Enable Browser Notifications
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )
+
+      // ── Account / MT5 ─────────────────────────────────────────────────────
+      case "account":
+        return <AccountSection isOwner={isOwner} userId={user?.uid} />
 
       // ── Region / Sessions ─────────────────────────────────────────────────
       case "region":

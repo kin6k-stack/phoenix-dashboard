@@ -30,6 +30,7 @@ import { YearlyPerformanceTable } from "@/components/yearly-performance-table"
 import { PnLAnalyticsView }       from "@/components/pnl-analytics-view"
 import { CandleAnalysisView }     from "@/components/candle-analysis-view"
 import { SettingsPanel }          from "@/components/settings-panel"
+import { useNotifications }      from "@/lib/use-notifications"
 
 interface Trade {
   id: string; date: string; symbol: string; setup: string
@@ -89,6 +90,7 @@ export default function TradingDashboard() {
   const [perfTab,           setPerfTab]           = useState<"analytics" | "ledger">("analytics")
   const [symbolFilter,      setSymbolFilter]      = useState<string>("ALL")
   const [settingsOpen,      setSettingsOpen]      = useState(false)
+  const { processNewTrades } = useNotifications()
   const [currentMonthYear,  setCurrentMonthYear]  = useState({
     month: new Date().getMonth(),
     year:  new Date().getFullYear(),
@@ -159,6 +161,7 @@ export default function TradingDashboard() {
       })
       mapped.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       setTrades(mapped)
+      processNewTrades(mapped)  // 🔔 notify on new trades
     }, err => { console.warn("[trades listener]", err.message); setTrades([]) })
   }, [user])
 
@@ -474,7 +477,7 @@ export default function TradingDashboard() {
         initialDraft={copyDraft}
         trades={trades}
       />
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} isOwner={isOwner} />
     </div>
   )
 }
