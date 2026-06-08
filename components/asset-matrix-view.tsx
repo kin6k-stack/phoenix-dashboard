@@ -131,8 +131,14 @@ function CorrelationSection() {
       const json = await res.json()
 
       // Filter pairs — only Gold/DXY, DXY/EURUSD, BTC/NDX, Gold/BTC
+      // Show pairs relevant to Gold + USTEC/NQ traders
       const KEEP = [
-        ["Gold","DXY"], ["DXY","EUR/USD"], ["BTC","NDX"], ["Gold","BTC"]
+        ["Gold","Silver"],
+        ["Gold","EUR/USD"],
+        ["USTEC","BTC"],
+        ["USTEC","EUR/USD"],
+        ["Gold","USTEC"],
+        ["BTC","Silver"],
       ]
       json.pairs = (json.pairs ?? []).filter((p: CorrelationPair) =>
         KEEP.some(([a,b]) =>

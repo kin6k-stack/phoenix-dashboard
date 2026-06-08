@@ -69,6 +69,85 @@ function ThemeCard({ t, active, onClick }: { t:typeof THEMES[0]; active:boolean;
   )
 }
 
+// ── Timezone options ─────────────────────────────────────────────────────────
+const TIMEZONES = [
+  { label: "Antigua / Eastern (UTC-4)",    value: "America/Antigua"     },
+  { label: "New York / EST (UTC-5/-4)",    value: "America/New_York"    },
+  { label: "Chicago / CST (UTC-6/-5)",     value: "America/Chicago"     },
+  { label: "London / GMT (UTC+0/+1)",      value: "Europe/London"       },
+  { label: "Frankfurt / CET (UTC+1/+2)",   value: "Europe/Berlin"       },
+  { label: "Dubai / GST (UTC+4)",          value: "Asia/Dubai"          },
+  { label: "Singapore / SGT (UTC+8)",      value: "Asia/Singapore"      },
+  { label: "Tokyo / JST (UTC+9)",          value: "Asia/Tokyo"          },
+  { label: "Sydney / AEST (UTC+10/+11)",   value: "Australia/Sydney"    },
+  { label: "UTC",                          value: "UTC"                  },
+]
+
+function RegionSection() {
+  const TZ_KEY = "phoenix_timezone"
+  const [tz, setTz] = useState(() => {
+    if (typeof window === "undefined") return Intl.DateTimeFormat().resolvedOptions().timeZone
+    return localStorage.getItem(TZ_KEY) || Intl.DateTimeFormat().resolvedOptions().timeZone
+  })
+
+  const saveTz = (val: string) => {
+    setTz(val)
+    localStorage.setItem(TZ_KEY, val)
+    window.dispatchEvent(new CustomEvent("phoenix-timezone-changed", { detail: val }))
+  }
+
+  const now = new Date()
+  const localTime = now.toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit", timeZone: tz, hour12: true })
+
+  return (
+    <div className="p-4 space-y-4">
+      {/* Timezone picker */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Your Timezone</p>
+        <div className="rounded-xl border border-border/40 bg-card/40 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] text-muted-foreground">Local time now</p>
+            <p className="text-xs font-black font-mono text-primary">{localTime}</p>
+          </div>
+          <select value={tz} onChange={e => saveTz(e.target.value)}
+            className="w-full bg-background/60 border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40 transition-colors appearance-none"
+            style={{ colorScheme: "dark" }}>
+            {TIMEZONES.map(t => (
+              <option key={t.value} value={t.value} style={{ background: "hsl(var(--card))" }}>
+                {t.label}
+              </option>
+            ))}
+            {!TIMEZONES.find(t => t.value === tz) && (
+              <option value={tz}>{tz} (detected)</option>
+            )}
+          </select>
+          <p className="text-[9px] text-muted-foreground/60">
+            Used for session clocks in the sidebar and any time-based displays.
+          </p>
+        </div>
+      </div>
+
+      {/* Session reference */}
+      <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-3">
+        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Session Windows (UTC)</p>
+        {[
+          { name:"Asia (Sydney+Tokyo)",  open:"22:00", close:"08:00", label:"TYO", color:"text-sky-400"    },
+          { name:"London",               open:"07:00", close:"16:00", label:"LDN", color:"text-emerald-400" },
+          { name:"New York",             open:"12:00", close:"21:00", label:"NYC", color:"text-amber-400"   },
+          { name:"LDN+NYC Overlap ★",    open:"12:00", close:"16:00", label:"KEY", color:"text-primary"     },
+        ].map(s => (
+          <div key={s.label} className="flex items-center gap-3 py-1.5 border-b border-border/20 last:border-0">
+            <span className={`text-[10px] font-black w-8 ${s.color}`}>{s.label}</span>
+            <span className="text-[10px] text-foreground flex-1">{s.name}</span>
+            <span className="text-[10px] font-mono text-muted-foreground">{s.open}–{s.close}</span>
+          </div>
+        ))}
+        <p className="text-[9px] text-muted-foreground/50 pt-1">★ Highest liquidity for XAU/USD and NQ</p>
+      </div>
+    </div>
+  )
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const { theme, density, animations, invert, setTheme, setDensity, setAnimations, setInvert } = useTheme()
@@ -218,30 +297,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
 
       // ── Region / Sessions ─────────────────────────────────────────────────
       case "region":
-        return (
-          <div className="p-4 space-y-4">
-            <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Session Times (UTC)</p>
-              {[
-                { name:"Sydney / Tokyo",  open:"22:00", close:"08:00", label:"TYO", color:"text-sky-400"    },
-                { name:"London",          open:"07:00", close:"16:00", label:"LDN", color:"text-emerald-400" },
-                { name:"New York",        open:"12:00", close:"21:00", label:"NYC", color:"text-amber-400"   },
-                { name:"LDN+NYC Overlap", open:"12:00", close:"16:00", label:"KEY", color:"text-primary"     },
-              ].map(s => (
-                <div key={s.label} className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0">
-                  <span className={`text-[10px] font-black w-8 ${s.color}`}>{s.label}</span>
-                  <span className="text-[10px] text-foreground flex-1">{s.name}</span>
-                  <span className="text-[10px] font-mono text-muted-foreground">{s.open} – {s.close} UTC</span>
-                </div>
-              ))}
-            </div>
-            <div className="rounded-xl border border-border/40 bg-primary/5 p-3">
-              <p className="text-[10px] text-primary font-bold mb-1">Your timezone</p>
-              <p className="text-[11px] text-muted-foreground font-mono">{Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
-              <p className="text-[10px] text-muted-foreground mt-1">Session clocks in the sidebar automatically adjust to UTC. The LDN+NYC overlap (12:00–16:00 UTC) is the highest-liquidity window for XAU/USD and NQ.</p>
-            </div>
-          </div>
-        )
+        return <RegionSection />
 
       // ── Security ──────────────────────────────────────────────────────────
       case "security":

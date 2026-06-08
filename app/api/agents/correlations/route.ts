@@ -67,14 +67,12 @@ const MOCK_RESULT: CorrelationResult = {
     { key: "volatility",    label: "Volatility",        value: "Elevated (VIX > 20)",     sentiment: "elevated" },
   ],
   pairs: [
-    { assetA: "Gold",  assetB: "DXY",     coeff: -0.82, description: "Strong inverse",        explanation: "USD weakness directly drives gold higher — inverse relationship holds across all timeframes.",  regime: "inverse"     },
-    { assetA: "Gold",  assetB: "US10Y",   coeff: -0.65, description: "Inverse via real yields", explanation: "Rising real yields increase the opportunity cost of holding gold, pressuring price.",             regime: "inverse"     },
-    { assetA: "SPX",   assetB: "NDX",     coeff:  0.95, description: "Highly correlated",       explanation: "Tech leadership drives both indices — NDX outperforms in risk-on, underperforms in risk-off.",   regime: "positive"    },
-    { assetA: "SPX",   assetB: "VIX",     coeff: -0.88, description: "Strong inverse",          explanation: "Fear gauge spikes as equities sell off — the inverse relationship is near-mechanical.",          regime: "inverse"     },
-    { assetA: "DXY",   assetB: "EUR/USD", coeff: -0.97, description: "Near-perfect inverse",    explanation: "EUR is 57.6% of the DXY basket, making this the tightest structural inverse in FX.",            regime: "inverse"     },
-    { assetA: "BTC",   assetB: "NDX",     coeff:  0.62, description: "Moderate positive",       explanation: "Risk appetite flows hit both — BTC increasingly behaves as a high-beta tech proxy.",             regime: "positive"    },
-    { assetA: "Oil",   assetB: "USD/CAD", coeff: -0.58, description: "Moderate inverse",        explanation: "Canada is a major oil exporter — CAD strengthens when oil rallies, depressing USD/CAD.",         regime: "inverse"     },
-    { assetA: "Gold",  assetB: "BTC",     coeff:  0.25, description: "Weak positive",            explanation: "Both carry inflation-hedge narratives but diverge in risk-off — correlation is regime-dependent.", regime: "decorrelated" },
+    { assetA: "Gold",  assetB: "Silver", coeff:  0.88, description: "Strong positive",    explanation: "Precious metals move together — Silver amplifies Gold moves with higher beta.", regime: "positive"    },
+    { assetA: "Gold",  assetB: "EUR/USD",coeff:  0.65, description: "Moderate positive",  explanation: "Both inversely correlated with DXY — USD weakness simultaneously lifts gold and EUR/USD.", regime: "positive"    },
+    { assetA: "USTEC", assetB: "BTC",    coeff:  0.64, description: "Risk asset proxy",   explanation: "BTC increasingly tracks high-growth tech — risk appetite flows hit both simultaneously.", regime: "positive"    },
+    { assetA: "USTEC", assetB: "EUR/USD",coeff:  0.42, description: "Moderate positive",  explanation: "Weak USD supports both NQ valuations and EUR/USD — dollar direction drives the link.", regime: "positive"    },
+    { assetA: "Gold",  assetB: "USTEC",  coeff: -0.22, description: "Weak inverse",       explanation: "Weak and regime-dependent — flight to safety during equity drops can briefly align them.", regime: "decorrelated" },
+    { assetA: "BTC",   assetB: "Silver", coeff:  0.38, description: "Weak positive",      explanation: "Alternative asset narratives occasionally align — correlation rises during macro stress events.", regime: "positive"    },
   ],
   timestamp: new Date().toISOString(),
   cached:    false,
@@ -96,14 +94,12 @@ const USER_PROMPT = `Analyse the current market environment and return a JSON ob
     { "key": "volatility",    "label": "Volatility",        "value": "<2-4 word description>", "sentiment": "<elevated|moderate|low>" }
   ],
   "pairs": [
-    { "assetA": "Gold",  "assetB": "DXY",     "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
-    { "assetA": "Gold",  "assetB": "US10Y",   "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
-    { "assetA": "SPX",   "assetB": "NDX",     "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
-    { "assetA": "SPX",   "assetB": "VIX",     "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
-    { "assetA": "DXY",   "assetB": "EUR/USD", "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
-    { "assetA": "BTC",   "assetB": "NDX",     "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
-    { "assetA": "Oil",   "assetB": "USD/CAD", "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
-    { "assetA": "Gold",  "assetB": "BTC",     "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" }
+    { "assetA": "Gold",  "assetB": "Silver",  "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
+    { "assetA": "Gold",  "assetB": "EUR/USD", "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
+    { "assetA": "USTEC", "assetB": "BTC",     "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
+    { "assetA": "USTEC", "assetB": "EUR/USD", "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
+    { "assetA": "Gold",  "assetB": "USTEC",   "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" },
+    { "assetA": "BTC",   "assetB": "Silver",  "coeff": <-1 to 1>, "description": "<2-4 words>", "explanation": "<1 sentence>", "regime": "<inverse|positive|decorrelated>" }
   ]
 }
 
