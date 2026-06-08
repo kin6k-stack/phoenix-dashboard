@@ -1,384 +1,466 @@
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════
-   PHOENIX — Multi-theme system aligned with TradeX
-   Activated via `data-theme` attribute on <html>.
-   Themes: black-white (default), dark, midnight, violet, gold
-   Black/White supports invert: add `.invert-bw` class to <html>
-   Violet + Gold expose gradient tokens for opt-in styling
-   Density: default, compact, expanded
-   Animations: toggle via `.no-animations` class on <html>
-   ═══════════════════════════════════════════════════════════════════ */
+PHOENIX — Multi-theme system
+Activated via `data-theme` attribute on <html>.
+Themes: black-white (default), dark, midnight, violet, gold,
+        bloomberg, nord, cyber                         ← Pass V adds 3
+Black/White supports invert: add `.invert-bw` class to <html>
+Violet, Gold, Bloomberg, Nord, Cyber expose gradient tokens
+Density: default, compact, expanded
+Animations: toggle via `.no-animations` class on <html>
+═══════════════════════════════════════════════════════════════════ */
 
 @layer base {
 
-  /* ── Base / fallback (matches OLED — same as default theme) ─── */
-  :root {
-    --background:        0 0% 0%;
-    --foreground:        0 0% 95%;
-    --card:              0 0% 4%;
-    --card-foreground:   0 0% 95%;
-    --popover:           0 0% 4%;
-    --popover-foreground: 0 0% 95%;
-    --primary:           142 71% 45%;
-    --primary-foreground: 0 0% 100%;
-    --secondary:         0 0% 8%;
-    --secondary-foreground: 0 0% 95%;
-    --muted:             0 0% 14%;
-    --muted-foreground:  0 0% 52%;
-    --accent:            217 91% 60%;
-    --accent-foreground: 0 0% 100%;
-    --destructive:       0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border:            0 0% 11%;
-    --input:             0 0% 11%;
-    --ring:              142 71% 45%;
-    --sidebar-bg:        0 0% 0%;
+/* ── Base / fallback (matches OLED — same as default theme) ─── */
+:root {
+  --background:          0 0% 0%;
+  --foreground:          0 0% 95%;
+  --card:                0 0% 4%;
+  --card-foreground:     0 0% 95%;
+  --popover:             0 0% 4%;
+  --popover-foreground:  0 0% 95%;
+  --primary:             142 71% 45%;
+  --primary-foreground:  0 0% 100%;
+  --secondary:           0 0% 8%;
+  --secondary-foreground:0 0% 95%;
+  --muted:               0 0% 14%;
+  --muted-foreground:    0 0% 52%;
+  --accent:              217 91% 60%;
+  --accent-foreground:   0 0% 100%;
+  --destructive:         0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border:              0 0% 11%;
+  --input:               0 0% 11%;
+  --ring:                142 71% 45%;
+  --sidebar-bg:          0 0% 0%;
 
-    --chart-green:       142 71% 45%;
-    --chart-blue:        217 91% 60%;
-    --chart-amber:       38 92% 50%;
-    --chart-red:         0 84% 60%;
-    --chart-purple:      270 70% 60%;
+  --chart-green:   142 71% 45%;
+  --chart-blue:    217 91% 60%;
+  --chart-amber:   38 92% 50%;
+  --chart-red:     0 84% 60%;
+  --chart-purple:  270 70% 60%;
 
-    --radius: 0.5rem;
+  --radius: 0.5rem;
 
-    --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
-    --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
-  }
-
-  /* ── Black/White (TRUE MONOCHROME — only black/white/grey + trading colors) ─── */
-  html[data-theme="black-white"] {
-    --background:        0 0% 0%;
-    --foreground:        0 0% 95%;
-    --card:              0 0% 4%;
-    --popover:           0 0% 4%;
-    --secondary:         0 0% 8%;
-    --muted:             0 0% 14%;
-    --muted-foreground:  0 0% 52%;
-    --border:            0 0% 11%;
-    --input:             0 0% 11%;
-    --sidebar-bg:        0 0% 0%;
-    /* Primary & accent are FORCED grayscale (no green, no blue) */
-    --primary:           0 0% 92%;       /* near-white highlights */
-    --primary-foreground: 0 0% 0%;        /* black text on white buttons */
-    --accent:            0 0% 70%;       /* mid-grey for secondary accents */
-    --accent-foreground: 0 0% 0%;
-    --ring:              0 0% 70%;
-    /* Chart palette also grayscale — but emerald/rose stay for P&L */
-    --chart-blue:        0 0% 70%;
-    --chart-purple:      0 0% 60%;
-    --chart-amber:       38 92% 50%;     /* warnings keep amber */
-    /* ── Pass D v2 chart tokens — true monochrome ── */
-    --chart-primary:     #e5e5e5;
-    --chart-fill-start:  rgba(229,229,229,0.25);
-    --chart-fill-end:    rgba(229,229,229,0.02);
-    --chart-glow:        rgba(255,255,255,0.4);
-    --chart-grid:        hsla(0, 0%, 40%, 0.2);
-    --chart-axis-text:   hsl(0 0% 60%);
-    --chart-bar-fill:    #a3a3a3;
-    --chart-bar-glow:    rgba(255,255,255,0.2);
-    /* Pass J: Distribution donut goes full monochrome on B/W theme.
-       Wins = bright white, losses = mid-grey. Glows desaturated. */
-    --chart-win:         #f5f5f5;
-    --chart-loss:        #525252;
-    --chart-win-glow:    rgba(255,255,255,0.35);
-    --chart-loss-glow:   rgba(115,115,115,0.4);
-  }
-
-  /* ── Black/White INVERT (white canvas, black text — greys stay) ──── */
-  html[data-theme="black-white"].invert-bw {
-    --background:        0 0% 100%;
-    --foreground:        0 0% 5%;
-    --card:              0 0% 96%;
-    --popover:           0 0% 96%;
-    --secondary:         0 0% 92%;
-    --muted:             0 0% 86%;       /* grey stays grey */
-    --muted-foreground:  0 0% 35%;
-    --border:            0 0% 88%;
-    --input:             0 0% 88%;
-    --sidebar-bg:        0 0% 100%;
-    /* Inverted primary — black on light surfaces */
-    --primary:           0 0% 8%;
-    --primary-foreground: 0 0% 100%;
-    --accent:            0 0% 30%;
-    --accent-foreground: 0 0% 100%;
-    --ring:              0 0% 30%;
-    --chart-blue:        0 0% 30%;
-    --chart-purple:      0 0% 40%;
-    /* ── Pass D v2 chart tokens — inverted monochrome ── */
-    --chart-primary:     #1c1c1c;
-    --chart-fill-start:  rgba(28,28,28,0.18);
-    --chart-fill-end:    rgba(28,28,28,0.02);
-    --chart-glow:        rgba(0,0,0,0.3);
-    --chart-grid:        hsla(0, 0%, 70%, 0.4);
-    --chart-axis-text:   hsl(0 0% 35%);
-    --chart-bar-fill:    #404040;
-    --chart-bar-glow:    rgba(0,0,0,0.2);
-    /* Pass J: Distribution donut full monochrome on B/W invert.
-       Wins = near-black (high-contrast on white), losses = mid-grey. */
-    --chart-win:         #1c1c1c;
-    --chart-loss:        #a3a3a3;
-    --chart-win-glow:    rgba(0,0,0,0.25);
-    --chart-loss-glow:   rgba(120,120,120,0.35);
-  }
-
-  /* Hide any colored primary glow effects in monochrome mode */
-  html[data-theme="black-white"] .ring-primary\/20,
-  html[data-theme="black-white"] .bg-primary\/10,
-  html[data-theme="black-white"] .border-primary\/30 {
-    /* Tailwind already maps these to --primary, so they auto-update.
-       This block is reserved for future hard overrides if needed. */
-  }
-
-  /* ── Dark (slate-blue, TradeX default) ────────────────────── */
-  html[data-theme="dark"] {
-    --background:        225 14% 12%;
-    --foreground:        0 0% 95%;
-    --card:              225 13% 15%;
-    --popover:           225 13% 15%;
-    --secondary:         225 11% 18%;
-    --muted:             225 10% 22%;
-    --muted-foreground:  225 8% 62%;
-    --border:            225 10% 20%;
-    --input:             225 10% 20%;
-    --sidebar-bg:        225 14% 9%;
-    --primary:           142 71% 45%;
-    --ring:              142 71% 45%;
-    --accent:            217 91% 60%;
-    /* ── Pass D v2 chart tokens — Dark (emerald accent) ── */
-    --chart-primary:     #34d399;
-    --chart-fill-start:  rgba(52,211,153,0.4);
-    --chart-fill-end:    rgba(52,211,153,0.02);
-    --chart-glow:        rgba(52,211,153,0.5);
-    --chart-grid:        hsla(220, 13%, 40%, 0.15);
-    --chart-axis-text:   hsl(0 0% 55%);
-    --chart-bar-fill:    #818cf8;
-    --chart-bar-glow:    rgba(129,140,248,0.4);
-    --chart-win:         #34d399;
-    --chart-loss:        #fb7185;
-    --chart-win-glow:    rgba(52,211,153,0.5);
-    --chart-loss-glow:   rgba(251,113,133,0.5);
-  }
-
-  /* ── Midnight (deep navy, blue primary) ───────────────────── */
-  html[data-theme="midnight"] {
-    --background:        230 25% 6%;
-    --foreground:        210 30% 96%;
-    --card:              230 22% 9%;
-    --card-foreground:   210 30% 96%;
-    --popover:           230 22% 9%;
-    --popover-foreground: 210 30% 96%;
-    --primary:           215 90% 62%;
-    --primary-foreground: 230 25% 6%;
-    --secondary:         230 18% 14%;
-    --secondary-foreground: 210 30% 96%;
-    --muted:             230 15% 22%;
-    --muted-foreground:  230 12% 58%;
-    --accent:            252 68% 68%;
-    --accent-foreground: 230 25% 6%;
-    --destructive:       0 84% 60%;
-    --border:            230 16% 16%;
-    --input:             230 16% 16%;
-    --ring:              215 90% 62%;
-    --sidebar-bg:        230 25% 4%;
-    --chart-blue:        215 90% 62%;
-    --chart-purple:      252 68% 68%;
-    /* ── Pass D v2 chart tokens — Midnight (blue accent) ── */
-    --chart-primary:     #60a5fa;
-    --chart-fill-start:  rgba(96,165,250,0.45);
-    --chart-fill-end:    rgba(96,165,250,0.02);
-    --chart-glow:        rgba(96,165,250,0.5);
-    --chart-grid:        hsla(220, 30%, 40%, 0.15);
-    --chart-axis-text:   hsl(220 20% 60%);
-    --chart-bar-fill:    #818cf8;
-    --chart-bar-glow:    rgba(129,140,248,0.4);
-    --chart-win:         #34d399;
-    --chart-loss:        #fb7185;
-    --chart-win-glow:    rgba(52,211,153,0.5);
-    --chart-loss-glow:   rgba(251,113,133,0.5);
-  }
-
-  /* ── Violet (gradient-style purple, neon accents) ─────────── */
-  html[data-theme="violet"] {
-    --background:        265 35% 6%;       /* deep midnight violet */
-    --foreground:        270 20% 96%;
-    --card:              265 30% 9%;
-    --card-foreground:   270 20% 96%;
-    --popover:           265 30% 9%;
-    --popover-foreground: 270 20% 96%;
-    --primary:           280 85% 65%;      /* bright violet (Pass C user pick) */
-    --primary-foreground: 0 0% 100%;
-    --secondary:         265 25% 14%;
-    --secondary-foreground: 270 20% 96%;
-    --muted:             265 20% 22%;
-    --muted-foreground:  265 15% 65%;
-    --accent:            220 90% 65%;      /* electric blue accent */
-    --accent-foreground: 0 0% 100%;
-    --destructive:       0 84% 60%;
-    --border:            265 22% 18%;
-    --input:             265 22% 18%;
-    --ring:              280 85% 65%;
-    --sidebar-bg:        265 38% 4%;
-    --chart-blue:        220 90% 65%;
-    --chart-purple:      280 85% 65%;
-    /* ── Pass D v2 chart tokens — Violet (purple gradient + glow) ── */
-    --chart-primary:     #c084fc;
-    --chart-fill-start:  rgba(168,85,247,0.50);
-    --chart-fill-end:    rgba(168,85,247,0.02);
-    --chart-glow:        rgba(192,132,252,0.6);
-    --chart-grid:        hsla(280, 30%, 50%, 0.15);
-    --chart-axis-text:   hsl(280 15% 60%);
-    --chart-bar-fill:    #c084fc;
-    --chart-bar-glow:    rgba(192,132,252,0.4);
-    --chart-win:         #a78bfa;
-    --chart-loss:        #fb7185;
-    --chart-win-glow:    rgba(167,139,250,0.6);
-    --chart-loss-glow:   rgba(251,113,133,0.5);
-    /* Gradient stroke stops — 3 colors for the equity line */
-    --chart-stroke-1:    #a78bfa;
-    --chart-stroke-2:    #c084fc;
-    --chart-stroke-3:    #e879f9;
-  }
-
-  /* ── Gold (premium light canvas with gold accents — replaces Light) ─── */
-  html[data-theme="gold"] {
-    --background:        45 15% 96%;       /* warm off-white */
-    --foreground:        25 20% 12%;       /* deep brown-black */
-    --card:              0 0% 100%;
-    --card-foreground:   25 20% 12%;
-    --popover:           0 0% 100%;
-    --popover-foreground: 25 20% 12%;
-    --primary:           38 92% 50%;       /* rich gold */
-    --primary-foreground: 25 30% 8%;
-    --secondary:         42 25% 90%;       /* warm beige */
-    --secondary-foreground: 25 20% 12%;
-    --muted:             42 18% 85%;
-    --muted-foreground:  30 12% 38%;
-    --accent:            32 85% 55%;       /* amber-orange accent */
-    --accent-foreground: 0 0% 100%;
-    --destructive:       0 75% 50%;
-    --border:            42 20% 82%;
-    --input:             42 20% 82%;
-    --ring:              38 92% 50%;
-    --sidebar-bg:        45 15% 99%;
-    --chart-green:       142 60% 32%;
-    --chart-blue:        38 92% 50%;       /* gold for line charts */
-    --chart-amber:       32 85% 50%;
-    --chart-red:         0 75% 50%;
-    --chart-purple:      30 25% 25%;       /* dark brown for variety */
-    /* ── Pass D v2 chart tokens — Gold (amber gradient + glow) ── */
-    --chart-primary:     #f59e0b;
-    --chart-fill-start:  rgba(245,158,11,0.38);
-    --chart-fill-end:    rgba(249,115,22,0.05);
-    --chart-glow:        rgba(245,158,11,0.5);
-    --chart-grid:        hsla(38, 30%, 50%, 0.18);
-    --chart-axis-text:   hsl(30 15% 35%);
-    --chart-bar-fill:    #f59e0b;
-    --chart-bar-glow:    rgba(245,158,11,0.4);
-    --chart-win:         #16a34a;
-    --chart-loss:        #dc2626;
-    --chart-win-glow:    rgba(22,163,74,0.4);
-    --chart-loss-glow:   rgba(220,38,38,0.4);
-    /* Gradient stroke stops */
-    --chart-stroke-1:    #f59e0b;
-    --chart-stroke-2:    #fb923c;
-    --chart-stroke-3:    #f97316;
-  }
-
-  /* ═══════════════════════════════════════════════════════════
-     GRADIENT TOKENS — for themes that opt into gradient styling
-     ═══════════════════════════════════════════════════════════
-     These `--gradient-*` variables are full linear-gradient strings.
-     Components can opt in via utility classes:
-       .gradient-primary  → fills with --gradient-primary
-       .gradient-active   → sidebar active items, hero buttons
-       .gradient-text     → text fill (clipped)
-       .gradient-chart    → for SVG chart fill via stroke="url(#g)"
-     Themes without a gradient set fall back to the solid `--primary` color.
-  */
-
-  /* Default for solid-color themes (Dark, Midnight, Black/White) — gradients are just solid primary */
-  :root {
-    --gradient-primary: hsl(var(--primary));
-    --gradient-active:  hsl(var(--primary) / 0.10);
-  }
-
-  /* Violet — purple → magenta gradient */
-  html[data-theme="violet"] {
-    --gradient-primary: linear-gradient(135deg, hsl(280 85% 65%) 0%, hsl(310 80% 60%) 100%);
-    --gradient-active:  linear-gradient(135deg, hsl(280 85% 65% / 0.18) 0%, hsl(310 80% 60% / 0.10) 100%);
-  }
-
-  /* Gold — amber → gold gradient */
-  html[data-theme="gold"] {
-    --gradient-primary: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(28 92% 55%) 100%);
-    --gradient-active:  linear-gradient(135deg, hsl(38 92% 50% / 0.18) 0%, hsl(28 92% 55% / 0.10) 100%);
-  }
-
-  /* Black/White — silver gradient (subtle) */
-  html[data-theme="black-white"] {
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 92%) 0%, hsl(0 0% 70%) 100%);
-    --gradient-active:  linear-gradient(135deg, hsl(0 0% 92% / 0.14) 0%, hsl(0 0% 70% / 0.08) 100%);
-  }
-  html[data-theme="black-white"].invert-bw {
-    --gradient-primary: linear-gradient(135deg, hsl(0 0% 8%) 0%, hsl(0 0% 30%) 100%);
-    --gradient-active:  linear-gradient(135deg, hsl(0 0% 8% / 0.10) 0%, hsl(0 0% 30% / 0.06) 100%);
-  }
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Monaco, Consolas, monospace;
 }
 
-/* ── Gold-mode defensive overrides for hardcoded dark utilities ─── */
-html[data-theme="gold"] .bg-\[\#0d0f14\],
-html[data-theme="gold"] .bg-\[\#070b12\],
-html[data-theme="gold"] .bg-\[\#03050a\],
-html[data-theme="gold"] .bg-\[\#000001\] {
-  background-color: hsl(var(--card)) !important;
-}
-html[data-theme="gold"] .text-slate-100,
-html[data-theme="gold"] .text-slate-200,
-html[data-theme="gold"] .text-slate-300 {
-  color: hsl(var(--foreground)) !important;
-}
-html[data-theme="gold"] .text-slate-400,
-html[data-theme="gold"] .text-slate-500,
-html[data-theme="gold"] .text-slate-600 {
-  color: hsl(var(--muted-foreground)) !important;
+/* ── Black/White (TRUE MONOCHROME) ─────────────────────────────── */
+html[data-theme="black-white"] {
+  --background:          0 0% 0%;
+  --foreground:          0 0% 95%;
+  --card:                0 0% 4%;
+  --popover:             0 0% 4%;
+  --secondary:           0 0% 8%;
+  --muted:               0 0% 14%;
+  --muted-foreground:    0 0% 52%;
+  --border:              0 0% 11%;
+  --input:               0 0% 11%;
+  --sidebar-bg:          0 0% 0%;
+  --primary:             0 0% 92%;
+  --primary-foreground:  0 0% 0%;
+  --accent:              0 0% 70%;
+  --accent-foreground:   0 0% 0%;
+  --ring:                0 0% 70%;
+  --chart-blue:          0 0% 70%;
+  --chart-purple:        0 0% 60%;
+  --chart-amber:         38 92% 50%;
+  --chart-primary:       #e5e5e5;
+  --chart-fill-start:    rgba(229,229,229,0.25);
+  --chart-fill-end:      rgba(229,229,229,0.02);
+  --chart-glow:          rgba(255,255,255,0.4);
+  --chart-grid:          hsla(0, 0%, 40%, 0.2);
+  --chart-axis-text:     hsl(0 0% 60%);
+  --chart-bar-fill:      #a3a3a3;
+  --chart-bar-glow:      rgba(255,255,255,0.2);
+  --chart-win:           #f5f5f5;
+  --chart-loss:          #525252;
+  --chart-win-glow:      rgba(255,255,255,0.35);
+  --chart-loss-glow:     rgba(115,115,115,0.4);
 }
 
-/* Same defensive overrides for Black/White invert mode */
-html[data-theme="black-white"].invert-bw .bg-\[\#0d0f14\],
-html[data-theme="black-white"].invert-bw .bg-\[\#070b12\],
-html[data-theme="black-white"].invert-bw .bg-\[\#03050a\],
-html[data-theme="black-white"].invert-bw .bg-\[\#000001\] {
-  background-color: hsl(var(--card)) !important;
+/* ── Black/White INVERT ─────────────────────────────────────────── */
+html[data-theme="black-white"].invert-bw {
+  --background:          0 0% 100%;
+  --foreground:          0 0% 5%;
+  --card:                0 0% 96%;
+  --popover:             0 0% 96%;
+  --secondary:           0 0% 92%;
+  --muted:               0 0% 86%;
+  --muted-foreground:    0 0% 35%;
+  --border:              0 0% 88%;
+  --input:               0 0% 88%;
+  --sidebar-bg:          0 0% 100%;
+  --primary:             0 0% 8%;
+  --primary-foreground:  0 0% 100%;
+  --accent:              0 0% 30%;
+  --accent-foreground:   0 0% 100%;
+  --ring:                0 0% 30%;
+  --chart-blue:          0 0% 30%;
+  --chart-purple:        0 0% 40%;
+  --chart-primary:       #1c1c1c;
+  --chart-fill-start:    rgba(28,28,28,0.18);
+  --chart-fill-end:      rgba(28,28,28,0.02);
+  --chart-glow:          rgba(0,0,0,0.3);
+  --chart-grid:          hsla(0, 0%, 70%, 0.4);
+  --chart-axis-text:     hsl(0 0% 35%);
+  --chart-bar-fill:      #404040;
+  --chart-bar-glow:      rgba(0,0,0,0.2);
+  --chart-win:           #1c1c1c;
+  --chart-loss:          #a3a3a3;
+  --chart-win-glow:      rgba(0,0,0,0.25);
+  --chart-loss-glow:     rgba(120,120,120,0.35);
 }
-html[data-theme="black-white"].invert-bw .text-slate-100,
-html[data-theme="black-white"].invert-bw .text-slate-200,
-html[data-theme="black-white"].invert-bw .text-slate-300 {
-  color: hsl(var(--foreground)) !important;
+
+/* ── Dark (Green Lab) ───────────────────────────────────────────── */
+html[data-theme="dark"] {
+  --background:          225 14% 12%;
+  --foreground:          0 0% 95%;
+  --card:                225 13% 15%;
+  --popover:             225 13% 15%;
+  --secondary:           225 11% 18%;
+  --muted:               225 10% 22%;
+  --muted-foreground:    225 8% 62%;
+  --border:              225 10% 20%;
+  --input:               225 10% 20%;
+  --sidebar-bg:          225 14% 9%;
+  --primary:             142 71% 45%;
+  --ring:                142 71% 45%;
+  --accent:              217 91% 60%;
+  --chart-primary:       #34d399;
+  --chart-fill-start:    rgba(52,211,153,0.4);
+  --chart-fill-end:      rgba(52,211,153,0.02);
+  --chart-glow:          rgba(52,211,153,0.5);
+  --chart-grid:          hsla(220, 13%, 40%, 0.15);
+  --chart-axis-text:     hsl(0 0% 55%);
+  --chart-bar-fill:      #818cf8;
+  --chart-bar-glow:      rgba(129,140,248,0.4);
+  --chart-win:           #34d399;
+  --chart-loss:          #fb7185;
+  --chart-win-glow:      rgba(52,211,153,0.5);
+  --chart-loss-glow:     rgba(251,113,133,0.5);
 }
-html[data-theme="black-white"].invert-bw .text-slate-400,
-html[data-theme="black-white"].invert-bw .text-slate-500,
-html[data-theme="black-white"].invert-bw .text-slate-600 {
-  color: hsl(var(--muted-foreground)) !important;
+
+/* ── Midnight ───────────────────────────────────────────────────── */
+html[data-theme="midnight"] {
+  --background:          230 25% 6%;
+  --foreground:          210 30% 96%;
+  --card:                230 22% 9%;
+  --card-foreground:     210 30% 96%;
+  --popover:             230 22% 9%;
+  --popover-foreground:  210 30% 96%;
+  --primary:             215 90% 62%;
+  --primary-foreground:  230 25% 6%;
+  --secondary:           230 18% 14%;
+  --secondary-foreground:210 30% 96%;
+  --muted:               230 15% 22%;
+  --muted-foreground:    230 12% 58%;
+  --accent:              252 68% 68%;
+  --accent-foreground:   230 25% 6%;
+  --destructive:         0 84% 60%;
+  --border:              230 16% 16%;
+  --input:               230 16% 16%;
+  --ring:                215 90% 62%;
+  --sidebar-bg:          230 25% 4%;
+  --chart-blue:          215 90% 62%;
+  --chart-purple:        252 68% 68%;
+  --chart-primary:       #60a5fa;
+  --chart-fill-start:    rgba(96,165,250,0.45);
+  --chart-fill-end:      rgba(96,165,250,0.02);
+  --chart-glow:          rgba(96,165,250,0.5);
+  --chart-grid:          hsla(220, 30%, 40%, 0.15);
+  --chart-axis-text:     hsl(220 20% 60%);
+  --chart-bar-fill:      #818cf8;
+  --chart-bar-glow:      rgba(129,140,248,0.4);
+  --chart-win:           #34d399;
+  --chart-loss:          #fb7185;
+  --chart-win-glow:      rgba(52,211,153,0.5);
+  --chart-loss-glow:     rgba(251,113,133,0.5);
+}
+
+/* ── Violet ─────────────────────────────────────────────────────── */
+html[data-theme="violet"] {
+  --background:          265 35% 6%;
+  --foreground:          270 20% 96%;
+  --card:                265 30% 9%;
+  --card-foreground:     270 20% 96%;
+  --popover:             265 30% 9%;
+  --popover-foreground:  270 20% 96%;
+  --primary:             280 85% 65%;
+  --primary-foreground:  0 0% 100%;
+  --secondary:           265 25% 14%;
+  --secondary-foreground:270 20% 96%;
+  --muted:               265 20% 22%;
+  --muted-foreground:    265 15% 65%;
+  --accent:              220 90% 65%;
+  --accent-foreground:   0 0% 100%;
+  --destructive:         0 84% 60%;
+  --border:              265 22% 18%;
+  --input:               265 22% 18%;
+  --ring:                280 85% 65%;
+  --sidebar-bg:          265 38% 4%;
+  --chart-blue:          220 90% 65%;
+  --chart-purple:        280 85% 65%;
+  --chart-primary:       #c084fc;
+  --chart-fill-start:    rgba(168,85,247,0.50);
+  --chart-fill-end:      rgba(168,85,247,0.02);
+  --chart-glow:          rgba(192,132,252,0.6);
+  --chart-grid:          hsla(280, 30%, 50%, 0.15);
+  --chart-axis-text:     hsl(280 15% 60%);
+  --chart-bar-fill:      #c084fc;
+  --chart-bar-glow:      rgba(192,132,252,0.4);
+  --chart-win:           #a78bfa;
+  --chart-loss:          #fb7185;
+  --chart-win-glow:      rgba(167,139,250,0.6);
+  --chart-loss-glow:     rgba(251,113,133,0.5);
+  --chart-stroke-1:      #a78bfa;
+  --chart-stroke-2:      #c084fc;
+  --chart-stroke-3:      #e879f9;
+}
+
+/* ── Gold ───────────────────────────────────────────────────────── */
+html[data-theme="gold"] {
+  --background:          45 15% 96%;
+  --foreground:          25 20% 12%;
+  --card:                0 0% 100%;
+  --card-foreground:     25 20% 12%;
+  --popover:             0 0% 100%;
+  --popover-foreground:  25 20% 12%;
+  --primary:             38 92% 50%;
+  --primary-foreground:  25 30% 8%;
+  --secondary:           42 25% 90%;
+  --secondary-foreground:25 20% 12%;
+  --muted:               42 18% 85%;
+  --muted-foreground:    30 12% 38%;
+  --accent:              32 85% 55%;
+  --accent-foreground:   0 0% 100%;
+  --destructive:         0 75% 50%;
+  --border:              42 20% 82%;
+  --input:               42 20% 82%;
+  --ring:                38 92% 50%;
+  --sidebar-bg:          45 15% 99%;
+  --chart-green:         142 60% 32%;
+  --chart-blue:          38 92% 50%;
+  --chart-amber:         32 85% 50%;
+  --chart-red:           0 75% 50%;
+  --chart-purple:        30 25% 25%;
+  --chart-primary:       #f59e0b;
+  --chart-fill-start:    rgba(245,158,11,0.38);
+  --chart-fill-end:      rgba(249,115,22,0.05);
+  --chart-glow:          rgba(245,158,11,0.5);
+  --chart-grid:          hsla(38, 30%, 50%, 0.18);
+  --chart-axis-text:     hsl(30 15% 35%);
+  --chart-bar-fill:      #f59e0b;
+  --chart-bar-glow:      rgba(245,158,11,0.4);
+  --chart-win:           #16a34a;
+  --chart-loss:          #dc2626;
+  --chart-win-glow:      rgba(22,163,74,0.4);
+  --chart-loss-glow:     rgba(220,38,38,0.4);
+  --chart-stroke-1:      #f59e0b;
+  --chart-stroke-2:      #fb923c;
+  --chart-stroke-3:      #f97316;
+}
+
+/* ── Bloomberg — Pro terminal · orange · sharp corners ─────────── */
+html[data-theme="bloomberg"] {
+  --background:          240 8% 5%;
+  --foreground:          0 0% 91%;
+  --card:                240 6% 7%;
+  --card-foreground:     0 0% 91%;
+  --popover:             240 6% 7%;
+  --popover-foreground:  0 0% 91%;
+  --primary:             25 100% 50%;
+  --primary-foreground:  0 0% 0%;
+  --secondary:           240 5% 12%;
+  --secondary-foreground:0 0% 91%;
+  --muted:               240 5% 15%;
+  --muted-foreground:    240 4% 50%;
+  --accent:              25 100% 50%;
+  --accent-foreground:   0 0% 0%;
+  --destructive:         0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border:              240 5% 13%;
+  --input:               240 5% 13%;
+  --ring:                25 100% 50%;
+  --sidebar-bg:          240 8% 4%;
+  --radius: 0.125rem;  /* Bloomberg uses sharp 2px corners */
+  --chart-primary:       #ff6b00;
+  --chart-fill-start:    rgba(255,107,0,0.22);
+  --chart-fill-end:      rgba(255,107,0,0.02);
+  --chart-glow:          rgba(255,107,0,0.55);
+  --chart-grid:          hsla(240, 5%, 40%, 0.18);
+  --chart-axis-text:     hsl(240 4% 50%);
+  --chart-bar-fill:      #ff6b00;
+  --chart-bar-glow:      rgba(255,107,0,0.28);
+  --chart-win:           #ff6b00;
+  --chart-loss:          #ff3d3d;
+  --chart-win-glow:      rgba(255,107,0,0.4);
+  --chart-loss-glow:     rgba(255,61,61,0.4);
+  --chart-stroke-1:      #ff6b00;
+  --chart-stroke-2:      #ff8c00;
+  --chart-stroke-3:      #ffa500;
+}
+
+/* ── Nord — Arctic slate · frost blue ──────────────────────────── */
+html[data-theme="nord"] {
+  --background:          220 17% 20%;
+  --foreground:          218 27% 88%;
+  --card:                222 16% 24%;
+  --card-foreground:     218 27% 88%;
+  --popover:             222 16% 24%;
+  --popover-foreground:  218 27% 88%;
+  --primary:             193 43% 67%;
+  --primary-foreground:  220 17% 12%;
+  --secondary:           220 17% 28%;
+  --secondary-foreground:218 27% 88%;
+  --muted:               220 16% 30%;
+  --muted-foreground:    220 10% 56%;
+  --accent:              193 43% 67%;
+  --accent-foreground:   220 17% 12%;
+  --destructive:         0 65% 55%;
+  --destructive-foreground: 0 0% 100%;
+  --border:              220 16% 30%;
+  --input:               220 16% 30%;
+  --ring:                193 43% 67%;
+  --sidebar-bg:          220 17% 17%;
+  --chart-primary:       #88c0d0;
+  --chart-fill-start:    rgba(136,192,208,0.22);
+  --chart-fill-end:      rgba(136,192,208,0.02);
+  --chart-glow:          rgba(136,192,208,0.5);
+  --chart-grid:          hsla(220, 10%, 45%, 0.22);
+  --chart-axis-text:     hsl(220 10% 56%);
+  --chart-bar-fill:      #88c0d0;
+  --chart-bar-glow:      rgba(136,192,208,0.28);
+  --chart-win:           #a3be8c;
+  --chart-loss:          #bf616a;
+  --chart-win-glow:      rgba(163,190,140,0.38);
+  --chart-loss-glow:     rgba(191,97,106,0.38);
+  --chart-stroke-1:      #88c0d0;
+  --chart-stroke-2:      #81a1c1;
+  --chart-stroke-3:      #5e81ac;
+}
+
+/* ── Cyber — Neon magenta · Phoenix Cyber-Industrial ───────────── */
+html[data-theme="cyber"] {
+  --background:          285 50% 3%;
+  --foreground:          300 20% 93%;
+  --card:                285 40% 5%;
+  --card-foreground:     300 20% 93%;
+  --popover:             285 40% 5%;
+  --popover-foreground:  300 20% 93%;
+  --primary:             300 100% 60%;
+  --primary-foreground:  0 0% 0%;
+  --secondary:           285 30% 10%;
+  --secondary-foreground:300 20% 93%;
+  --muted:               285 25% 14%;
+  --muted-foreground:    290 15% 56%;
+  --accent:              300 100% 60%;
+  --accent-foreground:   0 0% 0%;
+  --destructive:         0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border:              285 25% 13%;
+  --input:               285 25% 13%;
+  --ring:                300 100% 60%;
+  --sidebar-bg:          285 50% 2%;
+  --chart-primary:       #ff00cc;
+  --chart-fill-start:    rgba(255,0,204,0.22);
+  --chart-fill-end:      rgba(255,0,204,0.02);
+  --chart-glow:          rgba(255,0,204,0.55);
+  --chart-grid:          hsla(285, 25%, 40%, 0.18);
+  --chart-axis-text:     hsl(290 15% 56%);
+  --chart-bar-fill:      #ff00cc;
+  --chart-bar-glow:      rgba(255,0,204,0.28);
+  --chart-win:           #00ff88;
+  --chart-loss:          #ff3d3d;
+  --chart-win-glow:      rgba(0,255,136,0.38);
+  --chart-loss-glow:     rgba(255,61,61,0.38);
+  --chart-stroke-1:      #ff00cc;
+  --chart-stroke-2:      #cc00ff;
+  --chart-stroke-3:      #ff33ff;
 }
 
 /* ═══════════════════════════════════════════════════════════
-   GRADIENT UTILITY CLASSES — opt-in helpers for components
-   ═══════════════════════════════════════════════════════════ */
+GRADIENT TOKENS — opt-in gradient styling per theme
+═══════════════════════════════════════════════════════════ */
 
-/* Primary gradient fill (used on submit buttons, hero CTAs) */
+/* Default for solid-color themes */
+:root {
+  --gradient-primary: hsl(var(--primary));
+  --gradient-active:  hsl(var(--primary) / 0.10);
+}
+
+html[data-theme="violet"] {
+  --gradient-primary: linear-gradient(135deg, hsl(280 85% 65%) 0%, hsl(310 80% 60%) 100%);
+  --gradient-active:  linear-gradient(135deg, hsl(280 85% 65% / 0.18) 0%, hsl(310 80% 60% / 0.10) 100%);
+}
+html[data-theme="gold"] {
+  --gradient-primary: linear-gradient(135deg, hsl(38 92% 50%) 0%, hsl(28 92% 55%) 100%);
+  --gradient-active:  linear-gradient(135deg, hsl(38 92% 50% / 0.18) 0%, hsl(28 92% 55% / 0.10) 100%);
+}
+html[data-theme="bloomberg"] {
+  --gradient-primary: linear-gradient(135deg, hsl(25 100% 50%) 0%, hsl(35 100% 55%) 100%);
+  --gradient-active:  linear-gradient(135deg, hsl(25 100% 50% / 0.18) 0%, hsl(35 100% 55% / 0.10) 100%);
+}
+html[data-theme="nord"] {
+  --gradient-primary: linear-gradient(135deg, hsl(193 43% 67%) 0%, hsl(210 55% 60%) 100%);
+  --gradient-active:  linear-gradient(135deg, hsl(193 43% 67% / 0.18) 0%, hsl(210 55% 60% / 0.10) 100%);
+}
+html[data-theme="cyber"] {
+  --gradient-primary: linear-gradient(135deg, hsl(300 100% 60%) 0%, hsl(270 100% 65%) 100%);
+  --gradient-active:  linear-gradient(135deg, hsl(300 100% 60% / 0.18) 0%, hsl(270 100% 65% / 0.10) 100%);
+}
+html[data-theme="black-white"] {
+  --gradient-primary: linear-gradient(135deg, hsl(0 0% 92%) 0%, hsl(0 0% 70%) 100%);
+  --gradient-active:  linear-gradient(135deg, hsl(0 0% 92% / 0.14) 0%, hsl(0 0% 70% / 0.08) 100%);
+}
+html[data-theme="black-white"].invert-bw {
+  --gradient-primary: linear-gradient(135deg, hsl(0 0% 8%) 0%, hsl(0 0% 30%) 100%);
+  --gradient-active:  linear-gradient(135deg, hsl(0 0% 8% / 0.10) 0%, hsl(0 0% 30% / 0.06) 100%);
+}
+
+} /* end @layer base */
+
+/* ── Gold defensive overrides for hardcoded dark utilities ───── */
+html[data-theme="gold"] .bg-\[\#0d0f14\],
+html[data-theme="gold"] .bg-\[\#070b12\],
+html[data-theme="gold"] .bg-\[\#03050a\],
+html[data-theme="gold"] .bg-\[\#000001\] { background-color: hsl(var(--card)) !important; }
+html[data-theme="gold"] .text-slate-100,
+html[data-theme="gold"] .text-slate-200,
+html[data-theme="gold"] .text-slate-300 { color: hsl(var(--foreground)) !important; }
+html[data-theme="gold"] .text-slate-400,
+html[data-theme="gold"] .text-slate-500,
+html[data-theme="gold"] .text-slate-600 { color: hsl(var(--muted-foreground)) !important; }
+
+/* ── Nord defensive overrides (lighter bg than other dark themes) */
+html[data-theme="nord"] .bg-\[\#0d0f14\],
+html[data-theme="nord"] .bg-\[\#070b12\],
+html[data-theme="nord"] .bg-\[\#03050a\],
+html[data-theme="nord"] .bg-\[\#000001\] { background-color: hsl(var(--card)) !important; }
+
+/* ── Black/White invert overrides ─────────────────────────────── */
+html[data-theme="black-white"].invert-bw .bg-\[\#0d0f14\],
+html[data-theme="black-white"].invert-bw .bg-\[\#070b12\],
+html[data-theme="black-white"].invert-bw .bg-\[\#03050a\],
+html[data-theme="black-white"].invert-bw .bg-\[\#000001\] { background-color: hsl(var(--card)) !important; }
+html[data-theme="black-white"].invert-bw .text-slate-100,
+html[data-theme="black-white"].invert-bw .text-slate-200,
+html[data-theme="black-white"].invert-bw .text-slate-300 { color: hsl(var(--foreground)) !important; }
+html[data-theme="black-white"].invert-bw .text-slate-400,
+html[data-theme="black-white"].invert-bw .text-slate-500,
+html[data-theme="black-white"].invert-bw .text-slate-600 { color: hsl(var(--muted-foreground)) !important; }
+
+/* ═══════════════════════════════════════════════════════════
+GRADIENT UTILITY CLASSES
+═══════════════════════════════════════════════════════════ */
 .gradient-primary {
   background: var(--gradient-primary);
   color: hsl(var(--primary-foreground));
 }
-
-/* Active state gradient (used on sidebar active items, selected tabs) */
-.gradient-active {
-  background: var(--gradient-active);
-}
-
-/* Gradient text fill — useful for headlines and key numbers */
+.gradient-active { background: var(--gradient-active); }
 .gradient-text {
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -387,38 +469,32 @@ html[data-theme="black-white"].invert-bw .text-slate-600 {
   color: transparent;
 }
 
-/* Gradient border — combines with a transparent border on element */
-.gradient-border {
-  border-image: var(--gradient-primary) 1;
-}
-
-/* ── Tailwind v4 theme mapping ───────────────────────────────── */
+/* ── Tailwind v4 theme mapping ─────────────────────────────────── */
 @theme inline {
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
+  --color-background:         hsl(var(--background));
+  --color-foreground:         hsl(var(--foreground));
+  --color-card:               hsl(var(--card));
+  --color-card-foreground:    hsl(var(--card-foreground));
+  --color-popover:            hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
+  --color-primary:            hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
+  --color-secondary:          hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
+  --color-muted:              hsl(var(--muted));
+  --color-muted-foreground:   hsl(var(--muted-foreground));
+  --color-accent:             hsl(var(--accent));
+  --color-accent-foreground:  hsl(var(--accent-foreground));
+  --color-destructive:        hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-
+  --color-border:             hsl(var(--border));
+  --color-input:              hsl(var(--input));
+  --color-ring:               hsl(var(--ring));
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
 }
 
-/* ── Base typography ─────────────────────────────────────────── */
+/* ── Base typography ────────────────────────────────────────────── */
 * { border-color: hsl(var(--border)); }
 
 html, body {
@@ -427,158 +503,114 @@ html, body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Smooth theme switching — animates color shifts instead of snapping */
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Apply theme-shift transition to all themed surface containers.
-   Recharts SVG elements transition automatically since they read CSS vars. */
+/* Smooth theme transitions on all surfaces */
 .bg-card, .bg-background, .bg-popover, .bg-primary, .bg-secondary,
 .bg-muted, .text-foreground, .text-muted-foreground, .border-border,
 [data-theme] * {
   transition: background-color 0.3s ease,
-              border-color 0.3s ease,
-              color 0.25s ease,
-              fill 0.3s ease,
-              stroke 0.3s ease;
+              border-color     0.3s ease,
+              color            0.25s ease,
+              fill             0.3s ease,
+              stroke           0.3s ease;
 }
-
-/* Don't transition things that should be instant (hover states, animations) */
 .no-transition,
 [role="dialog"],
 [data-state="open"],
-[data-state="closed"] {
-  transition: none !important;
-}
+[data-state="closed"] { transition: none !important; }
 
-/* ── Density system ─────────────────────────────────────────── */
-/*
-   Three density tiers expressed as CSS custom properties.
-   Components that want density-awareness use var(--density-*)
-   directly in inline styles or via Tailwind arbitrary values.
+/* ═══════════════════════════════════════════════════════════
+DENSITY SYSTEM
+═══════════════════════════════════════════════════════════ */
 
-   Density tokens:
-     --density-pad-page   page-level outer padding
-     --density-pad-card   card inner padding
-     --density-gap        grid / flex gap between cards
-     --density-gap-inner  gap inside a card (between rows)
-     --density-text-xs    smallest label text
-     --density-text-sm    body / cell text
-     --density-text-base  heading text
-     --density-row-h      table / list row height
-     --density-radius     card border-radius
-*/
-
-/* default — matches current Tailwind defaults, no change */
 :root,
 html[data-density="default"] {
-  --density-pad-page:   1.5rem;       /* p-6 equivalent */
-  --density-pad-card:   1.25rem;      /* p-5 */
-  --density-gap:        1rem;         /* gap-4 */
-  --density-gap-inner:  0.75rem;      /* gap-3 */
-  --density-text-xs:    0.625rem;     /* text-[10px] */
-  --density-text-sm:    0.75rem;      /* text-xs / text-sm */
-  --density-text-base:  0.875rem;     /* text-sm→base */
-  --density-row-h:      2.5rem;       /* h-10 */
-  --density-radius:     0.5rem;       /* rounded-lg */
+  --density-pad-page:   1.5rem;
+  --density-pad-card:   1.25rem;
+  --density-gap:        1rem;
+  --density-gap-inner:  0.75rem;
+  --density-text-xs:    0.625rem;
+  --density-text-sm:    0.75rem;
+  --density-text-base:  0.875rem;
+  --density-row-h:      2.5rem;
+  --density-radius:     0.5rem;
 }
-
-/* compact — tighter, more data visible */
 html[data-density="compact"] {
   --density-pad-page:   0.75rem;
   --density-pad-card:   0.625rem;
   --density-gap:        0.5rem;
   --density-gap-inner:  0.375rem;
-  --density-text-xs:    0.5625rem;    /* 9px */
-  --density-text-sm:    0.6875rem;    /* 11px */
-  --density-text-base:  0.75rem;      /* 12px */
-  --density-row-h:      2rem;         /* h-8 */
-  --density-radius:     0.375rem;     /* rounded */
+  --density-text-xs:    0.5625rem;
+  --density-text-sm:    0.6875rem;
+  --density-text-base:  0.75rem;
+  --density-row-h:      2rem;
+  --density-radius:     0.375rem;
 }
-
-/* expanded — roomier, easier on the eyes */
 html[data-density="expanded"] {
   --density-pad-page:   2.5rem;
   --density-pad-card:   2rem;
   --density-gap:        1.5rem;
   --density-gap-inner:  1.25rem;
-  --density-text-xs:    0.6875rem;    /* 11px */
-  --density-text-sm:    0.875rem;     /* 14px */
-  --density-text-base:  1rem;         /* 16px */
-  --density-row-h:      3rem;         /* h-12 */
-  --density-radius:     0.75rem;      /* rounded-xl */
+  --density-text-xs:    0.6875rem;
+  --density-text-sm:    0.875rem;
+  --density-text-base:  1rem;
+  --density-row-h:      3rem;
+  --density-radius:     0.75rem;
 }
 
-/* ── Density: page shell padding ──────────────────────────────── */
 html[data-density="compact"] .density-page,
-html[data-density="compact"] main { padding: var(--density-pad-page) !important; }
+html[data-density="compact"] main,
 html[data-density="expanded"] .density-page,
 html[data-density="expanded"] main { padding: var(--density-pad-page) !important; }
 
-/* ── Density: card padding ──────────────────────────────────── */
-html[data-density="compact"]  .density-card { padding: var(--density-pad-card) !important; }
-html[data-density="expanded"] .density-card { padding: var(--density-pad-card) !important; }
-html[data-density="compact"]  .p-5, html[data-density="compact"]  .p-4 { padding: var(--density-pad-card) !important; }
-html[data-density="expanded"] .p-5, html[data-density="expanded"] .p-4 { padding: var(--density-pad-card) !important; }
-html[data-density="compact"]  .px-4 { padding-left: var(--density-pad-card) !important; padding-right: var(--density-pad-card) !important; }
+html[data-density="compact"] .density-card,
+html[data-density="compact"] .p-5,
+html[data-density="compact"] .p-4 { padding: var(--density-pad-card) !important; }
+html[data-density="expanded"] .density-card,
+html[data-density="expanded"] .p-5,
+html[data-density="expanded"] .p-4 { padding: var(--density-pad-card) !important; }
+
+html[data-density="compact"] .px-4,
 html[data-density="expanded"] .px-4 { padding-left: var(--density-pad-card) !important; padding-right: var(--density-pad-card) !important; }
-html[data-density="compact"]  .py-3, html[data-density="compact"]  .py-4 { padding-top: var(--density-gap-inner) !important; padding-bottom: var(--density-gap-inner) !important; }
+html[data-density="compact"] .py-3, html[data-density="compact"] .py-4,
 html[data-density="expanded"] .py-3, html[data-density="expanded"] .py-4 { padding-top: var(--density-gap-inner) !important; padding-bottom: var(--density-gap-inner) !important; }
 
-/* ── Density: gaps between cards ────────────────────────────── */
-html[data-density="compact"]  .gap-4, html[data-density="compact"]  .gap-6 { gap: var(--density-gap) !important; }
+html[data-density="compact"] .gap-4, html[data-density="compact"] .gap-6,
 html[data-density="expanded"] .gap-4, html[data-density="expanded"] .gap-6 { gap: var(--density-gap) !important; }
-html[data-density="compact"]  .space-y-4 > * + *, html[data-density="compact"]  .space-y-5 > * + *, html[data-density="compact"]  .space-y-6 > * + * { margin-top: var(--density-gap) !important; }
+html[data-density="compact"] .space-y-4 > * + *, html[data-density="compact"] .space-y-5 > * + *, html[data-density="compact"] .space-y-6 > * + *,
 html[data-density="expanded"] .space-y-4 > * + *, html[data-density="expanded"] .space-y-5 > * + *, html[data-density="expanded"] .space-y-6 > * + * { margin-top: var(--density-gap) !important; }
-html[data-density="compact"]  .gap-2, html[data-density="compact"]  .gap-3 { gap: var(--density-gap-inner) !important; }
+html[data-density="compact"] .gap-2, html[data-density="compact"] .gap-3,
 html[data-density="expanded"] .gap-2, html[data-density="expanded"] .gap-3 { gap: var(--density-gap-inner) !important; }
-html[data-density="compact"]  .space-y-2 > * + *, html[data-density="compact"]  .space-y-3 > * + * { margin-top: var(--density-gap-inner) !important; }
+html[data-density="compact"] .space-y-2 > * + *, html[data-density="compact"] .space-y-3 > * + *,
 html[data-density="expanded"] .space-y-2 > * + *, html[data-density="expanded"] .space-y-3 > * + * { margin-top: var(--density-gap-inner) !important; }
 
-/* ── Density: text scaling ───────────────────────────────────── */
-html[data-density="compact"]  .text-xs  { font-size: var(--density-text-sm)   !important; }
-html[data-density="expanded"] .text-xs  { font-size: var(--density-text-sm)   !important; }
-html[data-density="compact"]  .text-sm  { font-size: var(--density-text-sm)   !important; }
-html[data-density="expanded"] .text-sm  { font-size: var(--density-text-base) !important; }
-html[data-density="compact"]  .text-base { font-size: var(--density-text-base) !important; }
+html[data-density="compact"] .text-xs, html[data-density="expanded"] .text-xs { font-size: var(--density-text-sm) !important; }
+html[data-density="compact"] .text-sm { font-size: var(--density-text-sm) !important; }
+html[data-density="expanded"] .text-sm { font-size: var(--density-text-base) !important; }
+html[data-density="compact"] .text-base { font-size: var(--density-text-base) !important; }
 html[data-density="expanded"] .text-base { font-size: calc(var(--density-text-base) * 1.15) !important; }
-
-/* ── Density: border radius ──────────────────────────────────── */
-html[data-density="compact"]  .rounded-lg, html[data-density="compact"]  .rounded-xl { border-radius: var(--density-radius) !important; }
-html[data-density="expanded"] .rounded-lg                                             { border-radius: var(--density-radius) !important; }
-html[data-density="expanded"] .rounded-xl                                             { border-radius: calc(var(--density-radius) * 1.33) !important; }
-
-/* ── Density: table / list row heights ───────────────────────── */
-html[data-density="compact"]  .h-10 { height: var(--density-row-h) !important; }
-html[data-density="expanded"] .h-10 { height: var(--density-row-h) !important; }
-
-/* ── Density: sidebar items ──────────────────────────────────── */
-html[data-density="compact"]  .sidebar-item { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
+html[data-density="compact"] .rounded-lg, html[data-density="compact"] .rounded-xl { border-radius: var(--density-radius) !important; }
+html[data-density="expanded"] .rounded-lg { border-radius: var(--density-radius) !important; }
+html[data-density="expanded"] .rounded-xl { border-radius: calc(var(--density-radius) * 1.33) !important; }
+html[data-density="compact"] .h-10, html[data-density="expanded"] .h-10 { height: var(--density-row-h) !important; }
+html[data-density="compact"] .sidebar-item { padding-top: 0.375rem !important; padding-bottom: 0.375rem !important; }
 html[data-density="expanded"] .sidebar-item { padding-top: 0.625rem !important; padding-bottom: 0.625rem !important; }
 
-/* default density has no overrides — uses Tailwind defaults */
-
-/* ── Animation kill switch ──────────────────────────────────── */
+/* ── Animation kill switch ──────────────────────────────────────── */
 .no-animations *,
 .no-animations *::before,
 .no-animations *::after {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+  animation-duration:       0.01ms !important;
+  animation-iteration-count:1      !important;
+  transition-duration:      0.01ms !important;
 }
 
-/* ── Themed scrollbars (apply globally to all scrollable areas) ──
-   Targets every overflowing element, not just opt-in `.custom-scrollbar`.
-   Resolves via CSS variables, so all 5 themes get the correct look —
-   including light mode (which was showing default white/grey scrollbars). */
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-*::-webkit-scrollbar-track {
-  background: transparent;
-}
-*::-webkit-scrollbar-thumb {
+/* ── Themed scrollbars ──────────────────────────────────────────── */
+*::-webkit-scrollbar        { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track  { background: transparent; }
+*::-webkit-scrollbar-thumb  {
   background: hsl(var(--border));
   border-radius: 4px;
   border: 1px solid transparent;
@@ -589,56 +621,23 @@ html[data-density="expanded"] .sidebar-item { padding-top: 0.625rem !important; 
   background-clip: padding-box;
   border: 1px solid transparent;
 }
-*::-webkit-scrollbar-corner {
-  background: transparent;
-}
+*::-webkit-scrollbar-corner { background: transparent; }
+* { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
 
-/* Firefox */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--border)) transparent;
-}
+.custom-scrollbar::-webkit-scrollbar        { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track  { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb  { background: hsl(var(--border)); border-radius: 3px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted)); }
+.custom-scrollbar { scrollbar-width: thin; scrollbar-color: hsl(var(--border)) transparent; }
 
-/* Slimmer scrollbars on tight side panels keep their original 6px size */
-.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: hsl(var(--border));
-  border-radius: 3px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted));
-}
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: hsl(var(--border)) transparent;
-}
-
-/* TradingView attribution hide */
+/* ── Misc overrides ─────────────────────────────────────────────── */
 .tradingview-widget-copyright { display: none !important; }
-
-/* Recharts override */
-.recharts-tooltip-wrapper { outline: none !important; }
-
-/* Selection */
-::selection {
-  background: hsl(var(--primary) / 0.25);
-  color: hsl(var(--foreground));
-}
+.recharts-tooltip-wrapper     { outline: none !important; }
+::selection { background: hsl(var(--primary) / 0.25); color: hsl(var(--foreground)); }
 
 /* ════════════════════════════════════════════════════════════════════
-   Pass H — Noise overlay for Black/White theme ONLY
-   ════════════════════════════════════════════════════════════════════
-   Pure-black (and pure-white invert) canvas feels too flat. Inline SVG
-   noise via body::before adds tactile depth without introducing any
-   color shift — preserves the true monochrome aesthetic.
-
-   Applied to Black/White only because:
-   - Dark/Midnight already read as textured (slate/navy aren't truly flat)
-   - Violet/Gold will get orbs in a future pass (those provide visual interest)
-   - Black/White is the only theme where the canvas is genuinely uniform
-*/
-
+Pass H — Noise overlay for Black/White theme only
+════════════════════════════════════════════════════════════════════ */
 html[data-theme="black-white"] body::before {
   content: "";
   position: fixed;
@@ -651,8 +650,6 @@ html[data-theme="black-white"] body::before {
   background-repeat: repeat;
   background-size: 200px 200px;
 }
-
-/* Invert mode: slightly higher opacity since white canvas reveals less texture */
 html[data-theme="black-white"].invert-bw body::before {
   opacity: 0.06;
   mix-blend-mode: multiply;

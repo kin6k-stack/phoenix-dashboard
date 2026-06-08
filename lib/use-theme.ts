@@ -2,15 +2,25 @@
 
 import { useState, useEffect, useCallback } from "react"
 
-// ── Types ─────────────────────────────────────────────────
-export type Theme   = "black-white" | "dark" | "midnight" | "violet" | "gold"
+// ── Types ──────────────────────────────────────────────────────────────────
+// Pass V — Added bloomberg, nord, cyber from TradeX Terminal reference build
+export type Theme =
+  | "black-white"   // True monochrome — invertible to white canvas
+  | "dark"          // Green Lab — slate base with emerald accents
+  | "midnight"      // Deep navy with electric blue
+  | "violet"        // Purple gradient
+  | "gold"          // Amber/warm light
+  | "bloomberg"     // NEW — orange terminal professional (TradeX-inspired)
+  | "nord"          // NEW — arctic slate with frost blue (TradeX-inspired)
+  | "cyber"         // NEW — neon magenta cyberpunk (Phoenix Cyber-Industrial)
+
 export type Density = "compact" | "default" | "expanded"
 
 export interface PhoenixSettings {
   theme:      Theme
   density:    Density
   animations: boolean
-  invert:     boolean   // only meaningful when theme === "black-white"
+  invert:     boolean // only meaningful when theme === "black-white"
 }
 
 const STORAGE_KEY = "phoenix_settings"
@@ -22,23 +32,23 @@ const DEFAULT_SETTINGS: PhoenixSettings = {
   invert:     false,
 }
 
-// ── Migration ─────────────────────────────────────────────
-// Handles old theme names from prior versions:
-//   "oled"  → "black-white" (renamed, same look)
-//   "pink"  → "violet"      (closest match)
-//   "light" → "gold"        (replaced)
+// ── Migration ──────────────────────────────────────────────────────────────
+// Handles old theme names from prior passes so no user loses their preference.
+// "oled"  → "black-white"  (renamed, same look)
+// "pink"  → "cyber"        (renamed to Phoenix brand name)
+// "light" → "gold"         (replaced)
 function migrateTheme(raw: string | undefined | null): Theme {
   if (raw === "oled" || raw == null) return "black-white"
-  if (raw === "pink")                return "violet"
-  if (raw === "light")               return "gold"
-  if (raw === "black-white" || raw === "dark" || raw === "midnight" ||
-      raw === "violet"      || raw === "gold") {
-    return raw
-  }
-  return "black-white"
+  if (raw === "pink")               return "cyber"   // was violet in old pass, now cyber
+  if (raw === "light")              return "gold"
+  const valid: Theme[] = [
+    "black-white", "dark", "midnight", "violet", "gold",
+    "bloomberg", "nord", "cyber",
+  ]
+  return (valid.includes(raw as Theme) ? raw as Theme : "black-white")
 }
 
-// ── Storage helpers ───────────────────────────────────────
+// ── Storage helpers ────────────────────────────────────────────────────────
 function readSettings(): PhoenixSettings {
   if (typeof window === "undefined") return DEFAULT_SETTINGS
   try {
@@ -49,7 +59,7 @@ function readSettings(): PhoenixSettings {
       theme:      migrateTheme(parsed.theme),
       density:    parsed.density    ?? DEFAULT_SETTINGS.density,
       animations: parsed.animations !== false,
-      invert:     parsed.invert === true,
+      invert:     parsed.invert     === true,
     }
   } catch {
     return DEFAULT_SETTINGS
@@ -60,8 +70,9 @@ function writeSettings(settings: PhoenixSettings) {
   if (typeof window === "undefined") return
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings))
-    // Notify all other useTheme consumers in this tab to re-sync
-    window.dispatchEvent(new CustomEvent("phoenix-settings-changed", { detail: settings }))
+    window.dispatchEvent(
+      new CustomEvent("phoenix-settings-changed", { detail: settings })
+    )
   } catch (e) {
     console.warn("Failed to persist theme settings:", e)
   }
@@ -70,35 +81,30 @@ function writeSettings(settings: PhoenixSettings) {
 function applySettings(settings: PhoenixSettings) {
   if (typeof document === "undefined") return
   const html = document.documentElement
-  html.setAttribute("data-theme", settings.theme)
+  html.setAttribute("data-theme",   settings.theme)
   html.setAttribute("data-density", settings.density)
   if (settings.animations) html.classList.remove("no-animations")
-  else                     html.classList.add("no-animations")
-
-  // Invert only applies in Black/White; clear on other themes
-  if (settings.theme === "black-white" && settings.invert) html.classList.add("invert-bw")
-  else                                                     html.classList.remove("invert-bw")
+  else                      html.classList.add("no-animations")
+  if (settings.theme === "black-white" && settings.invert)
+    html.classList.add("invert-bw")
+  else
+    html.classList.remove("invert-bw")
 }
 
-// ── Hook ──────────────────────────────────────────────────
+// ── Hook ───────────────────────────────────────────────────────────────────
 export function useTheme() {
   const [settings, setSettings] = useState<PhoenixSettings>(DEFAULT_SETTINGS)
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
-    // Initial load
     const initial = readSettings()
     setSettings(initial)
     applySettings(initial)
     setHydrated(true)
 
-    // Pass T: Listen for changes made by OTHER useTheme instances (e.g. SettingsPanel)
-    // so every consumer re-renders immediately when theme/density/animations change.
     const onSettingsChanged = (e: Event) => {
       const detail = (e as CustomEvent<PhoenixSettings>).detail
-      if (detail) {
-        setSettings(detail)
-      }
+      if (detail) setSettings(detail)
     }
     window.addEventListener("phoenix-settings-changed", onSettingsChanged)
     return () => window.removeEventListener("phoenix-settings-changed", onSettingsChanged)
@@ -113,20 +119,10 @@ export function useTheme() {
     })
   }, [])
 
-  const setTheme      = useCallback((theme: Theme)         => update({ theme }),      [update])
-  const setDensity    = useCallback((density: Density)     => update({ density }),    [update])
-  const setAnimations = useCallback((animations: boolean)  => update({ animations }), [update])
-  const setInvert     = useCallback((invert: boolean)      => update({ invert }),     [update])
+  const setTheme     = useCallback((theme:      Theme)   => update({ theme }),      [update])
+  const setDensity   = useCallback((density:    Density) => update({ density }),    [update])
+  const setAnimations= useCallback((animations: boolean) => update({ animations }), [update])
+  const setInvert    = useCallback((invert:     boolean) => update({ invert }),     [update])
 
-  return {
-    theme:      settings.theme,
-    density:    settings.density,
-    animations: settings.animations,
-    invert:     settings.invert,
-    setTheme,
-    setDensity,
-    setAnimations,
-    setInvert,
-    hydrated,
-  }
+  return { ...settings, hydrated, setTheme, setDensity, setAnimations, setInvert }
 }
