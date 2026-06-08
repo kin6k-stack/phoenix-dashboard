@@ -325,7 +325,8 @@ export default function TradingDashboard() {
                     <div className="min-w-0">
                       <TradingCalendar selectedDate={selectedDate} onDateSelect={setSelectedDate} tradeDates={tradeDates}
                         trades={filteredTrades} totalTrades={totalTrades} wins={wins} netPnL={netPnL} winRate={winRate}
-                        onMonthYearChange={setCurrentMonthYear} />
+                        onMonthYearChange={setCurrentMonthYear}
+                        viewDate={currentMonthYear} />
                     </div>
                     <div className="space-y-3 xl:max-h-[580px] xl:overflow-y-auto xl:pr-1 custom-scrollbar">
                       <SlimMonthlyPerformance winRate={winRate} trades={totalTrades} wins={wins} losses={losses} netPnL={netPnL} fees={0} />

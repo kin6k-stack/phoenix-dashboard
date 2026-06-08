@@ -13,7 +13,7 @@
 import { NextResponse } from "next/server"
 
 // ── 60-second cache ───────────────────────────────────────────────────────
-const CACHE_TTL = 8 * 60 * 60 * 1000  // 8 hours — Yahoo Finance free, avoids rate limits
+const CACHE_TTL = 45 * 60 * 1000  // 45 minutes — fresh before each new hour
 let _cache: { data: TickerItem[]; expiresAt: number } | null = null
 
 // ── Types ─────────────────────────────────────────────────────────────────
