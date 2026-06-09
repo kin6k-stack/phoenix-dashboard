@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PHOENIX TRADING ECOSYSTEM — Vercel Webhook v5.2
-// Added: BOT_INIT handler — bot registers itself on OnInit, dashboard auto-updates
+// PHOENIX TRADING ECOSYSTEM — Vercel Webhook v5.3
+// Changes from v5.2:
+//   - BOT_OFFLINE handler added: zeroes lastSeenAt so live indicator goes grey
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -61,7 +62,7 @@ function toFields(obj: Record<string, unknown>): Record<string, unknown> {
   const fields: Record<string, unknown> = {}
   for (const [k, v] of Object.entries(obj)) {
     if (v === null || v === undefined) continue
-    if (v instanceof Date)      fields[k] = { timestampValue: v.toISOString() }
+    if (v instanceof Date)           fields[k] = { timestampValue: v.toISOString() }
     else if (typeof v === 'string')  fields[k] = { stringValue: v }
     else if (typeof v === 'number')  fields[k] = { doubleValue: v }
     else if (typeof v === 'boolean') fields[k] = { booleanValue: v }
@@ -88,11 +89,11 @@ async function firestorePatch(
       signal: controller.signal,
     })
     clearTimeout(timeout)
-    if (!res.ok) console.error(`[WEBHOOK v5.2] Firestore ${res.status} on ${collection}/${docId}`)
+    if (!res.ok) console.error(`[WEBHOOK v5.3] Firestore ${res.status} on ${collection}/${docId}`)
     return res.ok
   } catch (err) {
     clearTimeout(timeout)
-    console.error('[WEBHOOK v5.2] Fetch error:', err)
+    console.error('[WEBHOOK v5.3] Fetch error:', err)
     return false
   }
 }
@@ -103,23 +104,25 @@ export async function POST(request: NextRequest) {
     rawBody = await request.text()
     const data = JSON.parse(rawBody)
 
-    // Auth
+    // ── Auth ─────────────────────────────────────────────────────────────────
     const receivedKey = data.apiKey || request.headers.get('x-api-key') || ''
     const expectedKey = process.env.BOT_API_KEY
     if (expectedKey && receivedKey !== expectedKey) {
-      console.warn('[WEBHOOK v5.2] Auth failed')
+      console.warn('[WEBHOOK v5.3] Auth failed')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     if (!PROJECT_ID) return NextResponse.json({ received: true }, { status: 200 })
 
-    const rawType  = data.type ?? data.side
-    const status   = String(data.status || rawType || 'CLOSED').toUpperCase()
-    const symbol   = String(data.symbol || 'UNKNOWN').toUpperCase()
-    const ticket   = String(data.ticket || `auto_${Date.now()}`)
-    const botName  = String(data.bot || data.botName || 'Manual Execution')
+    const rawType   = data.type ?? data.side
+    const status    = String(data.status || rawType || 'CLOSED').toUpperCase()
+    const symbol    = String(data.symbol || 'UNKNOWN').toUpperCase()
+    const ticket    = String(data.ticket || `auto_${Date.now()}`)
+    const botName   = String(data.bot || data.botName || 'Manual Execution')
     const direction = (rawType === 0 || rawType === '0' || String(rawType).toUpperCase() === 'BUY') ? 'BUY' : 'SELL'
 
-    // ── BOT_INIT: bot registers version/mode on startup → auto-updates Bot Hub ─
+    // ── BOT_INIT ──────────────────────────────────────────────────────────────
+    // Bot calls this on OnInit + every 5 min heartbeat.
+    // Writes botName so Bot Hub shows the correct bot name dynamically.
     if (status === 'BOT_INIT') {
       const magic       = String(data.magic || '')
       const botVersion  = String(data.botVersion  || '')
@@ -134,8 +137,25 @@ export async function POST(request: NextRequest) {
         { botVersion, botMode, botStrategy, botName, symbol, timeframe, lastSeenAt: new Date() },
         ['botVersion','botMode','botStrategy','botName','symbol','timeframe','lastSeenAt']
       )
-      console.log(`[WEBHOOK v5.2] 🤖 BOT_INIT: ${botName} ${botVersion} | ${symbol} ${timeframe} | magic ${magic}`)
+      console.log(`[WEBHOOK v5.3] 🤖 BOT_INIT: ${botName} ${botVersion} | ${symbol} ${timeframe} | magic ${magic}`)
       return NextResponse.json({ success: true, action: 'bot_registered' })
+    }
+
+    // ── BOT_OFFLINE ───────────────────────────────────────────────────────────
+    // Bot calls this in OnDeinit (terminal close / EA removed).
+    // Sets lastSeenAt to year 2000 so the 10-minute stale check goes grey.
+    if (status === 'BOT_OFFLINE') {
+      const magic = String(data.magic || '')
+      if (!magic) return NextResponse.json({ received: true, note: 'BOT_OFFLINE missing magic' })
+
+      // Year 2000 timestamp = clearly stale, triggers offline indicator
+      await firestorePatch(
+        'botConfig', magic,
+        { lastSeenAt: new Date('2000-01-01T00:00:00Z') },
+        ['lastSeenAt']
+      )
+      console.log(`[WEBHOOK v5.3] 🔴 BOT_OFFLINE: ${botName} | magic ${magic}`)
+      return NextResponse.json({ success: true, action: 'bot_offline' })
     }
 
     // ── OPENED ────────────────────────────────────────────────────────────────
@@ -151,7 +171,7 @@ export async function POST(request: NextRequest) {
         symbol, bot: botName, direction, entryPrice, sl, tp1, tp2, lot,
         status: 'OPEN', outcome: 'PENDING', openedAt: new Date(), source: 'MT5 Bot Signal',
       })
-      console.log(`[WEBHOOK v5.2] 📡 OPENED: ${botName} | ${symbol} | ${direction} @ ${entryPrice}`)
+      console.log(`[WEBHOOK v5.3] 📡 OPENED: ${botName} | ${symbol} | ${direction} @ ${entryPrice}`)
       return NextResponse.json({ success: true, action: 'signal_opened' })
     }
 
@@ -162,7 +182,7 @@ export async function POST(request: NextRequest) {
         profit, status: 'CLOSED',
         outcome: profit >= 0 ? 'WIN' : 'LOSS', closedAt: new Date(),
       }, ['profit','status','outcome','closedAt'])
-      console.log(`[WEBHOOK v5.2] ✅ CLOSED: ${botName} | ${symbol} | $${profit}`)
+      console.log(`[WEBHOOK v5.3] ✅ CLOSED: ${botName} | ${symbol} | $${profit}`)
       return NextResponse.json({ success: true, action: 'signal_closed', profit })
     }
 
@@ -192,7 +212,7 @@ export async function POST(request: NextRequest) {
       }
       const col = accountId ? `accounts/${accountId}/trades` : 'trades'
       await firestorePatch(col, ticket, tradeDoc)
-      console.log(`[WEBHOOK v5.2] 📝 MANUAL: ${userId} | ${symbol} | $${profit} → ${col}`)
+      console.log(`[WEBHOOK v5.3] 📝 MANUAL: ${userId} | ${symbol} | $${profit} → ${col}`)
       return NextResponse.json({ success: true, action: 'manual_trade_written', collection: col })
     }
 
@@ -200,7 +220,7 @@ export async function POST(request: NextRequest) {
 
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
-    console.error('[WEBHOOK v5.2] Error:', msg)
+    console.error('[WEBHOOK v5.3] Error:', msg)
     return NextResponse.json({ received: true }, { status: 200 }) // always 200 — MT5 must not hang
   }
 }

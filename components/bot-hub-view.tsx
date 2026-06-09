@@ -1,7 +1,10 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { collection, onSnapshot, query, where, doc, setDoc, getDoc } from "firebase/firestore"
+import {
+  collection, onSnapshot, query, where,
+  doc, setDoc, getDoc
+} from "firebase/firestore"
 import { useAuth } from "@/lib/auth-context"
 import { db } from "@/lib/firebase"
 import {
@@ -14,9 +17,7 @@ import {
   CartesianGrid, Tooltip
 } from "recharts"
 
-// ─── Bot registry ─────────────────────────────────────────────────────────────
-// firestore: must match the "bot" field written by the webhook (SendEntryToVercel)
-
+// ─── Bot registry ──────────────────────────────────────────────────────────
 const BOTS = [
   {
     id:        "apex",
@@ -108,11 +109,26 @@ const BOTS = [
   },
 ]
 
-// ─── Dynamic bot meta (written by bot OnInit via webhook → Firestore) ──────────
-interface BotMeta { botVersion?: string; botMode?: string; lastSeenAt?: any }
+// ─── BotMeta: live data from botConfig/{magic} via onSnapshot ────────────────
+// botName, botVersion, botMode come from the EA's BOT_INIT webhook call.
+// lastSeenAt is refreshed every 5 min by the heartbeat; zeroed by BOT_OFFLINE.
+interface BotMeta {
+  botName?:    string
+  botVersion?: string
+  botMode?:    string
+  lastSeenAt?: any
+}
+
+// ─── Returns true if lastSeenAt is within the last 10 minutes ────────────────
+function getIsLive(meta: BotMeta): boolean {
+  if (!meta.lastSeenAt) return false
+  try {
+    const t = meta.lastSeenAt?.toDate?.() ?? new Date(meta.lastSeenAt)
+    return (Date.now() - t.getTime()) < 10 * 60 * 1000
+  } catch { return false }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
 interface BotTrade {
   id:         string
   symbol:     string
@@ -128,15 +144,11 @@ interface BotTrade {
   status:     string
 }
 
-interface BotStats {
-  trades:  BotTrade[]
-  loaded:  boolean
-}
+interface BotStats { trades: BotTrade[]; loaded: boolean }
 
 // ─── Chart tooltip ────────────────────────────────────────────────────────────
-
 function ChartTip({ active, payload, label }: any) {
-  if(!active || !payload?.length) return null
+  if (!active || !payload?.length) return null
   return (
     <div className="rounded-xl border border-white/10 bg-black/80 px-3 py-2 text-xs backdrop-blur-sm">
       <p className="text-white/40 mb-1">{label}</p>
@@ -145,19 +157,22 @@ function ChartTip({ active, payload, label }: any) {
   )
 }
 
-// ─── Bot selector card ────────────────────────────────────────────────────────
-
-function BotCard({ bot, stats, selected, onClick }: {
-  bot:      typeof BOTS[0]
-  stats:    BotStats
+// ─── BotCard ──────────────────────────────────────────────────────────────────
+function BotCard({ bot, stats, botMeta, selected, onClick }: {
+  bot:     typeof BOTS[0]
+  stats:   BotStats
+  botMeta: BotMeta
   selected: boolean
   onClick:  () => void
 }) {
-  const pnl    = useMemo(() => stats.trades.reduce((s,t) => s+t.profit, 0), [stats.trades])
+  const pnl    = useMemo(() => stats.trades.reduce((s, t) => s + t.profit, 0), [stats.trades])
   const wins   = stats.trades.filter(t => t.profit > 0).length
-  const losses = stats.trades.filter(t => t.profit < 0).length
-  const wr     = stats.trades.length > 0 ? (wins/stats.trades.length)*100 : 0
+  const wr     = stats.trades.length > 0 ? (wins / stats.trades.length) * 100 : 0
   const pnlPos = pnl >= 0
+  const isLive = getIsLive(botMeta)
+
+  // Show live bot name if the EA has registered under a different name
+  const displayName = botMeta.botName ?? bot.name
 
   return (
     <button
@@ -175,7 +190,16 @@ function BotCard({ bot, stats, selected, onClick }: {
         <div className="flex items-center gap-2">
           <span className="text-lg leading-none">{bot.icon}</span>
           <div>
-            <p className="text-xs font-black text-white leading-tight">{bot.name}</p>
+            {/* displayName reflects live botName from Firestore if EA has registered */}
+            <div className="flex items-center gap-1.5">
+              <p className="text-xs font-black text-white leading-tight">{displayName}</p>
+              {/* Live dot: green pulse = online, grey = offline/never connected */}
+              <span
+                className={isLive ? "w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0" : "w-1.5 h-1.5 rounded-full flex-shrink-0"}
+                style={{ background: isLive ? "#22c55e" : "rgba(255,255,255,0.15)" }}
+                title={isLive ? "Live — heartbeat <10 min ago" : "Offline"}
+              />
+            </div>
             <p className="text-[10px] font-mono mt-0.5" style={{ color: `${bot.color}99` }}>
               {bot.symbol} · {bot.timeframe} · Magic {bot.magic}
             </p>
@@ -183,7 +207,7 @@ function BotCard({ bot, stats, selected, onClick }: {
         </div>
         <span className="text-[9px] font-black px-2 py-0.5 rounded-full border"
           style={{ background:`${bot.color}18`, borderColor:`${bot.color}40`, color:bot.color }}>
-          {bot.version}
+          {botMeta.botVersion ?? bot.version}
         </span>
       </div>
 
@@ -194,7 +218,7 @@ function BotCard({ bot, stats, selected, onClick }: {
       ) : (
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <p className="text-[9px] text-white/30 uppercase tracking-wider">P&L</p>
+            <p className="text-[9px] text-white/30 uppercase tracking-wider">P&amp;L</p>
             <p className="text-sm font-black" style={{ color: pnlPos ? bot.color : "#f87171" }}>
               {pnlPos?"+":""}${pnl.toFixed(2)}
             </p>
@@ -220,20 +244,18 @@ function BotCard({ bot, stats, selected, onClick }: {
   )
 }
 
-// ─── Bot detail panel ─────────────────────────────────────────────────────────
-
-function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
+// ─── BotDetail ────────────────────────────────────────────────────────────────
+function BotDetail({ bot, stats, botMeta }: {
+  bot:     typeof BOTS[0]
+  stats:   BotStats
+  botMeta: BotMeta
+}) {
   const [tab,       setTab]       = useState<"overview"|"signals"|"trades"|"config"|"changelog">("overview")
   const [editing,   setEditing]   = useState(false)
   const [saving,    setSaving]    = useState(false)
   const [savedMsg,  setSavedMsg]  = useState(false)
   const [remoteConfig, setRemoteConfig] = useState<Record<string,any> | null>(null)
-  const [botMeta, setBotMeta] = useState<BotMeta>({})
 
-  // ── CRT-aligned remote config ──────────────────────────────────────────────
-  // Reflects only the g_ variables that PHX_RemoteConfig.mqh actually reads.
-  // Old SMC params (shieldRR, requireOB, requireSweep, requirePremDis) removed —
-  // CRT bots do not use them.
   const defaultCfg = {
     isActive:       true,
     normalLot:      0.01,
@@ -249,17 +271,17 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
   const [isOwner, setIsOwner] = useState(false)
 
   useEffect(() => {
-    if(!user) return
+    if (!user) return
     getDoc(doc(db, "allowedUsers", user.uid)).then(snap => {
       setIsOwner(snap.exists() && snap.data()?.isPhoenixOwner === true)
     })
   }, [user])
 
-  // Load existing remote config from Firestore
+  // Load remote config (one-time is fine — config doesn't need real-time)
   useEffect(() => {
-    if(!user) return
+    if (!user) return
     getDoc(doc(db, "botConfig", String(bot.magic))).then(snap => {
-      if(snap.exists()) {
+      if (snap.exists()) {
         const data = snap.data()
         setCfg({
           isActive:       data.isActive       ?? true,
@@ -271,15 +293,21 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
           dailyLossCap:   data.dailyLossCap   ?? 5.0,
         })
         setRemoteConfig(data)
-        if(data.botVersion) setBotMeta({ botVersion:data.botVersion, botMode:data.botMode, lastSeenAt:data.lastSeenAt })
       }
     })
   }, [bot.magic, user])
+
+  // Live status: botMeta comes from parent onSnapshot — updates in real time.
+  // isLive = true only if lastSeenAt is within the last 10 minutes.
+  const isLive = useMemo(() => getIsLive(botMeta), [botMeta.lastSeenAt])
+
+  // Use live name/version/mode from Firestore if available, else fall back to registry
+  const displayName = botMeta.botName    ?? bot.name
   const liveVersion = botMeta.botVersion ?? bot.version
   const liveMode    = botMeta.botMode    ?? bot.config["Mode"]
 
   const saveConfig = async () => {
-    if(!user) return
+    if (!user) return
     setSaving(true)
     try {
       await setDoc(doc(db, "botConfig", String(bot.magic)), {
@@ -299,19 +327,18 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
   }
 
   const trades  = stats.trades
-  const pnl     = trades.reduce((s,t) => s+t.profit, 0)
+  const pnl     = trades.reduce((s, t) => s + t.profit, 0)
   const wins    = trades.filter(t => t.profit > 0)
   const losses  = trades.filter(t => t.profit < 0)
-  const wr      = trades.length > 0 ? (wins.length/trades.length)*100 : 0
-  const avgWin  = wins.length   > 0 ? wins.reduce((s,t)=>s+t.profit,0)/wins.length : 0
-  const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s,t)=>s+t.profit,0)/losses.length) : 0
-  const pf      = avgLoss > 0 ? avgWin/avgLoss : 0
+  const wr      = trades.length > 0 ? (wins.length / trades.length) * 100 : 0
+  const avgWin  = wins.length   > 0 ? wins.reduce((s,t)=>s+t.profit,0)   / wins.length   : 0
+  const avgLoss = losses.length > 0 ? Math.abs(losses.reduce((s,t)=>s+t.profit,0)) / losses.length : 0
+  const pf      = avgLoss > 0 ? avgWin / avgLoss : 0
 
-  // Equity curve — sorted by closedAt client-side
   const equityData = useMemo(() => {
     let run = 0
     return [...trades]
-      .sort((a,b) => {
+      .sort((a, b) => {
         const ta = a.closedAt?.toDate ? a.closedAt.toDate() : new Date(a.closedAt || 0)
         const tb = b.closedAt?.toDate ? b.closedAt.toDate() : new Date(b.closedAt || 0)
         return ta.getTime() - tb.getTime()
@@ -320,7 +347,7 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
         run += t.profit
         const d = t.closedAt?.toDate ? t.closedAt.toDate() : new Date(t.closedAt || 0)
         return {
-          date:  d.toLocaleDateString("en-US",{month:"short",day:"numeric"}),
+          date:  d.toLocaleDateString("en-US", { month:"short", day:"numeric" }),
           value: Number(run.toFixed(2))
         }
       })
@@ -344,9 +371,17 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
         <div className="flex items-center gap-3">
           <span className="text-xl">{bot.icon}</span>
           <div>
-            <h2 className="text-sm font-black text-white">{bot.name}</h2>
+            {/* displayName: live from Firestore botName field, falls back to registry */}
+            <h2 className="text-sm font-black text-white">{displayName}</h2>
             <p className="text-[10px] font-mono" style={{ color:`${bot.color}80` }}>
-              {bot.symbol} · {bot.timeframe} · Magic {bot.magic} · {liveVersion}{botMeta.lastSeenAt ? " · 🟢 live" : ""}
+              {bot.symbol} · {bot.timeframe} · Magic {bot.magic} · {liveVersion}
+              {/* Live indicator: green = heartbeat recent, grey dot = offline */}
+              {isLive
+                ? <span className="ml-1 text-green-400 animate-pulse">● live</span>
+                : botMeta.lastSeenAt
+                  ? <span className="ml-1 text-white/20">● offline</span>
+                  : null
+              }
             </p>
           </div>
         </div>
@@ -392,14 +427,16 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
               ))}
             </div>
 
-            {/* CRT config summary */}
+            {/* Strategy config summary */}
             <div className="rounded-xl border border-white/6 bg-white/[0.02] px-4 py-3">
-              <p className="text-[9px] uppercase tracking-widest text-white/25 mb-2">CRT Engine — Current Config</p>
+              <p className="text-[9px] uppercase tracking-widest text-white/25 mb-2">
+                {liveMode} — Current Config
+              </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1.5">
-                {Object.entries(bot.config).map(([k,v]) => (
+                {Object.entries(bot.config).map(([k, v]) => (
                   <div key={k}>
                     <span className="text-[9px] text-white/30">{k}: </span>
-                    <span className="text-[9px] font-bold" style={{color:bot.color}}>{v}</span>
+                    <span className="text-[9px] font-bold" style={{ color:bot.color }}>{v}</span>
                   </div>
                 ))}
               </div>
@@ -424,7 +461,7 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
                       <XAxis dataKey="date" hide />
                       <YAxis axisLine={false} tickLine={false}
                         tick={{ fontSize:8, fill:"rgba(255,255,255,0.25)" }}
-                        tickFormatter={v=>`$${v}`} />
+                        tickFormatter={v => `$${v}`} />
                       <Tooltip content={<ChartTip />} />
                       <Area type="monotone" dataKey="value"
                         stroke={bot.color} strokeWidth={2}
@@ -456,7 +493,7 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
         {tab === "signals" && (
           <div className="space-y-3">
             <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">
-              Recent Signals — {bot.name} · Last 30 entries
+              Recent Signals — {displayName} · Last 30 entries
             </p>
             <div className="rounded-xl border border-white/6 overflow-hidden">
               <table className="w-full">
@@ -469,21 +506,22 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
                 </thead>
                 <tbody>
                   {[...trades]
-                    .sort((a,b) => {
+                    .sort((a, b) => {
                       const ta = a.closedAt?.toDate ? a.closedAt.toDate() : new Date(a.closedAt||0)
                       const tb = b.closedAt?.toDate ? b.closedAt.toDate() : new Date(b.closedAt||0)
                       return tb.getTime() - ta.getTime()
                     })
                     .slice(0, 30)
                     .map(t => {
-                      const d = t.closedAt?.toDate ? t.closedAt.toDate() : new Date(t.closedAt||0)
+                      const d      = t.closedAt?.toDate ? t.closedAt.toDate() : new Date(t.closedAt||0)
                       const isOpen = t.status === "OPEN"
                       const pos    = t.profit >= 0
                       return (
                         <tr key={t.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
                           <td className="px-3 py-2 text-[10px] font-mono text-white/30">
-                            {isOpen ? <span className="animate-pulse" style={{color:bot.color}}>LIVE</span>
-                                    : d.toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
+                            {isOpen
+                              ? <span className="animate-pulse" style={{color:bot.color}}>LIVE</span>
+                              : d.toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
                           </td>
                           <td className="px-3 py-2 text-[10px] font-bold text-white">{t.symbol}</td>
                           <td className="px-3 py-2">
@@ -538,14 +576,14 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
                 </thead>
                 <tbody>
                   {[...trades]
-                    .sort((a,b) => {
+                    .sort((a, b) => {
                       const ta = a.closedAt?.toDate ? a.closedAt.toDate() : new Date(a.closedAt||0)
                       const tb = b.closedAt?.toDate ? b.closedAt.toDate() : new Date(b.closedAt||0)
                       return tb.getTime() - ta.getTime()
                     })
                     .slice(0, 50)
                     .map(t => {
-                      const d = t.closedAt?.toDate ? t.closedAt.toDate() : new Date(t.closedAt||0)
+                      const d   = t.closedAt?.toDate ? t.closedAt.toDate() : new Date(t.closedAt||0)
                       const pos = t.profit >= 0
                       return (
                         <tr key={t.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
@@ -589,11 +627,10 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
         {/* ── CONFIG — owner only ── */}
         {tab === "config" && isOwner && (
           <div className="space-y-4">
-
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">
-                  Live Parameters — {bot.name} {bot.version}
+                  Live Parameters — {displayName} {liveVersion}
                 </p>
                 {remoteConfig?.updatedAt && (
                   <p className="text-[9px] text-white/20 mt-0.5">
@@ -638,15 +675,15 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
               </div>
               <button
                 disabled={!editing}
-                onClick={() => setCfg(p => ({...p, isActive: !p.isActive}))}
+                onClick={() => setCfg(p => ({ ...p, isActive: !p.isActive }))}
                 className="relative w-11 h-6 rounded-full transition-all duration-200 disabled:opacity-60"
-                style={{background: cfg.isActive ? bot.color : "rgba(255,255,255,0.1)"}}>
+                style={{ background: cfg.isActive ? bot.color : "rgba(255,255,255,0.1)" }}>
                 <span className="absolute top-0.5 transition-all duration-200 w-5 h-5 bg-white rounded-full shadow"
-                  style={{left: cfg.isActive ? "calc(100% - 22px)" : "2px"}} />
+                  style={{ left: cfg.isActive ? "calc(100% - 22px)" : "2px" }} />
               </button>
             </div>
 
-            {/* Numeric params — CRT-aligned */}
+            {/* Numeric params */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[
                 { key:"normalLot",    label:"Base Lot",     step:0.005, min:0.001, max:1    },
@@ -654,19 +691,19 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
                 { key:"maxSpread",    label:"Max Spread",   step:10,    min:10,    max:2000 },
                 { key:"dailyWinGoal", label:"Daily Win %",  step:0.5,   min:1,     max:50   },
                 { key:"dailyLossCap", label:"Daily Loss %", step:0.5,   min:1,     max:20   },
-              ].map(({key,label,step,min,max}) => (
+              ].map(({ key, label, step, min, max }) => (
                 <div key={key} className="rounded-xl border border-white/6 bg-white/[0.02] px-3 py-3">
                   <p className="text-[9px] uppercase tracking-widest text-white/30 mb-2">{label}</p>
                   {editing ? (
                     <input
                       type="number" step={step} min={min} max={max}
                       value={(cfg as any)[key]}
-                      onChange={e => setCfg(p => ({...p, [key]: parseFloat(e.target.value)||0}))}
+                      onChange={e => setCfg(p => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
                       className="w-full bg-white/5 border border-white/15 rounded-lg px-2 py-1 text-sm font-black text-white focus:outline-none focus:border-white/30"
-                      style={{colorScheme:"dark"}}
+                      style={{ colorScheme:"dark" }}
                     />
                   ) : (
-                    <p className="text-sm font-black" style={{color:bot.color}}>
+                    <p className="text-sm font-black" style={{ color:bot.color }}>
                       {(cfg as any)[key]}
                     </p>
                   )}
@@ -674,25 +711,25 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
               ))}
             </div>
 
-            {/* HTF bias toggle — the only CRT filter remaining */}
+            {/* HTF bias toggle */}
             <div>
               <p className="text-[9px] uppercase tracking-widest text-white/20 mb-2">HTF Bias Filter</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[{ key:"requireHTFBias", label: bot.timeframe === "M15" ? "H4 Bias" : "H1 Bias" }].map(({key,label}) => {
+                {[{ key:"requireHTFBias", label: bot.timeframe === "M15" ? "H4 Bias" : "H1 Bias" }].map(({ key, label }) => {
                   const on = (cfg as any)[key]
                   return (
                     <button key={key}
                       disabled={!editing}
-                      onClick={() => setCfg(p => ({...p, [key]: !(p as any)[key]}))}
+                      onClick={() => setCfg(p => ({ ...p, [key]: !(p as any)[key] }))}
                       className="flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-all disabled:opacity-60"
                       style={{
                         background:  on ? `${bot.color}18` : "rgba(255,255,255,0.02)",
                         borderColor: on ? `${bot.color}40` : "rgba(255,255,255,0.06)",
                       }}>
                       <span className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{background: on ? bot.color : "rgba(255,255,255,0.2)"}} />
+                        style={{ background: on ? bot.color : "rgba(255,255,255,0.2)" }} />
                       <span className="text-[10px] font-bold"
-                        style={{color: on ? bot.color : "rgba(255,255,255,0.3)"}}>
+                        style={{ color: on ? bot.color : "rgba(255,255,255,0.3)" }}>
                         {label}
                       </span>
                     </button>
@@ -753,22 +790,21 @@ function BotDetail({ bot, stats }: { bot: typeof BOTS[0]; stats: BotStats }) {
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
-
 export default function BotHubView() {
   const [selectedBot, setSelectedBot] = useState(BOTS[0].id)
   const [botStats,    setBotStats]    = useState<Record<string, BotStats>>({})
+  // Real-time botMeta per bot — subscribed via onSnapshot so heartbeats and
+  // BOT_OFFLINE updates reflect instantly without a page refresh.
+  const [botMetas,    setBotMetas]    = useState<Record<string, BotMeta>>({})
 
   const bot = BOTS.find(b => b.id === selectedBot)!
 
-  // Subscribe to botTrades per bot — filter by bot name, sort client-side
+  // Subscribe to botTrades per bot
   useEffect(() => {
     const unsubs: (() => void)[] = []
-    for(const b of BOTS) {
+    for (const b of BOTS) {
       setBotStats(prev => ({ ...prev, [b.id]: { trades:[], loaded:false } }))
-      const q = query(
-        collection(db, "botTrades"),
-        where("bot", "==", b.firestore)
-      )
+      const q = query(collection(db, "botTrades"), where("bot", "==", b.firestore))
       const unsub = onSnapshot(q, snap => {
         const trades = snap.docs.map(d => {
           const data = d.data()
@@ -796,16 +832,42 @@ export default function BotHubView() {
     return () => unsubs.forEach(u => u())
   }, [])
 
+  // Subscribe to botConfig/{magic} for EACH bot via onSnapshot.
+  // This is what makes the live indicator update in real time:
+  // - Heartbeat BOT_INIT every 5 min → lastSeenAt refreshes → green dot stays
+  // - BOT_OFFLINE → lastSeenAt goes to year 2000 → dot goes grey instantly
+  // - Name/version changes → card and detail update without page reload
+  useEffect(() => {
+    const unsubs: (() => void)[] = []
+    for (const b of BOTS) {
+      const unsub = onSnapshot(doc(db, "botConfig", String(b.magic)), snap => {
+        if (snap.exists()) {
+          const d = snap.data()
+          setBotMetas(prev => ({
+            ...prev,
+            [b.id]: {
+              botName:    d.botName,
+              botVersion: d.botVersion,
+              botMode:    d.botMode,
+              lastSeenAt: d.lastSeenAt,
+            }
+          }))
+        }
+      })
+      unsubs.push(unsub)
+    }
+    return () => unsubs.forEach(u => u())
+  }, [])
+
   return (
     <div className="space-y-5">
-
       <div>
         <h1 className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
           <Zap size={15} className="text-muted-foreground" />
           Bot Hub
         </h1>
         <p className="text-[10px] text-muted-foreground mt-0.5">
-          Live performance monitoring for all deployed CRT engines
+          Live performance monitoring for all deployed engines
         </p>
       </div>
 
@@ -815,6 +877,7 @@ export default function BotHubView() {
             key={b.id}
             bot={b}
             stats={botStats[b.id] ?? { trades:[], loaded:false }}
+            botMeta={botMetas[b.id] ?? {}}
             selected={selectedBot === b.id}
             onClick={() => setSelectedBot(b.id)}
           />
@@ -824,6 +887,7 @@ export default function BotHubView() {
       <BotDetail
         bot={bot}
         stats={botStats[bot.id] ?? { trades:[], loaded:false }}
+        botMeta={botMetas[bot.id] ?? {}}
       />
     </div>
   )
