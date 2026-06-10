@@ -1,12 +1,12 @@
 {
   "short_name": "Phoenix",
   "name": "Phoenix Trading Dashboard",
-  "description": "A Multi-Asset, AI Phoenix Live telemetry and P&amp;L trade Calendar.",
+  "description": "A Multi-Asset, AI Phoenix Live telemetry and P&L trade Calendar.",
   "start_url": "/",
   "display": "fullscreen",
   "orientation": "portrait-primary",
   "dir": "ltr",
-  "lang": "en"
+  "lang": "en",
   "theme_color": "#0d162a",
   "id": "PCD",
   "scope": "/",
