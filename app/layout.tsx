@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth-context"
 export const metadata: Metadata = {
   title: "Phoenix Trading Ecosystem",
   description: "Institutional-grade algorithmic trading dashboard",
+  manifest: "/manifest.json",
 }
 
 // Runs synchronously in <head> BEFORE React hydrates.

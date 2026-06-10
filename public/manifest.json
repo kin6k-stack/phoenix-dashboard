@@ -1,0 +1,32 @@
+{
+  "short_name": "Phoenix",
+  "name": "Phoenix Trading Dashboard",
+  "description": "A Multi-Asset, AI Phoenix Live telemetry and P&amp;L trade Calendar.",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "portrait-primary",
+  "dir": "ltr",
+  "lang": "en"
+  "theme_color": "#0d162a",
+  "id": "PCD",
+  "scope": "/",
+  "background_color": "#000000",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    },
+    {
+      "src": "/icon-maskable-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ]
+}
