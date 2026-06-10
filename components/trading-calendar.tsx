@@ -1,72 +1,84 @@
 "use client"
 
-import { useState, useMemo } from "react"
+// FIX: Added viewDate prop — parent can now control which month is displayed.
+// When "View in Calendar" fires phoenix:calendar:nav, page.tsx updates
+// currentMonthYear, passes it as viewDate, and useEffect syncs the internal
+// currentDate so the visual calendar jumps to the correct month instantly.
+
+import { useState, useMemo, useEffect } from "react"
 import { ChevronLeft, ChevronRight, Edit3, ArrowUpRight, ArrowDownRight } from "lucide-react"
 
 interface Trade {
-  id: string
-  date: string
-  symbol: string
-  setup: string
-  rMultiple: number
-  direction?: string
-  notes?: string
-  screenshot?: string
+  id: string; date: string; symbol: string; setup: string
+  rMultiple: number; direction?: string; notes?: string; screenshot?: string
 }
 
 interface TradingCalendarProps {
-  selectedDate:    Date | null
-  onDateSelect:    (d: Date) => void
-  trades:          Trade[]
-  tradeDates?:     Date[]
-  totalTrades?:    number
-  wins?:           number
-  netPnL?:         number
-  winRate?:        number
-  onMonthYearChange?: (v: { month: number; year: number }) => void
+  selectedDate:      Date | null
+  onDateSelect:      (d: Date) => void
+  trades:            Trade[]
+  tradeDates?:       Date[]
+  totalTrades?:      number
+  wins?:             number
+  netPnL?:           number
+  winRate?:          number
+  onMonthYearChange?:(v: { month: number; year: number }) => void
+  // ── NEW: controlled display month (from page.tsx currentMonthYear) ──────
+  viewDate?:         { month: number; year: number }
 }
 
 export function TradingCalendar({
-  selectedDate,
-  onDateSelect,
+  selectedDate, onDateSelect,
   trades = [],
-  totalTrades = 0,
-  wins = 0,
-  netPnL = 0,
-  winRate = 0,
+  totalTrades = 0, wins = 0, netPnL = 0, winRate = 0,
   onMonthYearChange,
+  viewDate,
 }: TradingCalendarProps) {
+
   const [currentDate, setCurrentDate] = useState(new Date())
 
-  // ── Daily aggregates: P&L sum + trade count per day ────────────────
+  // ── Sync displayed month when parent pushes a new viewDate ─────────────
+  // This is what makes "View in Calendar" from the yearly table actually
+  // jump to the correct month instead of staying on whatever was showing.
+  useEffect(() => {
+    if (!viewDate) return
+    setCurrentDate(prev => {
+      if (
+        prev.getMonth()     === viewDate.month &&
+        prev.getFullYear()  === viewDate.year
+      ) return prev  // already showing — no-op to avoid re-render loop
+      return new Date(viewDate.year, viewDate.month, 1)
+    })
+  }, [viewDate?.year, viewDate?.month])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Daily aggregates ────────────────────────────────────────────────────
   const dailyMap = useMemo(() => {
     const m: Record<string, { pnl: number; count: number }> = {}
     for (const t of trades) {
       const k = new Date(t.date).toDateString()
       if (!m[k]) m[k] = { pnl: 0, count: 0 }
-      m[k].pnl += Number(t.rMultiple)
+      m[k].pnl   += Number(t.rMultiple)
       m[k].count += 1
     }
     return m
   }, [trades])
 
-  // ── Calendar grid: 6 rows × 7 days + 1 week column ─────────────────
+  // ── Calendar grid ───────────────────────────────────────────────────────
   const days = useMemo(() => {
-    const year = currentDate.getFullYear()
+    const year  = currentDate.getFullYear()
     const month = currentDate.getMonth()
-    const daysInMonth = new Date(year, month + 1, 0).getDate()
-    const firstDayOfMonth = new Date(year, month, 1).getDay()
+    const daysInMonth    = new Date(year, month + 1, 0).getDate()
+    const firstDayOfMonth= new Date(year, month, 1).getDay()
     const arr: (Date | null)[] = []
     for (let i = 0; i < firstDayOfMonth; i++) arr.push(null)
-    for (let i = 1; i <= daysInMonth; i++) arr.push(new Date(year, month, i))
+    for (let i = 1; i <= daysInMonth; i++)     arr.push(new Date(year, month, i))
     while (arr.length < 42) arr.push(null)
     return arr
   }, [currentDate])
 
   const weekTotals = useMemo(() => {
     return Array.from({ length: 6 }).map((_, row) => {
-      let sum = 0
-      let count = 0
+      let sum = 0, count = 0
       for (let i = 0; i < 7; i++) {
         const day = days[row * 7 + i]
         if (day) {
@@ -90,143 +102,105 @@ export function TradingCalendar({
   }
 
   const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"]
-  const todayStr = new Date().toDateString()
-  const safeWinRate = Number.isFinite(winRate) ? winRate : 0
-  const netPnlIsPos = netPnL >= 0
+  const todayStr   = new Date().toDateString()
+  const safeWinRate= Number.isFinite(winRate) ? winRate : 0
+  const netPnlIsPos= netPnL >= 0
 
   return (
     <div className="rounded-lg border border-border/40 bg-card/90 overflow-hidden shadow-2xl">
 
-      {/* ── Header: month nav + 4 stat tiles ─────────────────────────── */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-b border-border/40">
-
-        {/* Month nav */}
         <div className="flex items-center gap-3">
-          <button
-            onClick={prevMonth}
-            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors"
-            aria-label="Previous month">
+          <button onClick={prevMonth}
+            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
             <ChevronLeft size={16} />
           </button>
           <span className="text-sm font-bold text-foreground min-w-[120px] text-center">
             {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
           </span>
-          <button
-            onClick={nextMonth}
-            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors"
-            aria-label="Next month">
+          <button onClick={nextMonth}
+            className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
             <ChevronRight size={16} />
           </button>
         </div>
 
-        {/* Stat tiles */}
         <div className="flex items-center gap-3 sm:gap-5">
-          <div className="text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Trades</p>
-            <p className="text-sm font-bold text-foreground tabular-nums mt-0.5">{totalTrades}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Wins</p>
-            <p className="text-sm font-bold text-foreground tabular-nums mt-0.5">{wins}</p>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">P&L</p>
-            <p className={`text-sm font-bold tabular-nums mt-0.5 ${netPnlIsPos ? "text-emerald-400" : "text-rose-400"}`}>
-              {netPnlIsPos ? "+" : "-"}${Math.abs(netPnL).toFixed(2)}
-            </p>
-          </div>
-          <div className="text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">Win %</p>
-            <p className="text-sm font-bold text-foreground tabular-nums mt-0.5">{safeWinRate}%</p>
-          </div>
+          {[
+            { label:"Trades", value: String(totalTrades),                           cls:"text-foreground"                             },
+            { label:"Wins",   value: String(wins),                                   cls:"text-foreground"                             },
+            { label:"P&L",    value: `${netPnlIsPos?"+":"-"}$${Math.abs(netPnL).toFixed(2)}`, cls:netPnlIsPos?"text-emerald-400":"text-rose-400" },
+            { label:"Win %",  value: `${safeWinRate}%`,                              cls:"text-foreground"                             },
+          ].map(s => (
+            <div key={s.label} className="text-center">
+              <p className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">{s.label}</p>
+              <p className={`text-sm font-bold tabular-nums mt-0.5 ${s.cls}`}>{s.value}</p>
+            </div>
+          ))}
           <span className="hidden lg:flex text-[10px] text-muted-foreground/70 items-center gap-1 italic ml-1">
-            <Edit3 size={11} />
-            click date to journal
+            <Edit3 size={11} /> click date to journal
           </span>
         </div>
       </div>
 
-      {/* ── Calendar grid — overflow-x-auto for mobile ───────────────── */}
+      {/* Grid */}
       <div className="overflow-x-auto">
         <div className="min-w-[640px]">
-
-          {/* Day-of-week header — 8 cols (7 days + Week) */}
+          {/* Day header */}
           <div className="grid grid-cols-8 border-b border-border/40">
             {["Sun","Mon","Tue","Wed","Thu","Fri","Sat","Week"].map((d, i) => (
-              <div
-                key={d}
-                className={`px-2 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider
-                  ${i === 7 ? "text-muted-foreground/60" : "text-muted-foreground"}`}>
+              <div key={d}
+                className={`px-2 py-2.5 text-center text-[10px] font-semibold uppercase tracking-wider ${i === 7 ? "text-muted-foreground/60" : "text-muted-foreground"}`}>
                 {d}
               </div>
             ))}
           </div>
 
-          {/* 6 calendar rows */}
+          {/* Rows */}
           {Array.from({ length: 6 }).map((_, row) => {
             const wt = weekTotals[row]
             return (
               <div key={row} className="grid grid-cols-8 border-b border-border/30 last:border-b-0">
                 {days.slice(row * 7, row * 7 + 7).map((day, idx) => {
-                  if (!day) {
-                    return (
-                      <div
-                        key={`${row}-${idx}`}
-                        className="border-r border-border/20 bg-background/10 min-h-[80px]"
-                      />
-                    )
-                  }
-
-                  const dayStr     = day.toDateString()
-                  const dayData    = dailyMap[dayStr]
-                  const dayPnL     = dayData?.pnl ?? 0
-                  const dayCount   = dayData?.count ?? 0
-                  const isNegative = dayPnL < 0
-                  const isPositive = dayPnL > 0
+                  if (!day) return <div key={`${row}-${idx}`} className="border-r border-border/20 bg-background/10 min-h-[80px]" />
+                  const dayStr   = day.toDateString()
+                  const dayData  = dailyMap[dayStr]
+                  const dayPnL   = dayData?.pnl   ?? 0
+                  const dayCount = dayData?.count  ?? 0
+                  const isNeg    = dayPnL < 0
+                  const isPos    = dayPnL > 0
                   const isSelected = selectedDate?.toDateString() === dayStr
                   const isToday    = dayStr === todayStr
-
                   return (
-                    <button
-                      key={`${row}-${idx}`}
-                      onClick={() => onDateSelect(day)}
-                      className={`border-r border-border/20 p-2 flex flex-col min-h-[80px] cursor-pointer hover:bg-white/[0.04] transition-all group text-left
+                    <button key={`${row}-${idx}`} onClick={() => onDateSelect(day)}
+                      className={`border-r border-border/20 p-2 flex flex-col min-h-[80px] cursor-pointer hover:bg-white/[0.04] transition-all text-left
                         ${isSelected ? "ring-2 ring-inset ring-emerald-500/60 bg-emerald-500/[0.08]" : ""}
                         ${isToday && !isSelected ? "ring-1 ring-inset ring-emerald-500/30 bg-emerald-500/[0.03]" : ""}
-                        ${isNegative && !isSelected ? "bg-rose-500/[0.06]" : ""}
-                        ${isPositive && !isSelected ? "bg-emerald-500/[0.06]" : ""}
-                      `}>
-
-                      {/* Date number + direction icon */}
+                        ${isNeg && !isSelected ? "bg-rose-500/[0.06]" : ""}
+                        ${isPos && !isSelected ? "bg-emerald-500/[0.06]" : ""}`}>
                       <div className="flex items-center justify-between">
                         <span className={`text-[11px] font-semibold leading-none ${isToday ? "text-emerald-400" : "text-foreground"}`}>
                           {day.getDate()}
                         </span>
-                        {dayPnL !== 0 && (
-                          isPositive
-                            ? <ArrowUpRight size={11} className="text-emerald-400/70" />
-                            : <ArrowDownRight size={11} className="text-rose-400/70" />
+                        {dayPnL !== 0 && (isPos
+                          ? <ArrowUpRight   size={11} className="text-emerald-400/70"/>
+                          : <ArrowDownRight size={11} className="text-rose-400/70"/>
                         )}
                       </div>
-
-                      {/* P&L amount */}
                       {dayPnL !== 0 && (
-                        <span className={`text-[12px] font-bold tabular-nums mt-auto ${isNegative ? "text-rose-400" : "text-emerald-400"}`}>
-                          {isNegative ? "-" : "+"}${Math.abs(dayPnL).toFixed(2)}
+                        <span className={`text-[12px] font-bold tabular-nums mt-auto ${isNeg ? "text-rose-400" : "text-emerald-400"}`}>
+                          {isNeg ? "-" : "+"}${Math.abs(dayPnL).toFixed(2)}
                         </span>
                       )}
-
-                      {/* Trade count */}
                       {dayCount > 0 && (
                         <span className="text-[9px] text-muted-foreground/80 font-mono tabular-nums">
-                          {dayCount}T · {Math.round(dayCount * 0.7)}W
+                          {dayCount}T
                         </span>
                       )}
                     </button>
                   )
                 })}
-
-                {/* Week-total cell */}
+                {/* Week total */}
                 <div className="p-2 flex flex-col justify-center items-center bg-background/[0.03]">
                   {wt.sum !== 0 ? (
                     <>
@@ -239,7 +213,6 @@ export function TradingCalendar({
                     <span className="text-[11px] text-muted-foreground/30">—</span>
                   )}
                 </div>
-
               </div>
             )
           })}

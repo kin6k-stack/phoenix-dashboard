@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import Script from "next/script" // Patched: Imported Next.js Script component
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import "./globals.css"
@@ -7,16 +8,12 @@ import { AuthProvider } from "@/lib/auth-context"
 export const metadata: Metadata = {
   title: "Phoenix Trading Ecosystem",
   description: "Institutional-grade algorithmic trading dashboard",
+  manifest: "/manifest.json",
 }
 
 // Runs synchronously in <head> BEFORE React hydrates.
 // Reads localStorage and applies saved theme/density/animation/invert
 // settings to <html> so the page never flashes the wrong theme.
-//
-// Theme name migration (from prior versions):
-//   "oled"  → "black-white"
-//   "pink"  → "violet"
-//   "light" → "gold"
 const themeInitScript = `
 (function() {
   try {
@@ -41,6 +38,22 @@ const themeInitScript = `
 })();
 `
 
+// Patched: Service Worker registration logic string
+const swRegisterScript = `
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(
+      function(registration) {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      },
+      function(err) {
+        console.log('ServiceWorker registration failed: ', err);
+      }
+    );
+  });
+}
+`
+
 export default function RootLayout({
   children,
 }: {
@@ -58,6 +71,13 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased bg-background text-foreground min-h-screen">
         <AuthProvider>{children}</AuthProvider>
+
+        {/* Patched: Registers the background service worker without hurting load performance */}
+        <Script
+          id="register-sw"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: swRegisterScript }}
+        />
       </body>
     </html>
   )
