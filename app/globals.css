@@ -654,3 +654,9 @@ html[data-theme="black-white"].invert-bw body::before {
   opacity: 0.06;
   mix-blend-mode: multiply;
 }
+
+@media (display-mode: standalone) {
+  .hide-in-pwa {
+    display: none !important;
+  }
+}
