@@ -247,8 +247,8 @@ function AccountCard({
       onClick={onClick}
       className="relative rounded-2xl border p-4 cursor-pointer transition-all duration-200 group"
       style={{
-        background:  selected ? `${account.color}14` : "rgba(255,255,255,0.03)",
-        borderColor: selected ? `${account.color}60` : "rgba(255,255,255,0.07)",
+        background:  selected ? `${account.color}14` : "rgba(127,127,127,0.04)",
+        borderColor: selected ? `${account.color}60` : "hsl(var(--border))",
         boxShadow:   selected ? `0 0 24px ${account.color}22` : "none",
       }}>
 
@@ -259,16 +259,16 @@ function AccountCard({
       {/* Actions */}
       <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button onClick={e => { e.stopPropagation(); onEdit() }}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors">
+          className="p-1.5 rounded-lg bg-foreground/5 hover:bg-foreground/10 text-muted-foreground hover:text-foreground transition-colors">
           <Edit2 size={11} />
         </button>
         <button onClick={e => { e.stopPropagation(); onClear() }}
           title="Delete all trades for this account"
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-amber-500/20 text-white/40 hover:text-amber-400 transition-colors">
+          className="p-1.5 rounded-lg bg-foreground/5 hover:bg-amber-500/20 text-muted-foreground hover:text-amber-400 transition-colors">
           <RefreshCw size={11} />
         </button>
         <button onClick={e => { e.stopPropagation(); onDelete() }}
-          className="p-1.5 rounded-lg bg-white/5 hover:bg-rose-500/20 text-white/40 hover:text-rose-400 transition-colors">
+          className="p-1.5 rounded-lg bg-foreground/5 hover:bg-rose-500/20 text-muted-foreground hover:text-rose-400 transition-colors">
           <Trash2 size={11} />
         </button>
       </div>
@@ -291,12 +291,12 @@ function AccountCard({
 
       {/* Stats */}
       {!stats.loaded ? (
-        <div className="flex items-center gap-1.5 text-white/30">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
           <RefreshCw size={10} className="animate-spin" />
           <span className="text-[10px]">Loading...</span>
         </div>
       ) : stats.tradeCount === 0 ? (
-        <p className="text-[10px] text-white/25 italic">No trades synced yet</p>
+        <p className="text-[10px] text-muted-foreground/70 italic">No trades synced yet</p>
       ) : (
         <div>
           <div className="flex items-baseline gap-1.5">
@@ -308,7 +308,7 @@ function AccountCard({
             </span>
           </div>
           <div className="flex gap-3 mt-1.5">
-            <span className="text-[10px] text-white/40">{stats.tradeCount} trades</span>
+            <span className="text-[10px] text-muted-foreground">{stats.tradeCount} trades</span>
             <span className="text-[10px]" style={{ color: account.color }}>{stats.winRate.toFixed(0)}% WR</span>
           </div>
         </div>
@@ -390,7 +390,7 @@ function AccountTable({ accounts, statsMap, onSelect }: {
             const pnlPos = (s?.totalPnl ?? 0) >= 0
             return (
               <tr key={a.id} onClick={() => onSelect(a)}
-                className="border-b border-white/5 hover:bg-white/[0.03] cursor-pointer transition-colors group">
+                className="border-b border-border/40 hover:bg-foreground/[0.03] cursor-pointer transition-colors group">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full flex-shrink-0"
@@ -419,13 +419,13 @@ function AccountTable({ accounts, statsMap, onSelect }: {
                   {s?.loaded ? `${s.winRate.toFixed(0)}%` : "—"}
                 </td>
                 <td className="px-4 py-3 text-sm font-black"
-                  style={{ color: s?.loaded ? (pnlPos ? "#34d399" : "#f87171") : "rgba(255,255,255,0.2)" }}>
+                  style={{ color: s?.loaded ? (pnlPos ? "#34d399" : "#f87171") : "hsl(var(--muted-foreground))" }}>
                   {s?.loaded && s.tradeCount > 0
                     ? `${pnlPos ? "+" : ""}$${s.totalPnl.toFixed(2)}`
-                    : <span className="text-[10px] text-white/20 italic">Sync trades</span>}
+                    : <span className="text-[10px] text-muted-foreground/60 italic">Sync trades</span>}
                 </td>
                 <td className="px-4 py-3">
-                  <ChevronRight size={12} className="text-white/20 group-hover:text-white/50 transition-colors" />
+                  <ChevronRight size={12} className="text-muted-foreground/50 group-hover:text-foreground transition-colors" />
                 </td>
               </tr>
             )
@@ -433,8 +433,8 @@ function AccountTable({ accounts, statsMap, onSelect }: {
         </tbody>
       </table>
       {accounts.length === 0 && (
-        <div className="px-4 py-10 text-center text-white/25 text-sm">
-          No accounts registered yet — click <strong>Add Account</strong> to get started
+        <div className="px-4 py-10 text-center text-muted-foreground/70 text-sm">
+          No accounts registered yet — click <strong className="text-foreground">Add Account</strong> to get started
         </div>
       )}
     </div>
@@ -626,11 +626,11 @@ export default function LifetimeLedgerView() {
 
       {accounts.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 rounded-2xl border border-white/10 bg-white/[0.03] flex items-center justify-center mb-4">
-            <Wallet size={24} className="text-white/20" />
+          <div className="w-16 h-16 rounded-2xl border border-border bg-foreground/[0.03] flex items-center justify-center mb-4">
+            <Wallet size={24} className="text-muted-foreground" />
           </div>
-          <p className="text-sm font-black text-white/30 uppercase tracking-widest">No accounts yet</p>
-          <p className="text-xs text-white/20 mt-1 max-w-xs">
+          <p className="text-sm font-black text-foreground uppercase tracking-widest">No accounts yet</p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-xs">
             Register your trading accounts to start tracking lifetime P&L across all brokers
           </p>
           <button

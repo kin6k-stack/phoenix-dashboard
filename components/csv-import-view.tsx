@@ -273,22 +273,22 @@ function GenericMapper({
 
   return (
     <div className="space-y-4">
-      <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">
+      <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
         Map your CSV columns to trade fields
       </p>
       <div className="grid grid-cols-2 gap-3">
         {allFields.map(field => (
           <div key={field}>
             <label className="block text-[9px] uppercase tracking-widest mb-1.5"
-              style={{ color: REQUIRED_FIELDS.includes(field) ? "rgba(255,255,255,0.5)" : "rgba(255,255,255,0.25)" }}>
+              style={{ color: REQUIRED_FIELDS.includes(field) ? "hsl(var(--foreground))" : "hsl(var(--muted-foreground))" }}>
               {field} {REQUIRED_FIELDS.includes(field) ? "*" : ""}
             </label>
             <select
               value={mapping[field]}
               onChange={e => setMapping(p => ({...p, [field]: e.target.value}))}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white appearance-none focus:outline-none focus:border-white/25">
-              <option value="" style={{background:"#111"}}>— select column —</option>
-              {headers.map(h => <option key={h} value={h} style={{background:"#111"}}>{h}</option>)}
+              className="w-full bg-foreground/5 border border-border rounded-lg px-3 py-2 text-xs text-foreground appearance-none focus:outline-none focus:border-foreground/25">
+              <option value="" style={{background:"hsl(var(--card))"}}>— select column —</option>
+              {headers.map(h => <option key={h} value={h} style={{background:"hsl(var(--card))"}}>{h}</option>)}
             </select>
           </div>
         ))}
@@ -541,7 +541,7 @@ export default function CSVImportView() {
       {/* Supported brokers */}
       <div className="flex flex-wrap gap-2">
         {brokerEntries.map(([key, fmt]) => (
-          <span key={key} className="text-[9px] font-bold px-2.5 py-1 rounded-full border border-white/8 text-white/30">
+          <span key={key} className="text-[9px] font-bold px-2.5 py-1 rounded-full border border-border text-muted-foreground">
             {fmt.label}
           </span>
         ))}
@@ -552,19 +552,19 @@ export default function CSVImportView() {
         <label className="block cursor-pointer">
           <input type="file" accept=".csv" className="hidden"
             onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
-          <div className="rounded-2xl border-2 border-dashed border-white/10 bg-white/[0.02]
-                          hover:border-white/20 hover:bg-white/[0.04] transition-all
+          <div className="rounded-2xl border-2 border-dashed border-border bg-foreground/[0.02]
+                          hover:border-foreground/20 hover:bg-foreground/[0.04] transition-all
                           flex flex-col items-center justify-center py-20 gap-4"
             onDragOver={e => e.preventDefault()}
             onDrop={e => { e.preventDefault(); e.dataTransfer.files[0] && handleFile(e.dataTransfer.files[0]) }}>
-            <div className="w-14 h-14 rounded-2xl border border-white/10 bg-white/[0.03] flex items-center justify-center">
-              <Upload size={22} className="text-white/25" />
+            <div className="w-14 h-14 rounded-2xl border border-border bg-foreground/[0.03] flex items-center justify-center">
+              <Upload size={22} className="text-muted-foreground" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-black text-white/40">Drop CSV file here</p>
-              <p className="text-xs text-white/20 mt-1">or click to browse</p>
+              <p className="text-sm font-black text-foreground">Drop CSV file here</p>
+              <p className="text-xs text-muted-foreground mt-1">or click to browse</p>
             </div>
-            <p className="text-[10px] text-white/15">Supports: TradingView · Exness · Fusion Markets · Generic</p>
+            <p className="text-[10px] text-muted-foreground/60">Supports: TradingView · Exness · Fusion Markets · Generic</p>
           </div>
         </label>
       )}
@@ -572,21 +572,21 @@ export default function CSVImportView() {
       {/* ── STEP 2: Preview + format select ── */}
       {step === "preview" && rawRows.length > 0 && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3">
+          <div className="flex items-center justify-between rounded-xl border border-border bg-foreground/[0.02] px-4 py-3">
             <div className="flex items-center gap-3">
-              <FileText size={14} className="text-white/40" />
+              <FileText size={14} className="text-muted-foreground" />
               <div>
-                <p className="text-xs font-bold text-white">{file?.name}</p>
-                <p className="text-[10px] text-white/30">{rawRows.length} rows · {csvHeaders.length} columns</p>
+                <p className="text-xs font-bold text-foreground">{file?.name}</p>
+                <p className="text-[10px] text-muted-foreground">{rawRows.length} rows · {csvHeaders.length} columns</p>
               </div>
             </div>
-            <button onClick={reset} className="text-[10px] text-white/30 hover:text-white/60 transition-colors">
+            <button onClick={reset} className="text-[10px] text-muted-foreground hover:text-foreground transition-colors">
               Change file
             </button>
           </div>
 
           <div>
-            <label className="block text-[9px] uppercase tracking-widest text-white/30 mb-2">
+            <label className="block text-[9px] uppercase tracking-widest text-muted-foreground mb-2">
               Detected format — confirm or change
             </label>
             <div className="flex flex-wrap gap-2">
@@ -594,9 +594,9 @@ export default function CSVImportView() {
                 <button key={key} onClick={() => setSelectedFmt(key)}
                   className="px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all"
                   style={{
-                    background:  selectedFmt===key ? "rgba(168,85,247,0.15)" : "rgba(255,255,255,0.03)",
-                    borderColor: selectedFmt===key ? "rgba(168,85,247,0.5)"  : "rgba(255,255,255,0.08)",
-                    color:       selectedFmt===key ? "#a855f7" : "rgba(255,255,255,0.35)",
+                    background:  selectedFmt===key ? "rgba(168,85,247,0.15)" : "rgba(127,127,127,0.04)",
+                    borderColor: selectedFmt===key ? "rgba(168,85,247,0.5)"  : "hsl(var(--border))",
+                    color:       selectedFmt===key ? "#a855f7" : "hsl(var(--muted-foreground))",
                   }}>
                   {fmt.label}
                   {key === detectedFmt && (
@@ -607,24 +607,24 @@ export default function CSVImportView() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/8 overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-white/6 bg-white/[0.02]">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Preview — first 5 rows</p>
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border bg-foreground/[0.02]">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Preview — first 5 rows</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-[10px]">
                 <thead>
-                  <tr className="border-b border-white/5">
+                  <tr className="border-b border-border">
                     {csvHeaders.map(h => (
-                      <th key={h} className="px-3 py-2 text-left font-bold uppercase tracking-wider text-white/20 whitespace-nowrap">{h}</th>
+                      <th key={h} className="px-3 py-2 text-left font-bold uppercase tracking-wider text-muted-foreground/70 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {rawRows.slice(0,5).map((row,i) => (
-                    <tr key={i} className="border-b border-white/[0.03]">
+                    <tr key={i} className="border-b border-border/40">
                       {csvHeaders.map(h => (
-                        <td key={h} className="px-3 py-2 text-white/50 whitespace-nowrap max-w-[120px] truncate">{row[h]}</td>
+                        <td key={h} className="px-3 py-2 text-muted-foreground whitespace-nowrap max-w-[120px] truncate">{row[h]}</td>
                       ))}
                     </tr>
                   ))}
@@ -643,7 +643,7 @@ export default function CSVImportView() {
 
       {/* ── STEP 2b: Generic mapping ── */}
       {step === "mapping" && (
-        <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-5">
+        <div className="rounded-2xl border border-border bg-foreground/[0.02] p-5">
           <GenericMapper
             headers={csvHeaders}
             onConfirm={m => { setGenericMap(m); setSelectedFmt("generic"); setStep("preview") }}
@@ -656,33 +656,33 @@ export default function CSVImportView() {
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label:"Trades parsed", value: parsedTrades.length, color:"text-white" },
+              { label:"Trades parsed", value: parsedTrades.length, color:"text-foreground" },
               { label:"Total profit",  value: `$${parsedTrades.reduce((s,t)=>s+t.profit,0).toFixed(2)}`, color: parsedTrades.reduce((s,t)=>s+t.profit,0)>=0?"text-emerald-400":"text-rose-400" },
-              { label:"Win rate",      value: `${parsedTrades.length>0?(parsedTrades.filter(t=>t.profit>0).length/parsedTrades.length*100).toFixed(0):0}%`, color:"text-white" },
+              { label:"Win rate",      value: `${parsedTrades.length>0?(parsedTrades.filter(t=>t.profit>0).length/parsedTrades.length*100).toFixed(0):0}%`, color:"text-foreground" },
             ].map(s => (
-              <div key={s.label} className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3">
-                <p className="text-[9px] uppercase tracking-widest text-white/25 mb-1">{s.label}</p>
+              <div key={s.label} className="rounded-xl border border-border bg-foreground/[0.02] px-4 py-3">
+                <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">{s.label}</p>
                 <p className={`text-lg font-black ${s.color}`}>{s.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="rounded-xl border border-white/8 overflow-hidden">
-            <div className="px-4 py-2.5 border-b border-white/6 bg-white/[0.02]">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-white/30">Parsed trades preview — first 8</p>
+          <div className="rounded-xl border border-border overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border bg-foreground/[0.02]">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">Parsed trades preview — first 8</p>
             </div>
             <table className="w-full text-[10px]">
               <thead>
-                <tr className="border-b border-white/5">
+                <tr className="border-b border-border">
                   {["Symbol","Dir","Open","Close","P&L","Lots","Date"].map(h => (
-                    <th key={h} className="px-3 py-2 text-left text-[9px] uppercase tracking-widest text-white/20">{h}</th>
+                    <th key={h} className="px-3 py-2 text-left text-[9px] uppercase tracking-widest text-muted-foreground/70">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {parsedTrades.slice(0,8).map((t,i) => (
-                  <tr key={i} className="border-b border-white/[0.03]">
-                    <td className="px-3 py-2 font-bold text-white">{t.symbol}</td>
+                  <tr key={i} className="border-b border-border/40">
+                    <td className="px-3 py-2 font-bold text-foreground">{t.symbol}</td>
                     <td className="px-3 py-2">
                       <span className="text-[9px] font-black px-1.5 py-0.5 rounded"
                         style={{background:t.direction==="BUY"?"rgba(52,211,153,0.15)":"rgba(248,113,113,0.15)",
@@ -690,13 +690,13 @@ export default function CSVImportView() {
                         {t.direction}
                       </span>
                     </td>
-                    <td className="px-3 py-2 font-mono text-white/40">{t.openPrice||"—"}</td>
-                    <td className="px-3 py-2 font-mono text-white/40">{t.closePrice||"—"}</td>
+                    <td className="px-3 py-2 font-mono text-muted-foreground">{t.openPrice||"—"}</td>
+                    <td className="px-3 py-2 font-mono text-muted-foreground">{t.closePrice||"—"}</td>
                     <td className="px-3 py-2 font-black" style={{color:t.profit>=0?"#34d399":"#f87171"}}>
                       {t.profit>=0?"+":""}${t.profit.toFixed(2)}
                     </td>
-                    <td className="px-3 py-2 text-white/30">{t.lots}</td>
-                    <td className="px-3 py-2 text-white/30 font-mono">{t.closedAt?.slice(0,10)||"—"}</td>
+                    <td className="px-3 py-2 text-muted-foreground">{t.lots}</td>
+                    <td className="px-3 py-2 text-muted-foreground font-mono">{t.closedAt?.slice(0,10)||"—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -704,18 +704,18 @@ export default function CSVImportView() {
           </div>
 
           <div>
-            <label className="block text-[9px] uppercase tracking-widest text-white/30 mb-2">Import into account *</label>
+            <label className="block text-[9px] uppercase tracking-widest text-muted-foreground mb-2">Import into account *</label>
             {accounts.length === 0 ? (
-              <p className="text-xs text-white/30 italic">No accounts registered — add one in Lifetime Ledger first</p>
+              <p className="text-xs text-muted-foreground italic">No accounts registered — add one in Lifetime Ledger first</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {accounts.map(acc => (
                   <button key={acc.id} onClick={() => setSelectedAcc(acc.id)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-bold transition-all"
                     style={{
-                      background:  selectedAcc===acc.id ? `${acc.color}18` : "rgba(255,255,255,0.03)",
-                      borderColor: selectedAcc===acc.id ? `${acc.color}50` : "rgba(255,255,255,0.08)",
-                      color:       selectedAcc===acc.id ? acc.color         : "rgba(255,255,255,0.35)",
+                      background:  selectedAcc===acc.id ? `${acc.color}18` : "rgba(127,127,127,0.04)",
+                      borderColor: selectedAcc===acc.id ? `${acc.color}50` : "hsl(var(--border))",
+                      color:       selectedAcc===acc.id ? acc.color         : "hsl(var(--muted-foreground))",
                     }}>
                     <span className="w-2 h-2 rounded-full" style={{background:acc.color}} />
                     {acc.accountName}
@@ -728,7 +728,7 @@ export default function CSVImportView() {
 
           <div className="flex items-center gap-3">
             <button onClick={reset}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-white/40 border border-white/10 hover:bg-white/5 transition-all">
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-muted-foreground border border-border hover:bg-foreground/5 transition-all">
               Start over
             </button>
             <button onClick={runImport} disabled={!selectedAcc || importing}
@@ -743,13 +743,13 @@ export default function CSVImportView() {
 
       {/* ── STEP 4: Progress ── */}
       {importing && (
-        <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-8 text-center space-y-4">
+        <div className="rounded-2xl border border-border bg-foreground/[0.02] p-8 text-center space-y-4">
           <RefreshCw size={24} className="animate-spin mx-auto text-purple-400" />
           <div>
-            <p className="text-sm font-black text-white">Importing trades...</p>
-            <p className="text-xs text-white/30 mt-1">{progress}% complete</p>
+            <p className="text-sm font-black text-foreground">Importing trades...</p>
+            <p className="text-xs text-muted-foreground mt-1">{progress}% complete</p>
           </div>
-          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-foreground/5 overflow-hidden">
             <div className="h-full rounded-full transition-all duration-300"
               style={{width:`${progress}%`, background:"linear-gradient(90deg,#a855f7,#6366f1)"}} />
           </div>
@@ -758,7 +758,7 @@ export default function CSVImportView() {
 
       {/* ── STEP 5: Done ── */}
       {step === "done" && (
-        <div className="rounded-2xl border border-white/8 bg-white/[0.02] p-8 text-center space-y-4">
+        <div className="rounded-2xl border border-border bg-foreground/[0.02] p-8 text-center space-y-4">
           <div className="flex items-center justify-center gap-4">
             <div className="flex items-center gap-2 text-emerald-400">
               <CheckCircle2 size={18} />
@@ -773,9 +773,9 @@ export default function CSVImportView() {
               </div>
             )}
           </div>
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-muted-foreground">
             Trades are in your Lifetime Ledger and P&L Calendar.
-            If this was a mistake, open <strong className="text-white/60">Past Imports</strong> below and click <strong className="text-white/60">Undo import</strong>.
+            If this was a mistake, open <strong className="text-foreground">Past Imports</strong> below and click <strong className="text-foreground">Undo import</strong>.
           </p>
           <button onClick={reset}
             className="px-5 py-2 rounded-xl text-xs font-black transition-all"
@@ -787,10 +787,10 @@ export default function CSVImportView() {
 
       {/* ── Past Imports (always visible when not mid-flow) ── */}
       {!importing && step !== "mapping" && (
-        <div className="space-y-3 pt-2 border-t border-white/5">
+        <div className="space-y-3 pt-2 border-t border-border">
           <button
             onClick={() => setShowHistory(h => !h)}
-            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-white/30 hover:text-white/50 transition-colors">
+            className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors">
             <History size={11} />
             Past Imports
             {importHistory.length > 0 && (
@@ -805,36 +805,36 @@ export default function CSVImportView() {
 
           {showHistory && (
             !historyLoaded ? (
-              <div className="flex items-center gap-2 text-white/30 text-xs">
+              <div className="flex items-center gap-2 text-muted-foreground text-xs">
                 <RefreshCw size={11} className="animate-spin" /> Loading...
               </div>
             ) : importHistory.length === 0 ? (
-              <p className="text-[10px] text-white/20 italic">No past imports yet.</p>
+              <p className="text-[10px] text-muted-foreground/60 italic">No past imports yet.</p>
             ) : (
-              <div className="rounded-xl border border-white/8 overflow-hidden">
+              <div className="rounded-xl border border-border overflow-hidden">
                 <table className="w-full text-[10px]">
                   <thead>
-                    <tr className="border-b border-white/5 bg-white/[0.02]">
+                    <tr className="border-b border-border bg-foreground/[0.02]">
                       {["File","Account","Date","Trades","P&L",""].map(h => (
-                        <th key={h} className="px-3 py-2 text-left text-[9px] uppercase tracking-widest text-white/20">{h}</th>
+                        <th key={h} className="px-3 py-2 text-left text-[9px] uppercase tracking-widest text-muted-foreground/70">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {importHistory.map(batch => (
-                      <tr key={batch.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                      <tr key={batch.id} className="border-b border-border/40 hover:bg-foreground/[0.02] transition-colors">
                         <td className="px-3 py-3">
                           <div className="flex items-center gap-2">
-                            <FileText size={11} className="text-white/30 flex-shrink-0" />
-                            <span className="text-white/60 truncate max-w-[140px]">{batch.filename}</span>
+                            <FileText size={11} className="text-muted-foreground flex-shrink-0" />
+                            <span className="text-foreground truncate max-w-[140px]">{batch.filename}</span>
                           </div>
-                          <p className="text-[9px] text-white/20 mt-0.5 ml-[19px] uppercase tracking-wider">{batch.format}</p>
+                          <p className="text-[9px] text-muted-foreground/60 mt-0.5 ml-[19px] uppercase tracking-wider">{batch.format}</p>
                         </td>
-                        <td className="px-3 py-3 text-white/40">{resolveAccountName(batch.accountId)}</td>
-                        <td className="px-3 py-3 text-white/30 font-mono whitespace-nowrap">
+                        <td className="px-3 py-3 text-muted-foreground">{resolveAccountName(batch.accountId)}</td>
+                        <td className="px-3 py-3 text-muted-foreground font-mono whitespace-nowrap">
                           {batch.importedAt instanceof Date ? batch.importedAt.toLocaleDateString() : "—"}
                         </td>
-                        <td className="px-3 py-3 text-white/50 font-bold">{batch.tradeCount}</td>
+                        <td className="px-3 py-3 text-foreground font-bold">{batch.tradeCount}</td>
                         <td className="px-3 py-3 font-black"
                           style={{color: batch.totalPnl >= 0 ? "#34d399" : "#f87171"}}>
                           {batch.totalPnl >= 0 ? "+" : ""}${batch.totalPnl.toFixed(2)}
