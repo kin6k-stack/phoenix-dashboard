@@ -9,22 +9,32 @@ interface TickerItem {
   change: number; changePct: number; isPos: boolean
 }
 
+// Neutral placeholder until the first /api/ticker response arrives.
+// price 0 renders as "—"; the badge shows the true source from the API.
 const FALLBACK: TickerItem[] = [
-  { symbol:"GC=F",     label:"GOLD",    price:3142.50, change:12.30,  changePct: 0.39,  isPos:true  },
-  { symbol:"NQ=F",     label:"NQ100",   price:19823,   change:-24.00, changePct:-0.12,  isPos:false },
-  { symbol:"BTC-USD",  label:"BTC",     price:67842,   change:831.00, changePct: 1.24,  isPos:true  },
-  { symbol:"EURUSD=X", label:"EUR/USD", price:1.0892,  change:0.0023, changePct: 0.21,  isPos:true  },
-  { symbol:"GBPUSD=X", label:"GBP/USD", price:1.2734,  change:-0.003, changePct:-0.24,  isPos:false },
-  { symbol:"USDJPY=X", label:"USD/JPY", price:149.52,  change:0.34,   changePct: 0.23,  isPos:true  },
-  { symbol:"CL=F",     label:"WTI",     price:78.14,   change:-0.98,  changePct:-1.24,  isPos:false },
-  { symbol:"DX-Y.NYB", label:"DXY",     price:104.23,  change:-0.18,  changePct:-0.17,  isPos:false },
-  { symbol:"^TNX",     label:"US10Y",   price:4.31,    change:-0.04,  changePct:-0.92,  isPos:false },
-  { symbol:"ETH-USD",  label:"ETH",     price:3341,    change:45.00,  changePct: 1.37,  isPos:true  },
+  { symbol:"OANDA:XAU_USD",   label:"GOLD",    price:0, change:0, changePct:0, isPos:true },
+  { symbol:"BINANCE:BTCUSDT", label:"BTC",     price:0, change:0, changePct:0, isPos:true },
+  { symbol:"BINANCE:ETHUSDT", label:"ETH",     price:0, change:0, changePct:0, isPos:true },
+  { symbol:"OANDA:EUR_USD",   label:"EUR/USD", price:0, change:0, changePct:0, isPos:true },
+  { symbol:"OANDA:GBP_USD",   label:"GBP/USD", price:0, change:0, changePct:0, isPos:true },
+  { symbol:"OANDA:USD_JPY",   label:"USD/JPY", price:0, change:0, changePct:0, isPos:true },
 ]
 
 const VISIBLE_KEY = "phx_ticker_visible"
 
+// Map API source → badge appearance.
+// green LIVE: fresh Finnhub data (or warm cache of it)
+// amber STALE: serving last-good saved values, or only some symbols live
+// amber DEMO: no data ever fetched yet
+function badgeFor(source: string): { text: string; stale: boolean } {
+  if (source === "finnhub" || source === "cache")      return { text: "LIVE",  stale: false }
+  if (source === "finnhub-partial")                    return { text: "LIVE*", stale: true  }
+  if (source === "last-good")                          return { text: "STALE", stale: true  }
+  return { text: "DEMO", stale: true }   // mock / demo / unknown
+}
+
 function formatPrice(label: string, price: number): string {
+  if (!price || price === 0) return "—"   // no data yet / fetch failed
   if (["EUR/USD","GBP/USD","AUD/USD"].includes(label)) return price.toFixed(4)
   if (["USD/JPY","DXY"].includes(label))               return price.toFixed(2)
   if (label === "US10Y")                               return price.toFixed(2) + "%"
@@ -117,14 +127,14 @@ export function TickerTape() {
       <div className="hidden md:flex items-center border-b border-border/50 overflow-hidden flex-shrink-0 relative"
         style={{ height: 34, background: "hsl(var(--card)/0.6)", backdropFilter: "blur(8px)" }}>
 
-        {/* LIVE/DEMO badge */}
+        {/* LIVE / STALE / DEMO badge — reflects real API source */}
         <div className="flex items-center gap-2 px-3 border-r border-border/40 flex-shrink-0 h-full bg-background/30">
           <span className="relative flex h-1.5 w-1.5">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${source === "demo" ? "bg-amber-400" : "bg-primary"}`} />
-            <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${source === "demo" ? "bg-amber-400" : "bg-primary"}`} />
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${badgeFor(source).stale ? "bg-amber-400" : "bg-primary"}`} />
+            <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${badgeFor(source).stale ? "bg-amber-400" : "bg-primary"}`} />
           </span>
-          <span className={`text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${source === "demo" ? "text-amber-400" : "text-primary"}`}>
-            {source === "demo" ? "DEMO" : "LIVE"}
+          <span className={`text-[9px] font-black uppercase tracking-widest whitespace-nowrap ${badgeFor(source).stale ? "text-amber-400" : "text-primary"}`}>
+            {badgeFor(source).text}
           </span>
         </div>
 
