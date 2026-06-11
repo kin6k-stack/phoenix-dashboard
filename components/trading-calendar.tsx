@@ -1,20 +1,20 @@
 "use client"
 
 // FIX: Added viewDate prop — parent can now control which month is displayed.
-// When "View in Calendar" fires phoenix:calendar:nav, page.tsx updates
-// currentMonthYear, passes it as viewDate, and useEffect syncs the internal
-// currentDate so the visual calendar jumps to the correct month instantly.
 //
-// RESPONSIVE FIX (small screens):
-//  - Removed fixed min-w-[640px] that forced sideways scrolling on phones.
-//  - Phones show a 7-col grid (Sun–Sat); the 8th "Week" total column is
-//    hidden < sm and returns at sm+ (grid switches 7 -> 8 cols).
-//  - Cell min-height, padding, and font sizes shrink on phones, grow at sm+.
-//  - P&L text drops the "$" on phones to avoid overflow, restores it at sm+.
-//  - Desktop / tablet (sm and up) look IDENTICAL to before.
+// RESPONSIVE FIX (small screens): grid fits phones (no min-w forcing sideways
+// scroll); Week-total column hidden < sm, returns at sm+.
+//
+// DENSITY-DRIVEN VIEW (per user request):
+//   density "expanded"          -> LIST view  (vertical list of trading days)
+//   density "compact"/"default" -> GRID view  (month calendar)
+// Density is the global setting from useTheme(); switching it in Settings
+// updates this component live via the phoenix-settings-changed event the hook
+// already listens to.
 
 import { useState, useMemo, useEffect } from "react"
 import { ChevronLeft, ChevronRight, Edit3, ArrowUpRight, ArrowDownRight } from "lucide-react"
+import { useTheme } from "@/lib/use-theme"
 
 interface Trade {
   id: string; date: string; symbol: string; setup: string
@@ -31,7 +31,6 @@ interface TradingCalendarProps {
   netPnL?:           number
   winRate?:          number
   onMonthYearChange?:(v: { month: number; year: number }) => void
-  // ── controlled display month (from page.tsx currentMonthYear) ──
   viewDate?:         { month: number; year: number }
 }
 
@@ -43,6 +42,10 @@ export function TradingCalendar({
   viewDate,
 }: TradingCalendarProps) {
 
+  // Global density — drives grid-vs-list. "expanded" => list view.
+  const { density } = useTheme()
+  const isListView = density === "expanded"
+
   const [currentDate, setCurrentDate] = useState(new Date())
 
   // ── Sync displayed month when parent pushes a new viewDate ──
@@ -52,7 +55,7 @@ export function TradingCalendar({
       if (
         prev.getMonth()     === viewDate.month &&
         prev.getFullYear()  === viewDate.year
-      ) return prev  // already showing — no-op to avoid re-render loop
+      ) return prev
       return new Date(viewDate.year, viewDate.month, 1)
     })
   }, [viewDate?.year, viewDate?.month])  // eslint-disable-line react-hooks/exhaustive-deps
@@ -69,7 +72,7 @@ export function TradingCalendar({
     return m
   }, [trades])
 
-  // ── Calendar grid ──
+  // ── Calendar grid days ──
   const days = useMemo(() => {
     const year  = currentDate.getFullYear()
     const month = currentDate.getMonth()
@@ -96,6 +99,20 @@ export function TradingCalendar({
     })
   }, [days, dailyMap])
 
+  // ── Trading days for LIST view (only days in the current month that have trades) ──
+  const listDays = useMemo(() => {
+    const year  = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+    const out: { date: Date; pnl: number; count: number }[] = []
+    for (const day of days) {
+      if (!day) continue
+      if (day.getMonth() !== month || day.getFullYear() !== year) continue
+      const d = dailyMap[day.toDateString()]
+      if (d && d.count > 0) out.push({ date: day, pnl: d.pnl, count: d.count })
+    }
+    return out  // already in date order because `days` is ordered
+  }, [days, dailyMap, currentDate])
+
   const nextMonth = () => {
     const next = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
     setCurrentDate(next)
@@ -108,6 +125,7 @@ export function TradingCalendar({
   }
 
   const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"]
+  const dayNamesShort = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"]
   const todayStr   = new Date().toDateString()
   const safeWinRate= Number.isFinite(winRate) ? winRate : 0
   const netPnlIsPos= netPnL >= 0
@@ -129,6 +147,10 @@ export function TradingCalendar({
             className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-white/[0.04] transition-colors">
             <ChevronRight size={16} />
           </button>
+          {/* Small hint of which view is active (driven by density) */}
+          <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-wider text-muted-foreground/50 ml-1">
+            {isListView ? "List" : "Grid"}
+          </span>
         </div>
 
         <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-5">
@@ -149,12 +171,61 @@ export function TradingCalendar({
         </div>
       </div>
 
-      {/* Grid
-          - No fixed min-width: fits phone screens, no sideways scroll.
-          - 7 cols on phones (Week col hidden), 8 cols at sm+ (Week col shown). */}
-      <div className="w-full">
+      {/* ════════════════ LIST VIEW (density = expanded) ════════════════ */}
+      {isListView ? (
+        <div className="divide-y divide-border/30">
+          {listDays.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-muted-foreground/50">
+              No trades recorded in {monthNames[currentDate.getMonth()]}.
+            </div>
+          ) : (
+            listDays.map(({ date, pnl, count }) => {
+              const dayStr     = date.toDateString()
+              const isNeg      = pnl < 0
+              const isSelected = selectedDate?.toDateString() === dayStr
+              const isToday    = dayStr === todayStr
+              return (
+                <button key={dayStr} onClick={() => onDateSelect(date)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.04]
+                    ${isSelected ? "bg-emerald-500/[0.08]" : ""}
+                    ${isToday && !isSelected ? "bg-emerald-500/[0.03]" : ""}`}>
+                  {/* Date block */}
+                  <div className="flex flex-col items-center justify-center w-12 flex-shrink-0">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
+                      {dayNamesShort[date.getDay()]}
+                    </span>
+                    <span className={`text-lg font-bold leading-none tabular-nums ${isToday ? "text-emerald-400" : "text-foreground"}`}>
+                      {date.getDate()}
+                    </span>
+                  </div>
+
+                  {/* Direction icon */}
+                  <div className="flex-shrink-0">
+                    {isNeg
+                      ? <ArrowDownRight size={18} className="text-rose-400/70"/>
+                      : <ArrowUpRight   size={18} className="text-emerald-400/70"/>}
+                  </div>
+
+                  {/* P&L + count */}
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-base font-bold tabular-nums ${isNeg ? "text-rose-400" : "text-emerald-400"}`}>
+                      {isNeg ? "-" : "+"}${Math.abs(pnl).toFixed(2)}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground/80 font-mono tabular-nums flex-shrink-0">
+                    {count} {count === 1 ? "trade" : "trades"}
+                  </span>
+                  <Edit3 size={12} className="text-muted-foreground/30 flex-shrink-0" />
+                </button>
+              )
+            })
+          )}
+        </div>
+      ) : (
+
+      /* ════════════════ GRID VIEW (density = compact / default) ════════════════ */
         <div className="w-full">
-          {/* Day header */}
+          {/* Day header — 7 cols phone, 8 cols sm+ */}
           <div className="grid grid-cols-7 sm:grid-cols-8 border-b border-border/40">
             {["Sun","Mon","Tue","Wed","Thu","Fri","Sat","Week"].map((d, i) => (
               <div key={d}
@@ -198,7 +269,6 @@ export function TradingCalendar({
                       </div>
                       {dayPnL !== 0 && (
                         <span className={`text-[10px] sm:text-[12px] font-bold tabular-nums mt-auto leading-tight ${isNeg ? "text-rose-400" : "text-emerald-400"}`}>
-                          {/* "$" hidden on phones to save width, shown at sm+ */}
                           {isNeg ? "-" : "+"}<span className="hidden sm:inline">$</span>{Math.abs(dayPnL).toFixed(2)}
                         </span>
                       )}
@@ -227,7 +297,7 @@ export function TradingCalendar({
             )
           })}
         </div>
-      </div>
+      )}
     </div>
   )
 }
