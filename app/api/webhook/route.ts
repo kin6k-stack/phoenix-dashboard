@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PHOENIX TRADING ECOSYSTEM — Vercel Webhook v5.3
-// Changes from v5.2:
-//   - BOT_OFFLINE handler added: zeroes lastSeenAt so live indicator goes grey
+// PHOENIX TRADING ECOSYSTEM — Vercel Webhook v5.4
+// Changes from v5.3:
+//   - CLOSED now records tpReached + isRunner (Zone Scalper session-runner study)
+//   - v5.3: BOT_OFFLINE handler (zeroes lastSeenAt so live indicator goes grey)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -178,11 +179,22 @@ export async function POST(request: NextRequest) {
     // ── CLOSED ────────────────────────────────────────────────────────────────
     if (status === 'CLOSED') {
       const profit = parseFloat(String(data.profit ?? 0)) || 0
-      await firestorePatch('botTrades', ticket, {
+      // New (Zone Scalper v1.0): which TP level was reached + whether this was a
+      // session-runner trade. Feeds the ongoing TP2/session-edge study.
+      const tpReached = data.tpReached ? String(data.tpReached) : ''   // e.g. "TP1","TP2"
+      const isRunner  = data.isRunner === true || String(data.isRunner) === 'true'
+
+      const fields: Record<string, unknown> = {
         profit, status: 'CLOSED',
         outcome: profit >= 0 ? 'WIN' : 'LOSS', closedAt: new Date(),
-      }, ['profit','status','outcome','closedAt'])
-      console.log(`[WEBHOOK v5.3] ✅ CLOSED: ${botName} | ${symbol} | $${profit}`)
+      }
+      const mask = ['profit','status','outcome','closedAt']
+      if (tpReached) { fields.tpReached = tpReached; mask.push('tpReached') }
+      // always record the runner flag (false is meaningful data too)
+      fields.isRunner = isRunner; mask.push('isRunner')
+
+      await firestorePatch('botTrades', ticket, fields, mask)
+      console.log(`[WEBHOOK v5.3] ✅ CLOSED: ${botName} | ${symbol} | $${profit} | ${tpReached || 'n/a'} | runner=${isRunner}`)
       return NextResponse.json({ success: true, action: 'signal_closed', profit })
     }
 
