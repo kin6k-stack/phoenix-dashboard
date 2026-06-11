@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
+import { NativeBridge } from "@/components/native-bridge" // Capacitor Phase 1: installs native /api fetch bridge (no-op on web)
 
 export const metadata: Metadata = {
   title: "Phoenix Trading Ecosystem",
@@ -70,6 +71,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
       <body className="font-sans antialiased bg-background text-foreground min-h-screen">
+        <NativeBridge />
         <AuthProvider>{children}</AuthProvider>
 
         {/* Patched: Registers the background service worker without hurting load performance */}
