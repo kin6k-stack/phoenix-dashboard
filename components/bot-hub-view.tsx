@@ -150,9 +150,9 @@ interface BotStats { trades: BotTrade[]; loaded: boolean }
 function ChartTip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
-    <div className="rounded-xl border border-white/10 bg-black/80 px-3 py-2 text-xs backdrop-blur-sm">
-      <p className="text-white/40 mb-1">{label}</p>
-      <p className="font-black text-white">${Number(payload[0]?.value ?? 0).toFixed(2)}</p>
+    <div className="rounded-xl border border-border bg-card px-3 py-2 text-xs backdrop-blur-sm">
+      <p className="text-muted-foreground mb-1">{label}</p>
+      <p className="font-black text-foreground">${Number(payload[0]?.value ?? 0).toFixed(2)}</p>
     </div>
   )
 }
@@ -179,8 +179,8 @@ function BotCard({ bot, stats, botMeta, selected, onClick }: {
       onClick={onClick}
       className="relative rounded-2xl border p-4 text-left transition-all duration-200 w-full"
       style={{
-        background:  selected ? `${bot.color}12` : "rgba(255,255,255,0.02)",
-        borderColor: selected ? `${bot.color}50` : "rgba(255,255,255,0.06)",
+        background:  selected ? `${bot.color}12` : "rgba(127,127,127,0.04)",
+        borderColor: selected ? `${bot.color}50` : "hsl(var(--border))",
         boxShadow:   selected ? `0 0 32px ${bot.glow}` : "none",
       }}>
       <div className="absolute top-0 left-4 right-4 h-0.5 rounded-full transition-opacity"
@@ -192,11 +192,11 @@ function BotCard({ bot, stats, botMeta, selected, onClick }: {
           <div>
             {/* displayName reflects live botName from Firestore if EA has registered */}
             <div className="flex items-center gap-1.5">
-              <p className="text-xs font-black text-white leading-tight">{displayName}</p>
+              <p className="text-xs font-black text-foreground leading-tight">{displayName}</p>
               {/* Live dot: green pulse = online, grey = offline/never connected */}
               <span
                 className={isLive ? "w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0" : "w-1.5 h-1.5 rounded-full flex-shrink-0"}
-                style={{ background: isLive ? "#22c55e" : "rgba(255,255,255,0.15)" }}
+                style={{ background: isLive ? "#22c55e" : "hsl(var(--muted-foreground))" }}
                 title={isLive ? "Live — heartbeat <10 min ago" : "Offline"}
               />
             </div>
@@ -212,26 +212,26 @@ function BotCard({ bot, stats, botMeta, selected, onClick }: {
       </div>
 
       {!stats.loaded ? (
-        <p className="text-[10px] text-white/20 animate-pulse">Loading...</p>
+        <p className="text-[10px] text-muted-foreground/60 animate-pulse">Loading...</p>
       ) : stats.trades.length === 0 ? (
-        <p className="text-[10px] text-white/20 italic">No signals yet</p>
+        <p className="text-[10px] text-muted-foreground/60 italic">No signals yet</p>
       ) : (
         <div className="grid grid-cols-3 gap-2">
           <div>
-            <p className="text-[9px] text-white/30 uppercase tracking-wider">P&amp;L</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">P&amp;L</p>
             <p className="text-sm font-black" style={{ color: pnlPos ? bot.color : "#f87171" }}>
               {pnlPos?"+":""}${pnl.toFixed(2)}
             </p>
           </div>
           <div>
-            <p className="text-[9px] text-white/30 uppercase tracking-wider">Win Rate</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Win Rate</p>
             <p className="text-sm font-black" style={{ color: wr >= 50 ? bot.color : "#f87171" }}>
               {wr.toFixed(0)}%
             </p>
           </div>
           <div>
-            <p className="text-[9px] text-white/30 uppercase tracking-wider">Trades</p>
-            <p className="text-sm font-black text-white">{stats.trades.length}</p>
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Trades</p>
+            <p className="text-sm font-black text-foreground">{stats.trades.length}</p>
           </div>
         </div>
       )}
@@ -363,7 +363,7 @@ function BotDetail({ bot, stats, botMeta }: {
 
   return (
     <div className="rounded-2xl border overflow-hidden"
-      style={{ borderColor:`${bot.color}25`, background:"rgba(255,255,255,0.015)" }}>
+      style={{ borderColor:`${bot.color}25`, background:"rgba(127,127,127,0.02)" }}>
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b"
@@ -372,14 +372,14 @@ function BotDetail({ bot, stats, botMeta }: {
           <span className="text-xl">{bot.icon}</span>
           <div>
             {/* displayName: live from Firestore botName field, falls back to registry */}
-            <h2 className="text-sm font-black text-white">{displayName}</h2>
+            <h2 className="text-sm font-black text-foreground">{displayName}</h2>
             <p className="text-[10px] font-mono" style={{ color:`${bot.color}80` }}>
               {bot.symbol} · {bot.timeframe} · Magic {bot.magic} · {liveVersion}
               {/* Live indicator: green = heartbeat recent, grey dot = offline */}
               {isLive
                 ? <span className="ml-1 text-green-400 animate-pulse">● live</span>
                 : botMeta.lastSeenAt
-                  ? <span className="ml-1 text-white/20">● offline</span>
+                  ? <span className="ml-1 text-muted-foreground/50">● offline</span>
                   : null
               }
             </p>
@@ -389,7 +389,7 @@ function BotDetail({ bot, stats, botMeta }: {
           <p className="text-lg font-black" style={{ color: pnl>=0 ? bot.color : "#f87171" }}>
             {pnl>=0?"+":""}${pnl.toFixed(2)}
           </p>
-          <p className="text-[10px] text-white/30">{trades.length} signals total</p>
+          <p className="text-[10px] text-muted-foreground">{trades.length} signals total</p>
         </div>
       </div>
 
@@ -399,7 +399,7 @@ function BotDetail({ bot, stats, botMeta }: {
           <button key={t.id} onClick={() => setTab(t.id as any)}
             className="px-5 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all"
             style={{
-              color:        tab===t.id ? bot.color         : "rgba(255,255,255,0.25)",
+              color:        tab===t.id ? bot.color         : "hsl(var(--muted-foreground))",
               borderBottom: tab===t.id ? `2px solid ${bot.color}` : "2px solid transparent",
             }}>
             {t.label}
@@ -420,22 +420,22 @@ function BotDetail({ bot, stats, botMeta }: {
                 { label:"Avg Win",       value:`$${avgWin.toFixed(2)}`,   color: bot.color },
                 { label:"Avg Loss",      value:`$${avgLoss.toFixed(2)}`,  color: "#f87171" },
               ].map(s => (
-                <div key={s.label} className="rounded-xl border border-white/6 bg-white/[0.02] px-4 py-3">
-                  <p className="text-[9px] uppercase tracking-widest text-white/30 mb-1">{s.label}</p>
+                <div key={s.label} className="rounded-xl border border-border bg-foreground/[0.02] px-4 py-3">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-1">{s.label}</p>
                   <p className="text-base font-black" style={{ color:s.color }}>{s.value}</p>
                 </div>
               ))}
             </div>
 
             {/* Strategy config summary */}
-            <div className="rounded-xl border border-white/6 bg-white/[0.02] px-4 py-3">
-              <p className="text-[9px] uppercase tracking-widest text-white/25 mb-2">
+            <div className="rounded-xl border border-border bg-foreground/[0.02] px-4 py-3">
+              <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-2">
                 {liveMode} — Current Config
               </p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1.5">
                 {Object.entries(bot.config).map(([k, v]) => (
                   <div key={k}>
-                    <span className="text-[9px] text-white/30">{k}: </span>
+                    <span className="text-[9px] text-muted-foreground">{k}: </span>
                     <span className="text-[9px] font-bold" style={{ color:bot.color }}>{v}</span>
                   </div>
                 ))}
@@ -445,8 +445,8 @@ function BotDetail({ bot, stats, botMeta }: {
             {/* Equity curve */}
             {equityData.length > 1 && (
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-3">Equity Curve</p>
-                <div className="h-40 rounded-xl border border-white/6 bg-white/[0.02] px-3 pt-3 pb-1 relative overflow-hidden">
+                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3">Equity Curve</p>
+                <div className="h-40 rounded-xl border border-border bg-foreground/[0.02] px-3 pt-3 pb-1 relative overflow-hidden">
                   <div className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
                     style={{ background:`linear-gradient(to top,${bot.color}08,transparent)` }} />
                   <ResponsiveContainer width="100%" height="100%">
@@ -457,11 +457,11 @@ function BotDetail({ bot, stats, botMeta }: {
                           <stop offset="95%" stopColor={bot.color} stopOpacity={0}   />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.04)" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
                       <XAxis dataKey="date" hide />
                       <YAxis axisLine={false} tickLine={false}
-                        tick={{ fontSize:8, fill:"rgba(255,255,255,0.25)" }}
-                        tickFormatter={v => `$${v}`} />
+                        tick={{ fontSize:8, fill:"hsl(var(--muted-foreground))" }}
+                        tickFormatter={v => `${v}`} />
                       <Tooltip content={<ChartTip />} />
                       <Area type="monotone" dataKey="value"
                         stroke={bot.color} strokeWidth={2}
@@ -492,15 +492,15 @@ function BotDetail({ bot, stats, botMeta }: {
         {/* ── SIGNALS ── */}
         {tab === "signals" && (
           <div className="space-y-3">
-            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
               Recent Signals — {displayName} · Last 30 entries
             </p>
-            <div className="rounded-xl border border-white/6 overflow-hidden">
+            <div className="rounded-xl border border-border overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/5">
+                  <tr className="border-b border-border">
                     {["Time","Symbol","Dir","Entry","SL","TP1","Lot","P&L","Status"].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-[9px] font-bold uppercase tracking-widest text-white/20">{h}</th>
+                      <th key={h} className="px-3 py-2 text-left text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -517,13 +517,13 @@ function BotDetail({ bot, stats, botMeta }: {
                       const isOpen = t.status === "OPEN"
                       const pos    = t.profit >= 0
                       return (
-                        <tr key={t.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                          <td className="px-3 py-2 text-[10px] font-mono text-white/30">
+                        <tr key={t.id} className="border-b border-border/40 hover:bg-foreground/[0.02] transition-colors">
+                          <td className="px-3 py-2 text-[10px] font-mono text-muted-foreground">
                             {isOpen
                               ? <span className="animate-pulse" style={{color:bot.color}}>LIVE</span>
                               : d.toLocaleDateString("en-US",{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}
                           </td>
-                          <td className="px-3 py-2 text-[10px] font-bold text-white">{t.symbol}</td>
+                          <td className="px-3 py-2 text-[10px] font-bold text-foreground">{t.symbol}</td>
                           <td className="px-3 py-2">
                             <span className="text-[9px] font-black px-1.5 py-0.5 rounded"
                               style={{
@@ -531,12 +531,12 @@ function BotDetail({ bot, stats, botMeta }: {
                                 color:      t.direction==="BUY"?"#34d399":"#f87171"
                               }}>{t.direction}</span>
                           </td>
-                          <td className="px-3 py-2 text-[10px] font-mono text-white/50">{t.entryPrice>0?t.entryPrice.toFixed(2):"—"}</td>
+                          <td className="px-3 py-2 text-[10px] font-mono text-muted-foreground">{t.entryPrice>0?t.entryPrice.toFixed(2):"—"}</td>
                           <td className="px-3 py-2 text-[10px] font-mono text-rose-400/60">{t.sl>0?t.sl.toFixed(2):"—"}</td>
                           <td className="px-3 py-2 text-[10px] font-mono" style={{color:`${bot.color}80`}}>{t.tp1>0?t.tp1.toFixed(2):"—"}</td>
-                          <td className="px-3 py-2 text-[10px] font-mono text-white/40">{t.lot>0?t.lot.toFixed(2):"—"}</td>
+                          <td className="px-3 py-2 text-[10px] font-mono text-muted-foreground">{t.lot>0?t.lot.toFixed(2):"—"}</td>
                           <td className="px-3 py-2 text-[10px] font-black"
-                            style={{ color: isOpen?"rgba(255,255,255,0.3)": pos ? bot.color : "#f87171" }}>
+                            style={{ color: isOpen?"hsl(var(--muted-foreground))": pos ? bot.color : "#f87171" }}>
                             {isOpen ? "—" : `${pos?"+":""}$${t.profit.toFixed(2)}`}
                           </td>
                           <td className="px-3 py-2">
@@ -554,7 +554,7 @@ function BotDetail({ bot, stats, botMeta }: {
               </table>
             </div>
             {trades.length === 0 && (
-              <p className="text-center text-white/20 text-sm py-8">No signals recorded yet</p>
+              <p className="text-center text-muted-foreground/60 text-sm py-8">No signals recorded yet</p>
             )}
           </div>
         )}
@@ -563,14 +563,14 @@ function BotDetail({ bot, stats, botMeta }: {
         {tab === "trades" && (
           <div className="space-y-2">
             {trades.length === 0 && (
-              <p className="text-center text-white/20 text-sm py-8">No trades recorded yet</p>
+              <p className="text-center text-muted-foreground/60 text-sm py-8">No trades recorded yet</p>
             )}
-            <div className="rounded-xl border border-white/6 overflow-hidden">
+            <div className="rounded-xl border border-border overflow-hidden">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-white/5">
+                  <tr className="border-b border-border">
                     {["Date","Symbol","Dir","Entry","P&L","Outcome"].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-[9px] font-bold uppercase tracking-widest text-white/20">{h}</th>
+                      <th key={h} className="px-3 py-2 text-left text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -586,11 +586,11 @@ function BotDetail({ bot, stats, botMeta }: {
                       const d   = t.closedAt?.toDate ? t.closedAt.toDate() : new Date(t.closedAt||0)
                       const pos = t.profit >= 0
                       return (
-                        <tr key={t.id} className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                          <td className="px-3 py-2 text-[10px] text-white/40 font-mono">
+                        <tr key={t.id} className="border-b border-border/40 hover:bg-foreground/[0.02] transition-colors">
+                          <td className="px-3 py-2 text-[10px] text-muted-foreground font-mono">
                             {d.toLocaleDateString("en-US",{month:"short",day:"numeric"})}
                           </td>
-                          <td className="px-3 py-2 text-[10px] font-bold text-white">{t.symbol}</td>
+                          <td className="px-3 py-2 text-[10px] font-bold text-foreground">{t.symbol}</td>
                           <td className="px-3 py-2">
                             <span className="text-[9px] font-black px-1.5 py-0.5 rounded"
                               style={{
@@ -598,7 +598,7 @@ function BotDetail({ bot, stats, botMeta }: {
                                 color:      t.direction==="BUY"?"#34d399":"#f87171"
                               }}>{t.direction}</span>
                           </td>
-                          <td className="px-3 py-2 text-[10px] font-mono text-white/50">
+                          <td className="px-3 py-2 text-[10px] font-mono text-muted-foreground">
                             {t.entryPrice > 0 ? t.entryPrice.toFixed(2) : "—"}
                           </td>
                           <td className="px-3 py-2 text-[10px] font-black"
@@ -619,7 +619,7 @@ function BotDetail({ bot, stats, botMeta }: {
               </table>
             </div>
             {trades.length > 50 && (
-              <p className="text-center text-[10px] text-white/20">Showing 50 of {trades.length} trades</p>
+              <p className="text-center text-[10px] text-muted-foreground/60">Showing 50 of {trades.length} trades</p>
             )}
           </div>
         )}
@@ -629,11 +629,11 @@ function BotDetail({ bot, stats, botMeta }: {
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
                   Live Parameters — {displayName} {liveVersion}
                 </p>
                 {remoteConfig?.updatedAt && (
-                  <p className="text-[9px] text-white/20 mt-0.5">
+                  <p className="text-[9px] text-muted-foreground/70 mt-0.5">
                     Last pushed: {new Date(remoteConfig.updatedAt?.toDate?.() ?? remoteConfig.updatedAt).toLocaleString()}
                   </p>
                 )}
@@ -650,7 +650,7 @@ function BotDetail({ bot, stats, botMeta }: {
                     </button>
                   : <div className="flex gap-2">
                       <button onClick={() => setEditing(false)}
-                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-white/40 border border-white/10 hover:bg-white/5 transition-all">
+                        className="px-3 py-1.5 rounded-lg text-[10px] font-bold text-muted-foreground border border-border hover:bg-foreground/5 transition-all">
                         Cancel
                       </button>
                       <button onClick={saveConfig} disabled={saving}
@@ -670,8 +670,8 @@ function BotDetail({ bot, stats, botMeta }: {
                 borderColor: cfg.isActive ? `${bot.color}25` : "rgba(248,113,113,0.25)",
               }}>
               <div>
-                <p className="text-xs font-black text-white">Bot Active</p>
-                <p className="text-[10px] text-white/30">Disabling stops all new entries immediately</p>
+                <p className="text-xs font-black text-foreground">Bot Active</p>
+                <p className="text-[10px] text-muted-foreground">Disabling stops all new entries immediately</p>
               </div>
               <button
                 disabled={!editing}
@@ -692,15 +692,14 @@ function BotDetail({ bot, stats, botMeta }: {
                 { key:"dailyWinGoal", label:"Daily Win %",  step:0.5,   min:1,     max:50   },
                 { key:"dailyLossCap", label:"Daily Loss %", step:0.5,   min:1,     max:20   },
               ].map(({ key, label, step, min, max }) => (
-                <div key={key} className="rounded-xl border border-white/6 bg-white/[0.02] px-3 py-3">
-                  <p className="text-[9px] uppercase tracking-widest text-white/30 mb-2">{label}</p>
+                <div key={key} className="rounded-xl border border-border bg-foreground/[0.02] px-3 py-3">
+                  <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-2">{label}</p>
                   {editing ? (
                     <input
                       type="number" step={step} min={min} max={max}
                       value={(cfg as any)[key]}
                       onChange={e => setCfg(p => ({ ...p, [key]: parseFloat(e.target.value) || 0 }))}
-                      className="w-full bg-white/5 border border-white/15 rounded-lg px-2 py-1 text-sm font-black text-white focus:outline-none focus:border-white/30"
-                      style={{ colorScheme:"dark" }}
+                      className="w-full bg-foreground/5 border border-border rounded-lg px-2 py-1 text-sm font-black text-foreground focus:outline-none focus:border-foreground/30"
                     />
                   ) : (
                     <p className="text-sm font-black" style={{ color:bot.color }}>
@@ -713,7 +712,7 @@ function BotDetail({ bot, stats, botMeta }: {
 
             {/* HTF bias toggle */}
             <div>
-              <p className="text-[9px] uppercase tracking-widest text-white/20 mb-2">HTF Bias Filter</p>
+              <p className="text-[9px] uppercase tracking-widest text-muted-foreground mb-2">HTF Bias Filter</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {[{ key:"requireHTFBias", label: bot.timeframe === "M15" ? "H4 Bias" : "H1 Bias" }].map(({ key, label }) => {
                   const on = (cfg as any)[key]
@@ -723,13 +722,13 @@ function BotDetail({ bot, stats, botMeta }: {
                       onClick={() => setCfg(p => ({ ...p, [key]: !(p as any)[key] }))}
                       className="flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-all disabled:opacity-60"
                       style={{
-                        background:  on ? `${bot.color}18` : "rgba(255,255,255,0.02)",
-                        borderColor: on ? `${bot.color}40` : "rgba(255,255,255,0.06)",
+                        background:  on ? `${bot.color}18` : "rgba(127,127,127,0.04)",
+                        borderColor: on ? `${bot.color}40` : "hsl(var(--border))",
                       }}>
                       <span className="w-2 h-2 rounded-full flex-shrink-0"
-                        style={{ background: on ? bot.color : "rgba(255,255,255,0.2)" }} />
+                        style={{ background: on ? bot.color : "hsl(var(--muted-foreground))" }} />
                       <span className="text-[10px] font-bold"
-                        style={{ color: on ? bot.color : "rgba(255,255,255,0.3)" }}>
+                        style={{ color: on ? bot.color : "hsl(var(--muted-foreground))" }}>
                         {label}
                       </span>
                     </button>
@@ -738,9 +737,9 @@ function BotDetail({ bot, stats, botMeta }: {
               </div>
             </div>
 
-            <div className="rounded-xl border border-white/6 bg-white/[0.02] px-4 py-3">
-              <p className="text-[9px] text-white/25 leading-relaxed">
-                📡 Changes pushed to Firestore <strong className="text-white/40">botConfig/{bot.magic}</strong>.
+            <div className="rounded-xl border border-border bg-foreground/[0.02] px-4 py-3">
+              <p className="text-[9px] text-muted-foreground leading-relaxed">
+                📡 Changes pushed to Firestore <strong className="text-foreground/70">botConfig/{bot.magic}</strong>.
                 EA polls every 5 min and applies on the next new bar — no restart required.
                 CRT anchor hour, sweep buffer, and stagnation bars are set as EA inputs and require MT5 restart to change.
               </p>
@@ -751,7 +750,7 @@ function BotDetail({ bot, stats, botMeta }: {
         {/* ── CHANGELOG ── */}
         {tab === "changelog" && (
           <div className="space-y-3">
-            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest mb-4">Version History</p>
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-4">Version History</p>
             <div className="relative">
               <div className="absolute left-3.5 top-2 bottom-2 w-px"
                 style={{ background:`linear-gradient(to bottom,${bot.color}60,transparent)` }} />
@@ -766,10 +765,10 @@ function BotDetail({ bot, stats, botMeta }: {
                         top: "2px",
                       }} />
                     <div className="flex items-baseline gap-2 mb-0.5">
-                      <span className="text-xs font-black" style={{ color: i===0?bot.color:"rgba(255,255,255,0.5)" }}>
+                      <span className="text-xs font-black" style={{ color: i===0?bot.color:"hsl(var(--foreground))" }}>
                         {c.version}
                       </span>
-                      <span className="text-[9px] text-white/25">{c.date}</span>
+                      <span className="text-[9px] text-muted-foreground">{c.date}</span>
                       {i===0 && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded"
                           style={{ background:`${bot.color}20`, color:bot.color }}>
@@ -777,7 +776,7 @@ function BotDetail({ bot, stats, botMeta }: {
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-white/40 leading-relaxed">{c.note}</p>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed">{c.note}</p>
                   </div>
                 ))}
               </div>
