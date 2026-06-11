@@ -85,18 +85,17 @@ function AccountDialog({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}>
-      <div className="w-full max-w-lg rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
-        style={{ background: "linear-gradient(145deg,#0f0f12,#16161e)" }}>
+      <div className="w-full max-w-lg rounded-2xl border border-border shadow-2xl overflow-hidden bg-card">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <h2 className="text-sm font-black uppercase tracking-widest text-white">
+            <h2 className="text-sm font-black uppercase tracking-widest text-foreground">
               {existing ? "Edit Account" : "Register Account"}
             </h2>
-            <p className="text-xs text-white/40 mt-0.5">Add a trading account to your lifetime ledger</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Add a trading account to your lifetime ledger</p>
           </div>
-          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-foreground/5 text-muted-foreground hover:text-foreground transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -106,19 +105,19 @@ function AccountDialog({
 
           {/* Account Name */}
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Account Name</label>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Account Name</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Exness Gold Scalper"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/25 transition-colors"
+              className="w-full bg-foreground/5 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-foreground/25 transition-colors"
             />
           </div>
 
           {/* Broker + Login */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Broker</label>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Broker</label>
               {addingBroker ? (
                 <div className="flex gap-2">
                   <input
@@ -126,10 +125,10 @@ function AccountDialog({
                     value={customBroker}
                     onChange={e => setCustomBroker(e.target.value)}
                     placeholder="Broker name"
-                    className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/25"
+                    className="flex-1 min-w-0 bg-foreground/5 border border-border rounded-xl px-3 py-2.5 text-sm text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-foreground/25"
                   />
                   <button onClick={() => { if(customBroker.trim()) setBroker(customBroker.trim()); setAddingBroker(false) }}
-                    className="px-3 rounded-xl bg-white/10 text-white hover:bg-white/15 transition-colors">
+                    className="px-3 rounded-xl bg-foreground/10 text-foreground hover:bg-foreground/15 transition-colors">
                     <Check size={14} />
                   </button>
                 </div>
@@ -137,35 +136,35 @@ function AccountDialog({
                 <select
                   value={broker}
                   onChange={e => { if(e.target.value === "__new__") setAddingBroker(true); else setBroker(e.target.value) }}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/25 transition-colors appearance-none"
+                  className="w-full bg-foreground/5 border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-foreground/25 transition-colors appearance-none"
                 >
-                  {brokers.map(b => <option key={b} value={b} style={{ background:"#16161e" }}>{b}</option>)}
-                  <option value="__new__" style={{ background:"#16161e" }}>+ Add broker...</option>
+                  {brokers.map(b => <option key={b} value={b} style={{ background:"hsl(var(--card))" }}>{b}</option>)}
+                  <option value="__new__" style={{ background:"hsl(var(--card))" }}>+ Add broker...</option>
                 </select>
               )}
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Login Number</label>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Login Number</label>
               <input
                 value={login}
                 onChange={e => setLogin(e.target.value)}
                 placeholder="e.g. 198440704"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/25 transition-colors"
+                className="w-full bg-foreground/5 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-foreground/25 transition-colors"
               />
             </div>
           </div>
 
           {/* Instruments */}
           <div>
-            <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Instruments Traded</label>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Instruments Traded</label>
             <div className="flex flex-wrap gap-2">
               {INSTRUMENTS.map(inst => (
                 <button key={inst} onClick={() => toggleInstrument(inst)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all border"
                   style={{
-                    background:  instruments.includes(inst) ? `${color}22` : "rgba(255,255,255,0.04)",
-                    borderColor: instruments.includes(inst) ? color : "rgba(255,255,255,0.08)",
-                    color:       instruments.includes(inst) ? color : "rgba(255,255,255,0.4)",
+                    background:  instruments.includes(inst) ? `${color}22` : "rgba(127,127,127,0.08)",
+                    borderColor: instruments.includes(inst) ? color : "hsl(var(--border))",
+                    color:       instruments.includes(inst) ? color : "hsl(var(--muted-foreground))",
                   }}>{inst}</button>
               ))}
             </div>
@@ -174,14 +173,14 @@ function AccountDialog({
           {/* Color + Currency */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Account Color</label>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Account Color</label>
               <div className="flex flex-wrap gap-2">
                 {ACCOUNT_COLORS.map(c => (
                   <button key={c} onClick={() => setColor(c)}
                     className="w-6 h-6 rounded-full transition-all border-2"
                     style={{
                       background:  c,
-                      borderColor: color === c ? "white" : "transparent",
+                      borderColor: color === c ? "hsl(var(--foreground))" : "transparent",
                       transform:   color === c ? "scale(1.2)" : "scale(1)",
                       boxShadow:   color === c ? `0 0 8px ${c}` : "none",
                     }} />
@@ -189,14 +188,14 @@ function AccountDialog({
               </div>
             </div>
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-2">Currency</label>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-2">Currency</label>
               <select
                 value={currency}
                 onChange={e => setCurrency(e.target.value)}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/25 transition-colors appearance-none"
+                className="w-full bg-foreground/5 border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:border-foreground/25 transition-colors appearance-none"
               >
                 {["USD","EUR","GBP","AUD","CAD"].map(c => (
-                  <option key={c} value={c} style={{ background:"#16161e" }}>{c}</option>
+                  <option key={c} value={c} style={{ background:"hsl(var(--card))" }}>{c}</option>
                 ))}
               </select>
             </div>
@@ -206,9 +205,9 @@ function AccountDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-white/8">
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border">
           <button onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-white/50 hover:text-white hover:bg-white/5 transition-colors">
+            className="px-4 py-2 rounded-xl text-xs font-bold text-muted-foreground hover:text-foreground hover:bg-foreground/5 transition-colors">
             Cancel
           </button>
           <button onClick={handleSave}
@@ -281,9 +280,9 @@ function AccountCard({
           <Building2 size={14} style={{ color: account.color }} />
         </div>
         <div className="min-w-0">
-          <p className="text-xs font-black text-white truncate">{account.accountName}</p>
-          <p className="text-[10px] text-white/40 truncate">{account.broker} · {account.login}</p>
-          <p className="text-[9px] font-mono text-white/20 truncate mt-0.5"
+          <p className="text-xs font-black text-foreground truncate">{account.accountName}</p>
+          <p className="text-[10px] text-muted-foreground truncate">{account.broker} · {account.login}</p>
+          <p className="text-[9px] font-mono text-muted-foreground/60 truncate mt-0.5"
             title="Copy this into InpAccountId in the MT5 sync script">
             ID: {account.id}
           </p>
@@ -346,7 +345,7 @@ function CombinedStats({ accounts, statsMap }: { accounts: Account[], statsMap: 
 
   const tiles = [
     { label: "Total P&L",    value: `${totals.pnl >= 0 ? "+" : ""}$${totals.pnl.toFixed(2)}`, color: totals.pnl >= 0 ? "#34d399" : "#f87171" },
-    { label: "Total Trades", value: String(totals.trades), color: "#e5e7eb" },
+    { label: "Total Trades", value: String(totals.trades), color: "var(--foreground, #e5e7eb)" },
     { label: "Total Wins",   value: String(totals.wins),   color: "#34d399" },
     { label: "Total Losses", value: String(totals.losses), color: "#f87171" },
     { label: "Combined WR",  value: `${totals.wr.toFixed(1)}%`, color: totals.wr >= 50 ? "#34d399" : "#f87171" },
@@ -355,8 +354,8 @@ function CombinedStats({ accounts, statsMap }: { accounts: Account[], statsMap: 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
       {tiles.map(t => (
-        <div key={t.label} className="rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3">
-          <p className="text-[9px] uppercase tracking-widest text-white/30 font-bold mb-1">{t.label}</p>
+        <div key={t.label} className="rounded-xl border border-border bg-foreground/[0.03] px-4 py-3">
+          <p className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold mb-1">{t.label}</p>
           <p className="text-lg font-black" style={{ color: t.color }}>{t.value}</p>
         </div>
       ))}
@@ -372,16 +371,16 @@ function AccountTable({ accounts, statsMap, onSelect }: {
   onSelect: (a: Account) => void
 }) {
   return (
-    <div className="rounded-xl border border-white/8 bg-white/[0.02] overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-white/8">
-        <BarChart2 size={13} className="text-white/40" />
-        <span className="text-[10px] font-black uppercase tracking-widest text-white/60">Account Breakdown</span>
+    <div className="rounded-xl border border-border bg-foreground/[0.02] overflow-hidden">
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
+        <BarChart2 size={13} className="text-muted-foreground" />
+        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Account Breakdown</span>
       </div>
       <table className="w-full">
         <thead>
-          <tr className="border-b border-white/5">
+          <tr className="border-b border-border">
             {["Account","Broker","Login","Instruments","Trades","Win Rate","P&L",""].map(h => (
-              <th key={h} className="px-4 py-2 text-left text-[9px] font-bold uppercase tracking-widest text-white/25">{h}</th>
+              <th key={h} className="px-4 py-2 text-left text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">{h}</th>
             ))}
           </tr>
         </thead>
@@ -396,13 +395,13 @@ function AccountTable({ accounts, statsMap, onSelect }: {
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 rounded-full flex-shrink-0"
                       style={{ background: a.color, boxShadow: `0 0 6px ${a.color}` }} />
-                    <span className="text-xs font-bold text-white">{a.accountName}</span>
+                    <span className="text-xs font-bold text-foreground">{a.accountName}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-xs text-white/50">{a.broker}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{a.broker}</td>
                 <td className="px-4 py-3">
-                  <p className="text-xs font-mono text-white/40">{a.login}</p>
-                  <p className="text-[9px] font-mono text-white/20">{a.id}</p>
+                  <p className="text-xs font-mono text-muted-foreground">{a.login}</p>
+                  <p className="text-[9px] font-mono text-muted-foreground/50">{a.id}</p>
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-1 flex-wrap">
@@ -414,7 +413,7 @@ function AccountTable({ accounts, statsMap, onSelect }: {
                     ))}
                   </div>
                 </td>
-                <td className="px-4 py-3 text-xs text-white/50">{s?.loaded ? s.tradeCount : "—"}</td>
+                <td className="px-4 py-3 text-xs text-muted-foreground">{s?.loaded ? s.tradeCount : "—"}</td>
                 <td className="px-4 py-3 text-xs font-bold"
                   style={{ color: s?.loaded && s.winRate > 0 ? "#34d399" : "#f87171" }}>
                   {s?.loaded ? `${s.winRate.toFixed(0)}%` : "—"}
