@@ -27,8 +27,8 @@ const VISIBLE_KEY = "phx_ticker_visible"
 // amber STALE: serving last-good saved values, or only some symbols live
 // amber DEMO: no data ever fetched yet
 function badgeFor(source: string): { text: string; stale: boolean } {
-  if (source === "finnhub" || source === "cache")      return { text: "LIVE",  stale: false }
-  if (source === "finnhub-partial")                    return { text: "LIVE*", stale: true  }
+  if (source === "twelvedata" || source === "cache")   return { text: "LIVE",  stale: false }
+  if (source === "twelvedata-partial")                 return { text: "LIVE*", stale: true  }
   if (source === "last-good")                          return { text: "STALE", stale: true  }
   return { text: "DEMO", stale: true }   // mock / demo / unknown
 }

@@ -1,27 +1,20 @@
 // ============================================================
-// /api/ticker (GET) — v3.0  (Finnhub + Firestore last-good fallback)
+// /api/ticker (GET) — v4.0  (TwelveData + Firestore last-good fallback)
 // ============================================================
-// DATA SOURCE: Finnhub (https://finnhub.io) — free tier, 60 calls/min.
-//   - Gold via OANDA forex feed (OANDA:XAU_USD)
-//   - Crypto via Binance (BINANCE:BTCUSDT / ETHUSDT)
-//   - Forex via OANDA (OANDA:EUR_USD etc.)
+// DATA SOURCE: TwelveData (https://twelvedata.com) — free tier, 800 credits/day.
+//   Serves gold (XAU/USD), crypto, and forex on the free tier — verified working
+//   (same provider/key the signal-study scripts use). A 45-min ticker uses ~6
+//   credits/refresh = ~190/day, well under the 800 cap.
 //
-// FALLBACK PHILOSOPHY (per your design):
-//   Every SUCCESSFUL fetch is saved to Firestore (tickerCache/latest).
-//   If a symbol fails (premium-locked, rate-limited, network), we serve the
-//   LAST-GOOD value from Firestore instead of fake mock numbers. Mock only
-//   appears on the very first run before Firestore has ever been written.
-//
-// WHY FIRESTORE (not an in-memory var): Vercel is serverless — memory is wiped
-// between cold starts, so last-good values must live somewhere durable.
-//   - Uses the Firestore REST API (NOT the Client SDK — gRPC causes 504s on
-//     Vercel serverless; this matches the proven webhook route pattern).
+// FALLBACK PHILOSOPHY (unchanged from v3):
+//   Every SUCCESSFUL fetch is saved to Firestore (tickerCache/latest). If a
+//   symbol fails, we serve the LAST-GOOD value from Firestore — never fake mock.
+//   Mock (price 0 → "—") only before Firestore has ever been written.
 //
 // REQUIRED ENV VARS (set in Vercel):
-//   FINNHUB_API_KEY              — your Finnhub free key
-//   NEXT_PUBLIC_FIREBASE_PROJECT_ID
-//   FIREBASE_CLIENT_EMAIL        — service account email
-//   FIREBASE_PRIVATE_KEY         — service account private key
+//   TWELVEDATA_API_KEY           — your TwelveData key
+//   NEXT_PUBLIC_FIREBASE_PROJECT_ID (or FIREBASE_PROJECT_ID)
+//   FIREBASE_CLIENT_EMAIL / FIREBASE_PRIVATE_KEY
 // ============================================================
 import { NextResponse } from "next/server"
 
@@ -36,25 +29,24 @@ export interface TickerItem {
   change: number; changePct: number; isPos: boolean
 }
 
-// ── Finnhub symbol map (Path B — all-live, 6 symbols) ─────────────────────
-const FINNHUB_SYMBOLS: { fh: string; label: string }[] = [
-  { fh: "OANDA:XAU_USD",   label: "GOLD"    },
-  { fh: "BINANCE:BTCUSDT", label: "BTC"     },
-  { fh: "BINANCE:ETHUSDT", label: "ETH"     },
-  { fh: "OANDA:EUR_USD",   label: "EUR/USD" },
-  { fh: "OANDA:GBP_USD",   label: "GBP/USD" },
-  { fh: "OANDA:USD_JPY",   label: "USD/JPY" },
+// ── TwelveData symbol map (Path B — all-live, 6 symbols) ──────────────────
+const TD_SYMBOLS: { td: string; label: string }[] = [
+  { td: "XAU/USD",  label: "GOLD"    },
+  { td: "BTC/USD",  label: "BTC"     },
+  { td: "ETH/USD",  label: "ETH"     },
+  { td: "EUR/USD",  label: "EUR/USD" },
+  { td: "GBP/USD",  label: "GBP/USD" },
+  { td: "USD/JPY",  label: "USD/JPY" },
 ]
 
 // ── Mock — ONLY used on the very first run before Firestore is populated ──
-// After the first successful fetch, last-good Firestore values replace these.
 const MOCK: TickerItem[] = [
-  { symbol:"OANDA:XAU_USD",   label:"GOLD",    price:0, change:0, changePct:0, isPos:true },
-  { symbol:"BINANCE:BTCUSDT", label:"BTC",     price:0, change:0, changePct:0, isPos:true },
-  { symbol:"BINANCE:ETHUSDT", label:"ETH",     price:0, change:0, changePct:0, isPos:true },
-  { symbol:"OANDA:EUR_USD",   label:"EUR/USD", price:0, change:0, changePct:0, isPos:true },
-  { symbol:"OANDA:GBP_USD",   label:"GBP/USD", price:0, change:0, changePct:0, isPos:true },
-  { symbol:"OANDA:USD_JPY",   label:"USD/JPY", price:0, change:0, changePct:0, isPos:true },
+  { symbol:"XAU/USD",  label:"GOLD",    price:0, change:0, changePct:0, isPos:true },
+  { symbol:"BTC/USD",  label:"BTC",     price:0, change:0, changePct:0, isPos:true },
+  { symbol:"ETH/USD",  label:"ETH",     price:0, change:0, changePct:0, isPos:true },
+  { symbol:"EUR/USD",  label:"EUR/USD", price:0, change:0, changePct:0, isPos:true },
+  { symbol:"GBP/USD",  label:"GBP/USD", price:0, change:0, changePct:0, isPos:true },
+  { symbol:"USD/JPY",  label:"USD/JPY", price:0, change:0, changePct:0, isPos:true },
 ]
 
 // ════════════════════════════════════════════════════════════════════════
@@ -161,65 +153,83 @@ async function readLastGood(): Promise<TickerItem[] | null> {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-//  FINNHUB FETCH (one /quote call per symbol; resilient per-symbol)
+//  TWELVEDATA FETCH (one batched /quote call for all symbols)
 // ════════════════════════════════════════════════════════════════════════
-// Finnhub /quote returns: { c: current, d: change, dp: percentChange, pc: prevClose }
-async function fetchFinnhubSymbol(fh: string, apiKey: string): Promise<{ price:number; change:number; changePct:number } | null> {
-  try {
-    const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(fh)}&token=${apiKey}`
-    const res = await fetch(url, { next: { revalidate: 60 } })
-    if (!res.ok) return null
-    const q = await res.json()
-    // c===0 means no data / not available on this tier
-    if (!q || typeof q.c !== "number" || q.c === 0) return null
+// TwelveData /quote with comma-separated symbols returns an object keyed by
+// symbol: { "XAU/USD": { close, change, percent_change, ... }, ... }
+// A single symbol returns the quote object directly (no outer key), so handle both.
+async function fetchTwelveData(apiKey: string): Promise<Map<string, { price:number; change:number; changePct:number }>> {
+  const out = new Map<string, { price:number; change:number; changePct:number }>()
+  const syms = TD_SYMBOLS.map(s => s.td).join(",")
+  const url  = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(syms)}&apikey=${apiKey}&dp=5`
+
+  const res = await fetch(url, { next: { revalidate: 60 } })
+  if (!res.ok) throw new Error(`TwelveData HTTP ${res.status}`)
+  const json = await res.json()
+
+  // Whole-batch error (bad key, out of credits, etc.)
+  if (json?.status === "error") throw new Error(`TwelveData: ${json?.message ?? "error"}`)
+
+  const readQuote = (q: any) => {
+    if (!q || q.status === "error") return null
+    const price = parseFloat(q.close ?? q.price ?? "0")
+    if (!price || isNaN(price)) return null
+    const change = parseFloat(q.change ?? "0")
     return {
-      price:     q.c,
-      change:    typeof q.d  === "number" ? q.d  : 0,
-      changePct: typeof q.dp === "number" ? q.dp : 0,
+      price,
+      change: isNaN(change) ? 0 : change,
+      changePct: parseFloat(q.percent_change ?? "0") || 0,
     }
-  } catch {
-    return null
   }
+
+  for (const { td } of TD_SYMBOLS) {
+    // batched response is keyed by symbol; single-symbol response is flat
+    const q = (json && json[td] !== undefined) ? json[td] : (TD_SYMBOLS.length === 1 ? json : null)
+    const parsed = readQuote(q)
+    if (parsed) out.set(td, parsed)
+  }
+  return out
 }
 
-// Build the full ticker. For each symbol: try Finnhub; on failure use last-good.
+// Build the full ticker. Try TwelveData (one batched call); on per-symbol
+// failure use last-good from Firestore. Never fake mock if avoidable.
 async function buildTicker(): Promise<{ items: TickerItem[]; source: string; allLive: boolean }> {
-  const apiKey = process.env.FINNHUB_API_KEY
+  const apiKey = process.env.TWELVEDATA_API_KEY
   const lastGood = await readLastGood()
   const lastGoodByLabel = new Map((lastGood ?? []).map(i => [i.label, i]))
 
   if (!apiKey) {
-    // No key at all — serve last-good if we have it, else mock.
     return { items: lastGood ?? MOCK, source: lastGood ? "last-good" : "mock", allLive: false }
+  }
+
+  let quotes: Map<string, { price:number; change:number; changePct:number }>
+  try {
+    quotes = await fetchTwelveData(apiKey)
+  } catch (err) {
+    console.warn("[ticker v4] TwelveData failed:", err)
+    quotes = new Map()
   }
 
   let liveCount = 0
   const items: TickerItem[] = []
-
-  for (const { fh, label } of FINNHUB_SYMBOLS) {
-    const live = await fetchFinnhubSymbol(fh, apiKey)
+  for (const { td, label } of TD_SYMBOLS) {
+    const live = quotes.get(td)
     if (live) {
       liveCount++
-      items.push({
-        symbol: fh, label,
-        price: live.price, change: live.change, changePct: live.changePct,
-        isPos: live.change >= 0,
-      })
+      items.push({ symbol: td, label, price: live.price, change: live.change, changePct: live.changePct, isPos: live.change >= 0 })
     } else {
-      // Fall back to this symbol's last-good value (never fake mock if avoidable)
       const prev = lastGoodByLabel.get(label)
-      items.push(prev ?? { symbol: fh, label, price: 0, change: 0, changePct: 0, isPos: true })
+      items.push(prev ?? { symbol: td, label, price: 0, change: 0, changePct: 0, isPos: true })
     }
   }
 
-  // If we got at least one live price, persist the fresh snapshot for next time.
   if (liveCount > 0) await saveLastGood(items)
 
-  const allLive = liveCount === FINNHUB_SYMBOLS.length
+  const allLive = liveCount === TD_SYMBOLS.length
   const source =
-    liveCount === 0          ? (lastGood ? "last-good" : "mock")
-    : allLive                ? "finnhub"
-    :                          "finnhub-partial"
+    liveCount === 0 ? (lastGood ? "last-good" : "mock")
+    : allLive       ? "twelvedata"
+    :                 "twelvedata-partial"
   return { items, source, allLive }
 }
 
