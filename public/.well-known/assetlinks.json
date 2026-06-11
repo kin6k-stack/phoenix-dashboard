@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.phoenix_dashboard_two.twa",
+        "sha256_cert_fingerprints": ["02:AB:94:53:23:1A:3A:D0:1A:1D:C9:40:7C:33:BB:D1:F1:48:CF:17:6A:51:B1:3C:05:73:76:94:44:FC:BD:33"]
+      }
+    }]
