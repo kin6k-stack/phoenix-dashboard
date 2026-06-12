@@ -5,6 +5,7 @@ import { GeistMono } from "geist/font/mono"
 import "./globals.css"
 import { AuthProvider } from "@/lib/auth-context"
 import { NativeBridge } from "@/components/native-bridge" // Capacitor Phase 1: installs native /api fetch bridge (no-op on web)
+import { BiometricGate } from "@/components/biometric-gate" // Native-only fingerprint/face lock (no-op on web)
 
 export const metadata: Metadata = {
   title: "Phoenix Trading Ecosystem",
@@ -72,7 +73,9 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased bg-background text-foreground min-h-screen">
         <NativeBridge />
-        <AuthProvider>{children}</AuthProvider>
+        <BiometricGate>
+          <AuthProvider>{children}</AuthProvider>
+        </BiometricGate>
 
         {/* Patched: Registers the background service worker without hurting load performance */}
         <Script
