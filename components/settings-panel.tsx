@@ -14,7 +14,7 @@ import { MT5ConnectSection } from "@/components/mt5-connect-section"
 import { useAuth } from "@/lib/auth-context"
 import { useNotifications } from "@/lib/use-notifications"
 
-interface SettingsPanelProps { open: boolean; onClose: () => void; isOwner?: boolean }
+interface SettingsPanelProps { open: boolean; onClose: () => void; isOwner?: boolean; onReplayOnboarding?: () => void }
 
 // ── Theme catalogue ───────────────────────────────────────────────────────────
 const THEMES: { id:Theme; label:string; description:string; bg:string; accent:string; border:string; glow:string }[] = [
@@ -390,7 +390,7 @@ function AccountSection({ isOwner, userId }: { isOwner: boolean; userId?: string
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
-export function SettingsPanel({ open, onClose, isOwner = false }: SettingsPanelProps) {
+export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboarding }: SettingsPanelProps) {
   const { theme, density, animations, invert, setTheme, setDensity, setAnimations, setInvert } = useTheme()
   const { user } = useAuth()
   const router = useRouter()
@@ -667,7 +667,20 @@ export function SettingsPanel({ open, onClose, isOwner = false }: SettingsPanelP
               })}
             </div>
 
-            <div className="px-4 pb-4 border-t border-border pt-3">
+            <div className="px-4 pb-4 border-t border-border pt-3 space-y-1.5">
+              {/* Replay onboarding — always accessible */}
+              {onReplayOnboarding && (
+                <button onClick={() => { onClose(); setTimeout(onReplayOnboarding, 200) }}
+                  className="w-full flex items-center gap-3 rounded-xl px-3.5 py-3 hover:bg-primary/[0.06] border border-transparent hover:border-primary/20 transition-all group text-left">
+                  <div className="w-8 h-8 rounded-lg border border-border bg-background/40 flex items-center justify-center group-hover:border-primary/30 transition-colors">
+                    <Zap size={14} className="text-muted-foreground group-hover:text-primary transition-colors" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Replay Onboarding</p>
+                    <p className="text-[10px] text-muted-foreground">Revisit the setup wizard anytime</p>
+                  </div>
+                </button>
+              )}
               <button onClick={handleSignOut}
                 className="w-full flex items-center gap-3 rounded-xl px-3.5 py-3 hover:bg-destructive/[0.06] border border-transparent hover:border-destructive/20 transition-all group text-left">
                 <div className="w-8 h-8 rounded-lg border border-border bg-background/40 flex items-center justify-center group-hover:border-destructive/30 transition-colors">

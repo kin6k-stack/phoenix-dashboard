@@ -31,6 +31,7 @@ import { PnLAnalyticsView }       from "@/components/pnl-analytics-view"
 import { CandleAnalysisView }     from "@/components/candle-analysis-view"
 import { SettingsPanel }          from "@/components/settings-panel"
 import { useNotifications }      from "@/lib/use-notifications"
+import { OnboardingFlow, useOnboarding } from "@/components/onboarding-flow"
 
 interface Trade {
   id: string; date: string; symbol: string; setup: string
@@ -91,6 +92,7 @@ export default function TradingDashboard() {
   const [symbolFilter,      setSymbolFilter]      = useState<string>("ALL")
   const [settingsOpen,      setSettingsOpen]      = useState(false)
   const { processNewTrades } = useNotifications()
+  const { needsOnboarding, checked: onboardingChecked, replayOnboarding, markComplete: markOnboardingComplete } = useOnboarding()
   const [currentMonthYear,  setCurrentMonthYear]  = useState({
     month: new Date().getMonth(),
     year:  new Date().getFullYear(),
@@ -290,7 +292,7 @@ export default function TradingDashboard() {
   const tradeDates  = symbolFiltered.map(t => new Date(t.date))
   const manualTrades= filteredTrades.filter(t => t.setup.toUpperCase().includes("MANUAL"))
 
-  if (authLoading) {
+  if (authLoading || !onboardingChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
@@ -301,6 +303,9 @@ export default function TradingDashboard() {
     )
   }
   if (!user) return null
+
+  // Show onboarding flow for new users (or when replayed from settings).
+  if (needsOnboarding) return <OnboardingFlow onComplete={markOnboardingComplete} />
 
   const renderContent = () => {
     switch (activeNavItem) {
@@ -483,7 +488,7 @@ export default function TradingDashboard() {
         initialDraft={copyDraft}
         trades={trades}
       />
-      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} isOwner={isOwner} />
+      <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} isOwner={isOwner} onReplayOnboarding={replayOnboarding} />
     </div>
   )
 }
