@@ -46,8 +46,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider()
-    await signInWithPopup(auth, provider)
+    // Detect the native app. In Capacitor we MUST use the native Google Auth
+    // plugin — signInWithPopup hangs inside a WebView. On web we use popup.
+    let isNative = false
+    try {
+      const { Capacitor } = await import("@capacitor/core")
+      isNative = Capacitor.isNativePlatform()
+    } catch { isNative = false }
+
+    if (isNative) {
+      // Native Google sign-in: the plugin shows the real Android account
+      // picker, returns an idToken, which we exchange for a Firebase credential.
+      const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth")
+      const result = await GoogleAuth.signIn()
+      const idToken = (result as any)?.authentication?.idToken
+      if (!idToken) throw new Error("Google sign-in returned no idToken")
+      const credential = GoogleAuthProvider.credential(idToken)
+      const { signInWithCredential } = await import("firebase/auth")
+      await signInWithCredential(auth, credential)
+    } else {
+      const provider = new GoogleAuthProvider()
+      await signInWithPopup(auth, provider)
+    }
   }
 
   const signOut = async () => {

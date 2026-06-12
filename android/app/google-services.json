@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "269412096320",
+    "firebase_url": "https://tradingecosystem-f6a4c-default-rtdb.firebaseio.com",
+    "project_id": "tradingecosystem-f6a4c",
+    "storage_bucket": "tradingecosystem-f6a4c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:269412096320:android:c999e33fdc43cb0e9782a5",
+        "android_client_info": {
+          "package_name": "app.phoenix.dashboard"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "269412096320-fu3b7df39q3ugp5e90g7isbgk039l78p.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.phoenix.dashboard",
+            "certificate_hash": "c6ac52a3a96b0170b9f8e0fe6c6cfa73c027dcec"
+          }
+        },
+        {
+          "client_id": "269412096320-rhjshguiana44llnvh77akuv9ud4pmpb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzuNsqGERqJA-cN7g2UycNa1bcEGbIFrg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "269412096320-rhjshguiana44llnvh77akuv9ud4pmpb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

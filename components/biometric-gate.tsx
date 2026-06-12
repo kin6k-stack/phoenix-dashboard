@@ -65,7 +65,6 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true
-    let removeListener: (() => void) | null = null
 
     ;(async () => {
       try {
@@ -78,37 +77,17 @@ export function BiometricGate({ children }: { children: React.ReactNode }) {
         setUnlocked(false)   // lock on launch
         runAuth()
 
-        // Re-lock only after a REAL background gap, not when the biometric
-        // dialog momentarily steals focus.
-        const appMod = await import("@capacitor/app").catch(() => null)
-        if (appMod?.App && mounted) {
-          const handle = await appMod.App.addListener(
-            "appStateChange",
-            (state: { isActive: boolean }) => {
-              if (authInProgress.current) return  // ignore dialog focus changes
-              if (!state.isActive) {
-                // Going to background — note the time.
-                backgroundedAt.current = Date.now()
-              } else {
-                // Coming to foreground — only re-lock if backgrounded for a
-                // real interval (> 3s), so the auth dialog round-trip doesn't
-                // trigger a re-lock.
-                const gap = Date.now() - backgroundedAt.current
-                if (backgroundedAt.current > 0 && gap > 3000) {
-                  setUnlocked(false)
-                  runAuth()
-                }
-              }
-            }
-          )
-          removeListener = () => { try { handle.remove() } catch {} }
-        }
+        // NOTE: We intentionally DO NOT re-lock on appStateChange / return from
+        // background. Google/OAuth sign-in sends the app to the background to
+        // show the account picker; re-locking on return collides with the
+        // OAuth redirect and creates a biometric loop that blocks login.
+        // Lock-on-launch is the gate; the Firebase session guards the rest.
       } catch {
         if (mounted) { setIsNative(false); setUnlocked(true) }
       }
     })()
 
-    return () => { mounted = false; if (removeListener) removeListener() }
+    return () => { mounted = false }
   }, [runAuth])
 
   // Web, or unlocked → render the app.

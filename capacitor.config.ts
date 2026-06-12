@@ -23,6 +23,15 @@ const config: CapacitorConfig = {
     // Allow the WebView to use the device's network normally.
     allowMixedContent: false,
   },
+  plugins: {
+    GoogleAuth: {
+      // Web client ID from Firebase → Authentication → Google → Web SDK config.
+      // (Safe to commit — it's a public client ID.)
+      scopes: ['profile', 'email'],
+      serverClientId: 'PASTE_WEB_CLIENT_ID_HERE.apps.googleusercontent.com',
+      forceCodeForRefreshToken: true,
+    },
+  },
 };
 
 export default config;
