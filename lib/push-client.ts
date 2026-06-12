@@ -1,18 +1,22 @@
 "use client"
 
 // ─────────────────────────────────────────────────────────────────────────
-// PHOENIX — WEB PUSH SUBSCRIBE HELPER
-// Asks the user for notification permission, subscribes the device to web
-// push using the VAPID public key, and saves the subscription to Firestore
-// (pushSubscriptions/{endpointHash}) so the server can send to it later.
+// PHOENIX — PUSH SUBSCRIBE (web + native FCM unified)
+//
+// Native (Capacitor app): uses @capacitor/push-notifications to get an FCM
+// token, saves it to Firestore pushSubscriptions/{token_hash}. True native
+// push — works on lockscreen, status bar, when app is fully closed.
+//
+// Web (browser): falls back to the original web push API (VAPID) which works
+// in full Chrome/Firefox but NOT in the Capacitor WebView.
 // ─────────────────────────────────────────────────────────────────────────
-
 import { db } from "@/lib/firebase"
 import { doc, setDoc } from "firebase/firestore"
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || ""
 
-// Convert the base64 VAPID key to the Uint8Array the push API expects.
+export type PushState = "unsupported" | "denied" | "granted" | "default" | "error"
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
@@ -22,59 +26,97 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return arr
 }
 
-// Stable id for a subscription from its endpoint (so re-subscribing updates
-// the same doc instead of creating duplicates).
-async function endpointId(endpoint: string): Promise<string> {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(endpoint))
+async function hashKey(val: string): Promise<string> {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(val))
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 32)
 }
 
-export type PushState = "unsupported" | "denied" | "granted" | "default" | "error"
-
-// Returns true if this browser can do web push at all.
 export function pushSupported(): boolean {
-  return typeof window !== "undefined"
-    && "serviceWorker" in navigator
-    && "PushManager" in window
-    && "Notification" in window
+  return typeof window !== "undefined" && "Notification" in window
 }
 
-// Ask permission + subscribe + save. Call from a button click.
-export async function enablePush(userId: string): Promise<PushState> {
-  if (!pushSupported()) return "unsupported"
-  if (!VAPID_PUBLIC_KEY) { console.error("Missing NEXT_PUBLIC_VAPID_PUBLIC_KEY"); return "error" }
+// ── NATIVE FCM path ───────────────────────────────────────────────────────
+async function enableNativePush(userId: string): Promise<PushState> {
+  const { PushNotifications } = await import("@capacitor/push-notifications")
 
-  try {
-    const permission = await Notification.requestPermission()
-    if (permission !== "granted") return permission as PushState
-
-    const reg = await navigator.serviceWorker.ready
-    let sub = await reg.pushManager.getSubscription()
-    if (!sub) {
-      sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      })
-    }
-
-    const json = sub.toJSON()
-    const id = await endpointId(sub.endpoint)
-    await setDoc(doc(db, "pushSubscriptions", id), {
-      userId,
-      endpoint: sub.endpoint,
-      keys: json.keys ?? {},
-      createdAt: new Date(),
-      userAgent: navigator.userAgent.slice(0, 200),
-    })
-    return "granted"
-  } catch (err) {
-    console.error("enablePush failed:", err)
-    return "error"
+  // Check permission
+  let perm = await PushNotifications.checkPermissions()
+  if (perm.receive === "prompt") {
+    perm = await PushNotifications.requestPermissions()
   }
+  if (perm.receive !== "granted") return "denied"
+
+  // Register with FCM — gets a token via callback.
+  return new Promise<PushState>((resolve) => {
+    let resolved = false
+    const timeout = setTimeout(() => {
+      if (!resolved) { resolved = true; resolve("error") }
+    }, 15000)
+
+    PushNotifications.addListener("registration", async (token) => {
+      if (resolved) return
+      resolved = true; clearTimeout(timeout)
+      try {
+        const id = await hashKey(token.value)
+        await setDoc(doc(db, "pushSubscriptions", id), {
+          userId,
+          fcmToken: token.value,
+          type: "fcm",
+          createdAt: new Date(),
+          platform: "android",
+        })
+        resolve("granted")
+      } catch (err) {
+        console.error("FCM token save failed:", err)
+        resolve("error")
+      }
+    })
+
+    PushNotifications.addListener("registrationError", (err) => {
+      if (resolved) return
+      resolved = true; clearTimeout(timeout)
+      console.error("FCM registration error:", err)
+      resolve("error")
+    })
+
+    PushNotifications.register()
+  })
 }
 
-// Current permission state without prompting.
+// ── WEB PUSH path (browser only — NOT for the Capacitor WebView) ──────────
+async function enableWebPush(userId: string): Promise<PushState> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return "unsupported"
+  if (!VAPID_PUBLIC_KEY) return "error"
+  const permission = await Notification.requestPermission()
+  if (permission !== "granted") return permission as PushState
+  const reg = await navigator.serviceWorker.ready
+  let sub = await reg.pushManager.getSubscription()
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+    })
+  }
+  const json = sub.toJSON()
+  const id = await hashKey(sub.endpoint)
+  await setDoc(doc(db, "pushSubscriptions", id), {
+    userId, endpoint: sub.endpoint, keys: json.keys ?? {},
+    type: "web", createdAt: new Date(),
+    userAgent: navigator.userAgent.slice(0, 200),
+  })
+  return "granted"
+}
+
+// ── Unified entry point ────────────────────────────────────────────────────
+export async function enablePush(userId: string): Promise<PushState> {
+  try {
+    const { Capacitor } = await import("@capacitor/core")
+    if (Capacitor.isNativePlatform()) return await enableNativePush(userId)
+  } catch { /* not native */ }
+  return await enableWebPush(userId)
+}
+
 export function pushPermission(): PushState {
-  if (!pushSupported()) return "unsupported"
+  if (typeof window === "undefined" || !("Notification" in window)) return "unsupported"
   return Notification.permission as PushState
 }

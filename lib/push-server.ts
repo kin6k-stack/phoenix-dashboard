@@ -1,26 +1,27 @@
 // ─────────────────────────────────────────────────────────────────────────
-// PHOENIX — SERVER-SIDE WEB PUSH SENDER
-// Sends a notification to all saved push subscriptions for a user (or all
-// owner subscriptions). Reads subscriptions from Firestore via REST (same
-// service-account pattern as the webhook/ticker — no Client SDK on server).
+// PHOENIX — SERVER-SIDE PUSH SENDER (FCM + web-push unified)
+//
+// Reads pushSubscriptions from Firestore. Sends to each sub via:
+//   type="fcm"  → Firebase Admin SDK (FCM) — for the native Android app
+//   type="web"  → web-push library (VAPID) — for browser subscribers
+// Both paths fire-and-forget; failures never break the webhook.
 // ─────────────────────────────────────────────────────────────────────────
 import webpush from "web-push"
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FIREBASE_PROJECT_ID
+const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+  || process.env.FIREBASE_PROJECT_ID
 
-// Configure VAPID once per cold start.
-let _configured = false
-function configure() {
-  if (_configured) return
+// ── VAPID config (web-push) ───────────────────────────────────────────────
+let _vapidConfigured = false
+function configureVapid() {
+  if (_vapidConfigured) return
   const pub  = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
   const priv = process.env.VAPID_PRIVATE_KEY
   const mail = process.env.VAPID_CONTACT || "mailto:admin@phoenix.local"
-  if (!pub || !priv) throw new Error("VAPID keys not set")
-  webpush.setVapidDetails(mail, pub, priv)
-  _configured = true
+  if (pub && priv) { webpush.setVapidDetails(mail, pub, priv); _vapidConfigured = true }
 }
 
-// ── Firestore REST auth (mirrors webhook route) ──────────────────────────
+// ── Firestore REST auth (mirrors webhook) ────────────────────────────────
 let _token: string | null = null
 let _tokenExp = 0
 async function getAccessToken(): Promise<string> {
@@ -34,7 +35,7 @@ async function getAccessToken(): Promise<string> {
   const iat = now, exp = now + 3600
   const header  = b64u(JSON.stringify({ alg:"RS256", typ:"JWT" }))
   const payload = b64u(JSON.stringify({
-    iss: email, scope: "https://www.googleapis.com/auth/datastore",
+    iss: email, scope: "https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/firebase.messaging",
     aud: "https://oauth2.googleapis.com/token", iat, exp,
   }))
   const stripped = pem.replace(/-----BEGIN PRIVATE KEY-----/g,"").replace(/-----END PRIVATE KEY-----/g,"").replace(/\s/g,"")
@@ -53,9 +54,15 @@ async function getAccessToken(): Promise<string> {
   return _token
 }
 
-interface Sub { id:string; endpoint:string; keys:{ p256dh?:string; auth?:string }; userId?:string }
+interface Sub {
+  id: string; type?: string
+  // FCM
+  fcmToken?: string
+  // Web push
+  endpoint?: string; keys?: { p256dh?:string; auth?:string }
+  userId?: string
+}
 
-// Read all push subscriptions (optionally filtered by userId) from Firestore.
 async function readSubs(userId?: string): Promise<Sub[]> {
   if (!PROJECT_ID) return []
   const token = await getAccessToken()
@@ -63,40 +70,68 @@ async function readSubs(userId?: string): Promise<Sub[]> {
   const res = await fetch(url, { headers:{ Authorization:`Bearer ${token}` } })
   if (!res.ok) return []
   const json = await res.json()
-  const docs = json.documents ?? []
-  const subs: Sub[] = docs.map((d: any) => {
+  const docs = (json.documents ?? []).map((d: any) => {
     const f = d.fields ?? {}
     return {
       id: d.name.split("/").pop(),
-      endpoint: f.endpoint?.stringValue ?? "",
+      type:     f.type?.stringValue ?? "web",
+      fcmToken: f.fcmToken?.stringValue,
+      endpoint: f.endpoint?.stringValue,
       keys: {
         p256dh: f.keys?.mapValue?.fields?.p256dh?.stringValue,
         auth:   f.keys?.mapValue?.fields?.auth?.stringValue,
       },
       userId: f.userId?.stringValue,
     }
-  }).filter((s: Sub) => s.endpoint)
-  return userId ? subs.filter(s => s.userId === userId) : subs
+  }).filter((s: Sub) => s.fcmToken || s.endpoint)
+  return userId ? docs.filter((s: Sub) => s.userId === userId) : docs
+}
+
+// Send via FCM (Firebase Cloud Messaging) for native app subscribers.
+async function sendFCM(token: string, payload: PushPayload, accessToken: string): Promise<boolean> {
+  if (!PROJECT_ID) return false
+  const msg = {
+    message: {
+      token,
+      notification: { title: payload.title, body: payload.body },
+      android: {
+        notification: {
+          icon: "ic_stat_notify",   // small notification icon (white, in drawable)
+          color: "#16a34a",
+          click_action: "OPEN_APP",
+        },
+      },
+      data: { url: payload.url || "/", tag: payload.tag || "phoenix" },
+    },
+  }
+  const res = await fetch(
+    `https://fcm.googleapis.com/v1/projects/${PROJECT_ID}/messages:send`,
+    { method:"POST", headers:{ "Content-Type":"application/json", Authorization:`Bearer ${accessToken}` },
+      body: JSON.stringify(msg) }
+  )
+  return res.ok
 }
 
 export interface PushPayload { title:string; body:string; url?:string; tag?:string }
 
-// Send a push to all (or one user's) subscriptions. Returns counts.
 export async function sendPush(payload: PushPayload, userId?: string): Promise<{ sent:number; failed:number }> {
-  configure()
-  const subs = await readSubs(userId)
+  configureVapid()
+  const [subs, accessToken] = await Promise.all([readSubs(userId), getAccessToken()])
   let sent = 0, failed = 0
-  const data = JSON.stringify(payload)
+
   await Promise.all(subs.map(async (s) => {
     try {
-      await webpush.sendNotification(
-        { endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh ?? "", auth: s.keys.auth ?? "" } },
-        data
-      )
-      sent++
-    } catch {
-      failed++   // dead subscription — could prune here later
-    }
+      if (s.type === "fcm" && s.fcmToken) {
+        const ok = await sendFCM(s.fcmToken, payload, accessToken)
+        ok ? sent++ : failed++
+      } else if (s.endpoint && s.keys) {
+        await webpush.sendNotification(
+          { endpoint: s.endpoint, keys: { p256dh: s.keys.p256dh ?? "", auth: s.keys.auth ?? "" } },
+          JSON.stringify(payload)
+        )
+        sent++
+      }
+    } catch { failed++ }
   }))
   return { sent, failed }
 }
