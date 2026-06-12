@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Activity, BarChart3, RefreshCw, DollarSign, Plus, ChevronDown, Check } from "lucide-react"
+import { Activity, BarChart3, RefreshCw, DollarSign, ChevronDown, Check } from "lucide-react"
 
 interface PnLHeaderProps {
   totalTrades?:        number
@@ -174,27 +174,6 @@ export function PnLHeader({
           </button>
         </div>
       </div>
-
-      {/* Empty-state banner only shows on calendar view */}
-      {!hasTrades && view === "calendar" && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg bg-emerald-500/[0.04] border border-emerald-500/20">
-          <div className="flex items-center gap-3">
-            <Activity className="h-4 w-4 text-emerald-400 flex-shrink-0" />
-            <div>
-              <p className="text-xs font-black text-foreground">Calendar is empty</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Log trades manually or connect a bot to populate the calendar.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onLogTrade}
-            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-black bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-colors min-h-[36px] w-full sm:w-auto">
-            <Plus size={13} />
-            Log Trade
-          </button>
-        </div>
-      )}
     </div>
   )
 }

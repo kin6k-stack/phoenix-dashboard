@@ -321,28 +321,6 @@ export default function TradingDashboard() {
                 onLogTrade={() => { setEditingTrade(null); setIsAddTradeOpen(true) }}
                 symbolFilter={symbolFilter} onSymbolFilterChange={setSymbolFilter}
               />
-              {/* Owner-only: log a completed BOT trade straight onto the calendar.
-                  Opens the same AddTradeDialog pre-tagged as a bot execution.
-                  Writes to the selected account so it appears on the calendar. */}
-              {isOwner && pnlView === "calendar" && (
-                <div className="flex justify-end -mt-2">
-                  <button
-                    onClick={() => {
-                      setEditingTrade(null)
-                      setCopyDraft({
-                        symbol: "XAUUSD",
-                        setup: "Phoenix Zone Scalper",
-                        direction: "BUY",
-                        rMultiple: 0,
-                        notes: "Bot trade (manually logged)",
-                      } as any)
-                      setIsAddTradeOpen(true)
-                    }}
-                    className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border border-primary/40 text-primary hover:bg-primary/10 transition-colors">
-                    + Log Bot Trade
-                  </button>
-                </div>
-              )}
               {pnlView === "calendar" ? (
                 <>
                   {accounts.length > 0 && <AccountFilterBar accounts={accounts} selectedAccountId={selectedAccountId} onSelect={setSelectedAccountId} />}
@@ -459,7 +437,13 @@ export default function TradingDashboard() {
       case "bot-hub":
         return (
           <PageShell title="Bot Hub" sub="Live performance and version history for all deployed engines">
-            <BotHubView />
+            <BotHubView
+              onAddToCalendar={(botTrade) => {
+                setEditingTrade(null)
+                setCopyDraft(botTrade)
+                setIsAddTradeOpen(true)
+              }}
+            />
           </PageShell>
         )
 

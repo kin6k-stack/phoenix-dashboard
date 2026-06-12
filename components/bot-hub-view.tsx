@@ -245,10 +245,11 @@ function BotCard({ bot, stats, botMeta, selected, onClick }: {
 }
 
 // ─── BotDetail ────────────────────────────────────────────────────────────────
-function BotDetail({ bot, stats, botMeta }: {
+function BotDetail({ bot, stats, botMeta, onAddToCalendar }: {
   bot:     typeof BOTS[0]
   stats:   BotStats
   botMeta: BotMeta
+  onAddToCalendar?: (trade: any) => void
 }) {
   const [tab,       setTab]       = useState<"overview"|"signals"|"trades"|"config"|"changelog">("overview")
   const [editing,   setEditing]   = useState(false)
@@ -569,8 +570,8 @@ function BotDetail({ bot, stats, botMeta }: {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    {["Date","Symbol","Dir","Entry","P&L","Outcome"].map(h => (
-                      <th key={h} className="px-3 py-2 text-left text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">{h}</th>
+                    {["Date","Symbol","Dir","Entry","P&L","Outcome",""].map((h, i) => (
+                      <th key={i} className="px-3 py-2 text-left text-[9px] font-bold uppercase tracking-widest text-muted-foreground/70">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -611,6 +612,26 @@ function BotDetail({ bot, stats, botMeta }: {
                               : t.profit === 0
                                 ? <MinusCircle size={12} className="text-white/30" />
                                 : <XCircle size={12} className="text-rose-400" />}
+                          </td>
+                          <td className="px-3 py-2">
+                            {/* Add this bot trade to the PnL calendar — opens the
+                                AddTradeDialog pre-loaded with this trade's info. */}
+                            {onAddToCalendar && (
+                              <button
+                                onClick={() => onAddToCalendar({
+                                  date:      (t.closedAt?.toDate ? t.closedAt.toDate() : new Date(t.closedAt||Date.now())).toISOString(),
+                                  symbol:    (t.symbol || "XAUUSD").replace(/m$/i, "").toUpperCase(),
+                                  setup:     bot.name,
+                                  direction: (t.direction || "BUY").toUpperCase(),
+                                  rMultiple: Number(t.profit) || 0,
+                                  notes:     `${bot.name} bot trade · entry ${t.entryPrice||"—"} · ticket ${t.id}`,
+                                })}
+                                title="Add to PnL calendar"
+                                className="flex items-center gap-1 text-[9px] font-black uppercase tracking-wider px-2 py-1 rounded-lg border transition-colors whitespace-nowrap"
+                                style={{ borderColor:`${bot.color}40`, color:bot.color }}>
+                                + Calendar
+                              </button>
+                            )}
                           </td>
                         </tr>
                       )
@@ -789,7 +810,7 @@ function BotDetail({ bot, stats, botMeta }: {
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
-export default function BotHubView() {
+export default function BotHubView({ onAddToCalendar }: { onAddToCalendar?: (trade: any) => void } = {}) {
   const [selectedBot, setSelectedBot] = useState(BOTS[0].id)
   const [botStats,    setBotStats]    = useState<Record<string, BotStats>>({})
   // Real-time botMeta per bot — subscribed via onSnapshot so heartbeats and
@@ -887,6 +908,7 @@ export default function BotHubView() {
         bot={bot}
         stats={botStats[bot.id] ?? { trades:[], loaded:false }}
         botMeta={botMetas[bot.id] ?? {}}
+        onAddToCalendar={onAddToCalendar}
       />
     </div>
   )
