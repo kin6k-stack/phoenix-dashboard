@@ -1,15 +1,5 @@
 "use client"
 
-// ─────────────────────────────────────────────────────────────────────────
-// PHOENIX — Onboarding Flow
-//
-// Shown once after first login. Two phases:
-//   Phase 1: Intro slides (swipeable, skip option) — "what is Phoenix"
-//   Phase 2: Setup wizard (3 steps: broker account + notifications)
-//
-// Completion is saved to Firestore users/{uid} → onboardingComplete: true
-// so it only shows once even across devices. Accessible anytime via Settings.
-// ─────────────────────────────────────────────────────────────────────────
 import { useState, useEffect, useCallback } from "react"
 import { doc, getDoc, setDoc } from "firebase/firestore"
 import { db } from "@/lib/firebase"
@@ -18,154 +8,175 @@ import { enablePush } from "@/lib/push-client"
 import { collection, addDoc } from "firebase/firestore"
 import {
   ChevronRight, X, Zap, BarChart3, Bell, Wallet,
-  TrendingUp, Bot, CheckCircle2, ArrowRight
+  Bot, CheckCircle2, ArrowRight, BookOpen, Globe
 } from "lucide-react"
 
-// ── Intro slide data ────────────────────────────────────────────────────
+// ── Slide data (non-owner focused) ──────────────────────────────────────────
 const SLIDES = [
   {
     icon: Zap,
     color: "#f59e0b",
-    title: "Welcome to Phoenix",
-    sub: "Your institutional-grade trading ecosystem",
-    body: "Phoenix connects your bots, signals, and P&L into one unified system — built for serious gold traders who demand precision over luck.",
+    glow: "rgba(245,158,11,0.3)",
+    label: "Welcome",
+    title: "Your Trading\nEcosystem",
+    body: "Phoenix brings institutional-grade tools to your fingertips — connect your broker accounts, track every trade, and access professional-level insights, all in one place.",
+  },
+  {
+    icon: BookOpen,
+    color: "#16a34a",
+    glow: "rgba(22,163,74,0.3)",
+    label: "Lifetime Ledger",
+    title: "Every Trade.\nEvery Broker.",
+    body: "Import and sync trade history from any broker into one unified ledger. Full P&L calendar, win-rate analytics, and session performance — across your entire trading career.",
   },
   {
     icon: Bot,
-    color: "#16a34a",
-    title: "Automated Bot Fleet",
-    sub: "24/4 algorithmic execution",
-    body: "Your MT5 bots run around the clock on validated logic — session-gated exits, smart partial closes, and real-time webhook reporting to the dashboard.",
-  },
-  {
-    icon: TrendingUp,
     color: "#3b82f6",
-    title: "Signal Intelligence",
-    sub: "73.4% win rate · +263 pts/trade",
-    body: "Live gold signals are captured, parsed, and validated against real market data. Every entry and exit is measured — nothing is assumed.",
+    glow: "rgba(59,130,246,0.3)",
+    label: "Bot Fleet",
+    title: "Automated\nGold Bots",
+    body: "Phoenix's MT5 bots trade XAU/USD around the clock — validated session-gated exits, smart partial closes, and real-time reporting. You have live access to every signal and outcome.",
   },
   {
     icon: BarChart3,
     color: "#8b5cf6",
-    title: "Full P&L Dashboard",
-    sub: "Every trade. Every session. Every pattern.",
-    body: "The trading calendar, lifetime ledger, and performance analytics give you complete visibility into what's working and what isn't.",
+    glow: "rgba(139,92,246,0.3)",
+    label: "Signal Intelligence",
+    title: "73.4% Win Rate.\nValidated.",
+    body: "Live gold signals captured, parsed, and measured against real market data. Every entry zone, TP level, and session context is tracked — nothing assumed, everything proven.",
   },
   {
-    icon: Bell,
+    icon: Globe,
     color: "#ec4899",
-    title: "Live Trade Alerts",
-    sub: "On your lockscreen, the moment it happens",
-    body: "When a bot opens or closes a trade, you get a native push notification — so you're always in the loop, even when the app is closed.",
+    glow: "rgba(236,72,153,0.3)",
+    label: "AI Insights",
+    title: "Institutional\nContext Engine",
+    body: "Market Bias, Intelligence Hub, and the Asset Matrix give you the macro picture — multi-agent AI consensus, live event calendars, and cross-asset correlations in real time.",
   },
 ]
 
-// ── Types ───────────────────────────────────────────────────────────────
-interface OnboardingFlowProps {
-  onComplete: () => void
-}
+interface OnboardingFlowProps { onComplete: () => void }
 
-// ── Main component ──────────────────────────────────────────────────────
 export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const { user } = useAuth()
   const [phase,       setPhase]       = useState<"slides" | "wizard">("slides")
   const [slideIdx,    setSlideIdx]    = useState(0)
-  const [wizardStep,  setWizardStep]  = useState(0)   // 0 = broker, 1 = notifications, 2 = done
+  const [wizardStep,  setWizardStep]  = useState(0)
   const [saving,      setSaving]      = useState(false)
   const [pushState,   setPushState]   = useState<string>("")
-
-  // Wizard step 0 — add broker account form state
   const [brokerName,    setBrokerName]    = useState("")
   const [accountNumber, setAccountNumber] = useState("")
   const [accountLabel,  setAccountLabel]  = useState("")
   const [addingAccount, setAddingAccount] = useState(false)
-  const [accountAdded,  setAccountAdded]  = useState(false)
 
   const markComplete = useCallback(async () => {
     if (!user || saving) return
     setSaving(true)
-    try {
-      await setDoc(doc(db, "users", user.uid), { onboardingComplete: true }, { merge: true })
-    } catch (err) {
-      console.warn("onboarding flag save failed:", err)
-    } finally {
-      setSaving(false)
-      onComplete()
-    }
+    try { await setDoc(doc(db, "users", user.uid), { onboardingComplete: true }, { merge: true }) }
+    catch (err) { console.warn("onboarding flag:", err) }
+    finally { setSaving(false); onComplete() }
   }, [user, saving, onComplete])
 
-  // ── Slide phase ─────────────────────────────────────────────────────
   const slide = SLIDES[slideIdx]
   const SlideIcon = slide.icon
   const isLast = slideIdx === SLIDES.length - 1
 
+  // ── Slide phase ───────────────────────────────────────────────────────────
   if (phase === "slides") {
     return (
-      <div style={{
-        position:"fixed", inset:0, zIndex:99998,
-        background:"#08090c",
-        display:"flex", flexDirection:"column",
-        alignItems:"center", justifyContent:"center",
-        padding:24,
-      }}>
+      <div className="fixed inset-0 z-[99998] flex flex-col items-center justify-center overflow-hidden"
+        style={{ background: "#08090c" }}>
+
+        {/* Ambient glow — moves with each slide */}
+        <div className="absolute inset-0 pointer-events-none transition-all duration-700"
+          style={{
+            background: `radial-gradient(ellipse 60% 45% at 50% 35%, ${slide.glow}, transparent 70%)`,
+          }}/>
+
+        {/* Subtle grid texture */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
+          style={{
+            backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}/>
+
         {/* Skip */}
-        <button onClick={() => setPhase("wizard")} style={{
-          position:"absolute", top:24, right:24,
-          color:"#555", fontSize:11, fontWeight:900,
-          textTransform:"uppercase", letterSpacing:2,
-          background:"none", border:"none", cursor:"pointer",
-          display:"flex", alignItems:"center", gap:4,
-        }}>
-          Skip <X size={12}/>
+        <button onClick={() => setPhase("wizard")}
+          className="absolute top-6 right-6 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/30 hover:text-white/60 transition-colors z-10">
+          Skip <X size={11}/>
         </button>
 
-        {/* Slide content */}
-        <div style={{ maxWidth:360, width:"100%", textAlign:"center" }}>
-          {/* Icon */}
-          <div style={{
-            width:72, height:72, borderRadius:20, margin:"0 auto 28px",
-            background:`${slide.color}18`,
-            border:`1px solid ${slide.color}40`,
-            display:"flex", alignItems:"center", justifyContent:"center",
-          }}>
-            <SlideIcon size={30} color={slide.color}/>
+        {/* Slide card */}
+        <div className="relative z-10 w-full max-w-[340px] px-5 flex flex-col items-center text-center">
+
+          {/* Icon block */}
+          <div className="relative mb-8">
+            {/* Outer glow ring */}
+            <div className="absolute inset-0 rounded-[22px] blur-xl opacity-60 transition-all duration-700"
+              style={{ background: slide.glow }}/>
+            {/* Glass card */}
+            <div className="relative w-[72px] h-[72px] rounded-[22px] flex items-center justify-center transition-all duration-500"
+              style={{
+                background: `linear-gradient(135deg, ${slide.color}22, ${slide.color}0a)`,
+                border: `1px solid ${slide.color}50`,
+                boxShadow: `0 0 30px ${slide.glow}, inset 0 1px 0 ${slide.color}30`,
+              }}>
+              <SlideIcon size={28} color={slide.color}/>
+            </div>
           </div>
 
-          {/* Text */}
-          <p style={{ fontSize:10, color:slide.color, fontWeight:900, letterSpacing:3,
-            textTransform:"uppercase", marginBottom:12 }}>{slide.sub}</p>
-          <h2 style={{ fontSize:22, fontWeight:900, color:"#f0f0f0", marginBottom:14,
-            letterSpacing:1 }}>{slide.title}</h2>
-          <p style={{ fontSize:13, color:"#888", lineHeight:1.7, marginBottom:40 }}>{slide.body}</p>
+          {/* Label pill */}
+          <div className="mb-4 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.25em]"
+            style={{
+              background: `${slide.color}15`,
+              border: `1px solid ${slide.color}30`,
+              color: slide.color,
+            }}>
+            {slide.label}
+          </div>
+
+          {/* Title */}
+          <h2 className="text-[28px] font-black leading-[1.15] tracking-[-0.5px] text-white mb-4"
+            style={{ whiteSpace: "pre-line" }}>
+            {slide.title}
+          </h2>
+
+          {/* Body */}
+          <p className="text-[12px] leading-[1.75] text-white/45 mb-10 max-w-[300px]">
+            {slide.body}
+          </p>
 
           {/* Dots */}
-          <div style={{ display:"flex", justifyContent:"center", gap:6, marginBottom:32 }}>
+          <div className="flex items-center justify-center gap-2 mb-8">
             {SLIDES.map((_, i) => (
-              <div key={i} onClick={() => setSlideIdx(i)} style={{
-                width: i===slideIdx ? 20 : 6, height:6, borderRadius:3,
-                background: i===slideIdx ? slide.color : "#333",
-                cursor:"pointer", transition:"all .2s",
-              }}/>
+              <button key={i} onClick={() => setSlideIdx(i)}
+                className="transition-all duration-300 rounded-full"
+                style={{
+                  width: i === slideIdx ? 20 : 6,
+                  height: 6,
+                  background: i === slideIdx ? slide.color : "rgba(255,255,255,0.12)",
+                }}/>
             ))}
           </div>
 
-          {/* Button */}
-          <button onClick={() => isLast ? setPhase("wizard") : setSlideIdx(slideIdx+1)} style={{
-            width:"100%", padding:"14px 24px", borderRadius:12,
-            background:`${slide.color}18`, border:`1px solid ${slide.color}40`,
-            color:slide.color, fontSize:12, fontWeight:900,
-            textTransform:"uppercase", letterSpacing:2, cursor:"pointer",
-            display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-          }}>
+          {/* CTA button */}
+          <button onClick={() => isLast ? setPhase("wizard") : setSlideIdx(slideIdx + 1)}
+            className="w-full flex items-center justify-center gap-2 py-[14px] rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+            style={{
+              background: `linear-gradient(135deg, ${slide.color}25, ${slide.color}10)`,
+              border: `1px solid ${slide.color}45`,
+              color: slide.color,
+              boxShadow: `0 4px 24px ${slide.glow}`,
+            }}>
             {isLast ? "Get Started" : "Next"}
-            <ChevronRight size={14}/>
+            <ChevronRight size={13}/>
           </button>
         </div>
       </div>
     )
   }
 
-  // ── Wizard phase ─────────────────────────────────────────────────────
+  // ── Wizard phase ──────────────────────────────────────────────────────────
   const STEPS = ["Broker Account", "Notifications", "All Set"]
 
   const handleAddAccount = async () => {
@@ -173,20 +184,14 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     setAddingAccount(true)
     try {
       await addDoc(collection(db, "accounts"), {
-        userId:      user.uid,
+        userId: user.uid,
         accountName: accountLabel || `${brokerName} ${accountNumber}`,
-        broker:      brokerName,
-        accountId:   accountNumber,
-        color:       "#16a34a",
-        createdAt:   new Date(),
+        broker: brokerName, accountId: accountNumber,
+        color: "#16a34a", createdAt: new Date(),
       })
-      setAccountAdded(true)
       setWizardStep(1)
-    } catch (err) {
-      console.error("add account failed:", err)
-    } finally {
-      setAddingAccount(false)
-    }
+    } catch (err) { console.error("add account:", err) }
+    finally { setAddingAccount(false) }
   }
 
   const handleEnablePush = async () => {
@@ -195,204 +200,226 @@ export function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     const res = await enablePush(user.uid)
     setPushState(res)
     if (res === "granted") {
-      // Fire test notification
       setTimeout(() => {
-        fetch("/api/push-test", {
-          method:"POST",
+        fetch("/api/push-test", { method:"POST",
           headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ userId: user.uid }),
+          body: JSON.stringify({ userId: user.uid })
         }).catch(()=>{})
       }, 1500)
       setTimeout(() => setWizardStep(2), 1200)
     }
   }
 
-  return (
-    <div style={{
-      position:"fixed", inset:0, zIndex:99998,
-      background:"#08090c",
-      display:"flex", flexDirection:"column",
-      alignItems:"center", justifyContent:"center",
-      padding:24,
-    }}>
-      <div style={{ maxWidth:420, width:"100%" }}>
-        {/* Step header */}
-        <div style={{ marginBottom:32 }}>
-          <p style={{ fontSize:10, color:"#16a34a", fontWeight:900, letterSpacing:3,
-            textTransform:"uppercase", marginBottom:8 }}>
-            Setup {wizardStep < 2 ? `${wizardStep+1} of 2` : "Complete"}
-          </p>
-          {/* Progress bar */}
-          <div style={{ height:3, background:"#1a1a1a", borderRadius:2 }}>
-            <div style={{ height:3, background:"#16a34a", borderRadius:2,
-              width:`${wizardStep === 0 ? 33 : wizardStep === 1 ? 66 : 100}%`,
-              transition:"width .4s" }}/>
-          </div>
-          {/* Step pills */}
-          <div style={{ display:"flex", gap:8, marginTop:12 }}>
-            {STEPS.map((s,i) => (
-              <div key={i} style={{
-                fontSize:9, fontWeight:900, textTransform:"uppercase", letterSpacing:1.5,
-                padding:"4px 10px", borderRadius:20,
-                background: i<=wizardStep ? "#16a34a18" : "#111",
-                border:`1px solid ${i<=wizardStep ? "#16a34a44" : "#222"}`,
-                color: i<=wizardStep ? "#16a34a" : "#444",
-                display:"flex", alignItems:"center", gap:4,
-              }}>
-                {i < wizardStep && <CheckCircle2 size={9}/>}
-                {s}
-              </div>
-            ))}
-          </div>
-        </div>
+  const ACCENT = "#16a34a"
+  const GLOW   = "rgba(22,163,74,0.25)"
 
-        {/* ── Step 0: Broker Account ── */}
-        {wizardStep === 0 && (
-          <div>
-            <h2 style={{ fontSize:20, fontWeight:900, color:"#f0f0f0", marginBottom:8 }}>
-              Add Your Trading Account
-            </h2>
-            <p style={{ fontSize:12, color:"#666", lineHeight:1.7, marginBottom:24 }}>
-              Connect your broker account so trades can be tracked in the P&L calendar and ledger.
-            </p>
-            <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
-              {[
-                { label:"Broker Name", placeholder:"e.g. Exness, Fusion Markets…",
-                  value:brokerName, set:setBrokerName },
-                { label:"Account Number", placeholder:"Your MT5 account number",
-                  value:accountNumber, set:setAccountNumber },
-                { label:"Display Label (optional)", placeholder:"e.g. Exness Gold Live",
-                  value:accountLabel, set:setAccountLabel },
-              ].map(f => (
-                <div key={f.label}>
-                  <p style={{ fontSize:10, color:"#888", fontWeight:700,
-                    textTransform:"uppercase", letterSpacing:1.5, marginBottom:6 }}>{f.label}</p>
-                  <input value={f.value} onChange={e=>f.set(e.target.value)}
-                    placeholder={f.placeholder}
-                    style={{
-                      width:"100%", padding:"10px 14px", borderRadius:10,
-                      background:"#111", border:"1px solid #222", color:"#f0f0f0",
-                      fontSize:13, outline:"none", boxSizing:"border-box",
-                    }}
-                  />
+  return (
+    <div className="fixed inset-0 z-[99998] flex flex-col items-center justify-center overflow-hidden"
+      style={{ background: "#08090c" }}>
+
+      {/* Ambient glow */}
+      <div className="absolute inset-0 pointer-events-none"
+        style={{ background: `radial-gradient(ellipse 55% 40% at 50% 30%, ${GLOW}, transparent 70%)` }}/>
+      <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.5) 1px,transparent 1px)",
+          backgroundSize: "40px 40px",
+        }}/>
+
+      <div className="relative z-10 w-full max-w-[380px] px-5">
+
+        {/* Glass card */}
+        <div className="rounded-3xl p-6"
+          style={{
+            background: "linear-gradient(135deg,rgba(255,255,255,0.045),rgba(255,255,255,0.01))",
+            border: "1px solid rgba(255,255,255,0.07)",
+            backdropFilter: "blur(20px)",
+            boxShadow: `0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)`,
+          }}>
+
+          {/* Progress */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[9px] font-black uppercase tracking-[0.25em]"
+                style={{ color: ACCENT }}>
+                {wizardStep < 2 ? `Step ${wizardStep + 1} of 2` : "Complete"}
+              </p>
+              <p className="text-[9px] text-white/25 font-mono">
+                {STEPS[wizardStep]}
+              </p>
+            </div>
+            {/* Bar */}
+            <div className="h-[3px] rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+              <div className="h-[3px] rounded-full transition-all duration-500"
+                style={{
+                  width: `${wizardStep === 0 ? 33 : wizardStep === 1 ? 66 : 100}%`,
+                  background: `linear-gradient(90deg, ${ACCENT}, ${ACCENT}88)`,
+                  boxShadow: `0 0 8px ${GLOW}`,
+                }}/>
+            </div>
+            {/* Pills */}
+            <div className="flex gap-2 mt-3">
+              {STEPS.map((s, i) => (
+                <div key={i} className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-wider transition-all duration-300"
+                  style={{
+                    background: i <= wizardStep ? `${ACCENT}18` : "rgba(255,255,255,0.03)",
+                    border: `1px solid ${i <= wizardStep ? ACCENT + "40" : "rgba(255,255,255,0.06)"}`,
+                    color: i <= wizardStep ? ACCENT : "rgba(255,255,255,0.2)",
+                  }}>
+                  {i < wizardStep && <CheckCircle2 size={8}/>} {s}
                 </div>
               ))}
             </div>
-            <div style={{ display:"flex", gap:10, marginTop:24 }}>
-              <button onClick={() => setWizardStep(1)} style={{
-                flex:1, padding:"12px 20px", borderRadius:10,
-                background:"#111", border:"1px solid #222",
-                color:"#555", fontSize:11, fontWeight:900,
-                textTransform:"uppercase", letterSpacing:1.5, cursor:"pointer",
-              }}>Skip for now</button>
-              <button onClick={handleAddAccount}
-                disabled={addingAccount || !brokerName || !accountNumber}
-                style={{
-                  flex:2, padding:"12px 20px", borderRadius:10,
-                  background:"#16a34a18", border:"1px solid #16a34a44",
-                  color:"#16a34a", fontSize:11, fontWeight:900,
-                  textTransform:"uppercase", letterSpacing:1.5, cursor:"pointer",
-                  opacity: (!brokerName || !accountNumber) ? 0.4 : 1,
-                  display:"flex", alignItems:"center", justifyContent:"center", gap:6,
-                }}>
-                {addingAccount ? "Adding…" : <><Wallet size={13}/> Add Account</>}
-              </button>
-            </div>
           </div>
-        )}
 
-        {/* ── Step 1: Notifications ── */}
-        {wizardStep === 1 && (
-          <div>
-            <h2 style={{ fontSize:20, fontWeight:900, color:"#f0f0f0", marginBottom:8 }}>
-              Enable Trade Alerts
-            </h2>
-            <p style={{ fontSize:12, color:"#666", lineHeight:1.7, marginBottom:24 }}>
-              Get notified the moment a bot opens or closes a trade — even when the app is closed. Alerts show on your lockscreen and status bar.
-            </p>
-            <div style={{
-              padding:"16px 20px", borderRadius:12,
-              background:"#ec4899" + "0d", border:"1px solid #ec489930",
-              display:"flex", alignItems:"center", gap:14, marginBottom:24,
-            }}>
-              <Bell size={22} color="#ec4899"/>
-              <div>
-                <p style={{ fontSize:12, fontWeight:900, color:"#f0f0f0", marginBottom:2 }}>Native Push Notifications</p>
-                <p style={{ fontSize:11, color:"#888" }}>Bot opened · Bot closed · Signal updates</p>
+          {/* ── Step 0: Broker Account ── */}
+          {wizardStep === 0 && (
+            <div>
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4"
+                style={{ background:`${ACCENT}18`, border:`1px solid ${ACCENT}35` }}>
+                <Wallet size={20} color={ACCENT}/>
               </div>
-            </div>
-            {pushState === "granted" ? (
-              <div style={{
-                padding:"14px 20px", borderRadius:10,
-                background:"#16a34a18", border:"1px solid #16a34a44",
-                display:"flex", alignItems:"center", gap:10, color:"#16a34a",
-                fontSize:12, fontWeight:900,
-              }}>
-                <CheckCircle2 size={16}/> Notifications enabled — test alert sent!
-              </div>
-            ) : (
-              <button onClick={handleEnablePush} disabled={pushState==="working"} style={{
-                width:"100%", padding:"14px 20px", borderRadius:12,
-                background:"#ec489918", border:"1px solid #ec489940",
-                color:"#ec4899", fontSize:12, fontWeight:900,
-                textTransform:"uppercase", letterSpacing:2, cursor:"pointer",
-                display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-                opacity: pushState==="working" ? 0.6 : 1,
-              }}>
-                <Bell size={14}/> {pushState==="working" ? "Enabling…" : "Enable Notifications"}
-              </button>
-            )}
-            {(pushState === "denied" || pushState === "error" || pushState === "unsupported") && (
-              <p style={{ fontSize:11, color:"#f87171", marginTop:10, textAlign:"center" }}>
-                {pushState==="denied" ? "Permission denied — you can enable in Settings later."
-                  : "Couldn't enable — you can set this up in Settings later."}
+              <h2 className="text-[20px] font-black text-white mb-2 leading-tight">Add Your Trading Account</h2>
+              <p className="text-[11px] text-white/40 leading-relaxed mb-5">
+                Connect your broker account so your trades sync into the Lifetime Ledger and P&L calendar automatically.
               </p>
-            )}
-            <button onClick={() => setWizardStep(2)} style={{
-              width:"100%", marginTop:12, padding:"12px 20px", borderRadius:10,
-              background:"#111", border:"1px solid #222",
-              color:"#555", fontSize:11, fontWeight:900,
-              textTransform:"uppercase", letterSpacing:1.5, cursor:"pointer",
-            }}>
-              {pushState==="granted" ? "Continue" : "Skip for now"}
-            </button>
-          </div>
-        )}
-
-        {/* ── Step 2: All set ── */}
-        {wizardStep === 2 && (
-          <div style={{ textAlign:"center" }}>
-            <div style={{
-              width:72, height:72, borderRadius:20, margin:"0 auto 24px",
-              background:"#16a34a18", border:"1px solid #16a34a44",
-              display:"flex", alignItems:"center", justifyContent:"center",
-            }}>
-              <CheckCircle2 size={32} color="#16a34a"/>
+              <div className="space-y-3">
+                {[
+                  { label:"Broker Name", placeholder:"e.g. Exness, Fusion Markets…", value:brokerName, set:setBrokerName },
+                  { label:"Account Number", placeholder:"Your MT5 account number", value:accountNumber, set:setAccountNumber },
+                  { label:"Display Label (optional)", placeholder:"e.g. Exness Gold Live", value:accountLabel, set:setAccountLabel },
+                ].map(f => (
+                  <div key={f.label}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/35 mb-1.5">{f.label}</p>
+                    <input value={f.value} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
+                      className="w-full px-4 py-3 rounded-xl text-[12px] text-white placeholder-white/20 outline-none transition-all duration-200"
+                      style={{
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.08)",
+                        boxSizing: "border-box",
+                      }}
+                      onFocus={e => { e.currentTarget.style.borderColor = `${ACCENT}60`; e.currentTarget.style.background = `${ACCENT}08` }}
+                      onBlur={e => { e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"; e.currentTarget.style.background = "rgba(255,255,255,0.04)" }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2.5 mt-5">
+                <button onClick={() => setWizardStep(1)}
+                  className="flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-colors"
+                  style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", color:"rgba(255,255,255,0.25)" }}>
+                  Skip
+                </button>
+                <button onClick={handleAddAccount}
+                  disabled={addingAccount || !brokerName || !accountNumber}
+                  className="flex-[2] py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all duration-200"
+                  style={{
+                    background:`linear-gradient(135deg,${ACCENT}25,${ACCENT}10)`,
+                    border:`1px solid ${ACCENT}45`,
+                    color: ACCENT,
+                    opacity: (!brokerName || !accountNumber) ? 0.4 : 1,
+                    boxShadow: (!brokerName || !accountNumber) ? "none" : `0 4px 16px ${GLOW}`,
+                  }}>
+                  <Wallet size={12}/> {addingAccount ? "Adding…" : "Add Account"}
+                </button>
+              </div>
             </div>
-            <h2 style={{ fontSize:22, fontWeight:900, color:"#f0f0f0", marginBottom:10 }}>
-              Phoenix is Ready
-            </h2>
-            <p style={{ fontSize:13, color:"#666", lineHeight:1.7, marginBottom:32 }}>
-              Your ecosystem is set up. Head to the dashboard to start tracking trades, monitoring bots, and reviewing signals.
-            </p>
-            <button onClick={markComplete} disabled={saving} style={{
-              width:"100%", padding:"14px 24px", borderRadius:12,
-              background:"#16a34a18", border:"1px solid #16a34a44",
-              color:"#16a34a", fontSize:12, fontWeight:900,
-              textTransform:"uppercase", letterSpacing:2, cursor:"pointer",
-              display:"flex", alignItems:"center", justifyContent:"center", gap:8,
-              opacity: saving ? 0.6 : 1,
-            }}>
-              <ArrowRight size={14}/> {saving ? "Loading…" : "Go to Dashboard"}
-            </button>
-          </div>
-        )}
+          )}
+
+          {/* ── Step 1: Notifications ── */}
+          {wizardStep === 1 && (
+            <div>
+              <div className="w-11 h-11 rounded-2xl flex items-center justify-center mb-4"
+                style={{ background:"rgba(236,72,153,0.15)", border:"1px solid rgba(236,72,153,0.3)" }}>
+                <Bell size={20} color="#ec4899"/>
+              </div>
+              <h2 className="text-[20px] font-black text-white mb-2 leading-tight">Enable Trade Alerts</h2>
+              <p className="text-[11px] text-white/40 leading-relaxed mb-5">
+                Get notified the moment a Phoenix bot opens or closes a trade — directly on your lockscreen and status bar, even when the app is closed.
+              </p>
+              <div className="p-4 rounded-2xl mb-4"
+                style={{ background:"rgba(236,72,153,0.07)", border:"1px solid rgba(236,72,153,0.18)" }}>
+                <div className="flex items-center gap-3">
+                  <Bell size={18} color="#ec4899"/>
+                  <div>
+                    <p className="text-[11px] font-black text-white">Native Push Notifications</p>
+                    <p className="text-[10px] text-white/35 mt-0.5">Bot opened · Bot closed · Signal updates</p>
+                  </div>
+                </div>
+              </div>
+              {pushState === "granted" ? (
+                <div className="p-3 rounded-2xl flex items-center gap-2 mb-3"
+                  style={{ background:`${ACCENT}15`, border:`1px solid ${ACCENT}35` }}>
+                  <CheckCircle2 size={14} color={ACCENT}/>
+                  <p className="text-[11px] font-black" style={{ color:ACCENT }}>Enabled — test alert sent!</p>
+                </div>
+              ) : (
+                <button onClick={handleEnablePush} disabled={pushState === "working"}
+                  className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all duration-200 mb-3"
+                  style={{
+                    background:"rgba(236,72,153,0.12)",
+                    border:"1px solid rgba(236,72,153,0.3)",
+                    color:"#ec4899",
+                    opacity: pushState === "working" ? 0.6 : 1,
+                    boxShadow: pushState === "working" ? "none" : "0 4px 20px rgba(236,72,153,0.2)",
+                  }}>
+                  <Bell size={13}/> {pushState === "working" ? "Enabling…" : "Enable Notifications"}
+                </button>
+              )}
+              {(pushState === "denied" || pushState === "error" || pushState === "unsupported") && (
+                <p className="text-[10px] text-red-400/70 text-center mb-3">
+                  {pushState === "denied" ? "Permission denied — you can enable in Settings later."
+                    : "Couldn't enable — you can set this up in Settings later."}
+                </p>
+              )}
+              <button onClick={() => setWizardStep(2)}
+                className="w-full py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest"
+                style={{ background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.07)", color:"rgba(255,255,255,0.25)" }}>
+                {pushState === "granted" ? "Continue" : "Skip for now"}
+              </button>
+            </div>
+          )}
+
+          {/* ── Step 2: All set ── */}
+          {wizardStep === 2 && (
+            <div className="text-center">
+              <div className="relative w-16 h-16 mx-auto mb-6">
+                <div className="absolute inset-0 rounded-2xl blur-xl opacity-70"
+                  style={{ background: GLOW }}/>
+                <div className="relative w-16 h-16 rounded-2xl flex items-center justify-center"
+                  style={{
+                    background:`linear-gradient(135deg,${ACCENT}28,${ACCENT}0a)`,
+                    border:`1px solid ${ACCENT}50`,
+                    boxShadow:`0 0 24px ${GLOW}, inset 0 1px 0 ${ACCENT}30`,
+                  }}>
+                  <CheckCircle2 size={28} color={ACCENT}/>
+                </div>
+              </div>
+              <p className="text-[9px] font-black uppercase tracking-[0.25em] mb-3" style={{ color:ACCENT }}>Ready</p>
+              <h2 className="text-[22px] font-black text-white mb-3 leading-tight">Phoenix is Live</h2>
+              <p className="text-[11px] text-white/40 leading-relaxed mb-8 max-w-[280px] mx-auto">
+                Your ecosystem is set up. Head to the dashboard to start tracking your trades, monitoring the bots, and accessing AI insights.
+              </p>
+              <button onClick={markComplete} disabled={saving}
+                className="w-full py-4 rounded-2xl flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                style={{
+                  background:`linear-gradient(135deg,${ACCENT}28,${ACCENT}10)`,
+                  border:`1px solid ${ACCENT}50`,
+                  color: ACCENT,
+                  boxShadow:`0 6px 28px ${GLOW}`,
+                  opacity: saving ? 0.6 : 1,
+                }}>
+                <ArrowRight size={13}/> {saving ? "Loading…" : "Go to Dashboard"}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-// ── Hook: tracks onboarding state ────────────────────────────────────────
+// ── Hook ─────────────────────────────────────────────────────────────────────
 export function useOnboarding() {
   const { user } = useAuth()
   const [needsOnboarding, setNeedsOnboarding] = useState(false)
@@ -407,7 +434,7 @@ export function useOnboarding() {
     }).catch(() => { setNeedsOnboarding(false); setChecked(true) })
   }, [user])
 
-  const replayOnboarding = useCallback(() => setNeedsOnboarding(true), [])
+  const replayOnboarding = useCallback(() => setNeedsOnboarding(true),  [])
   const markComplete     = useCallback(() => setNeedsOnboarding(false), [])
 
   return { needsOnboarding, checked, replayOnboarding, markComplete }
