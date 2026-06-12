@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { sendPush } from '@/lib/push-server'
+
+// Fire a push without ever throwing into the webhook flow (always-200 rule).
+function notify(title: string, body: string) {
+  try {
+    // fire-and-forget; do not await — MT5 thread must not wait on push delivery
+    sendPush({ title, body, url: '/', tag: 'phoenix-bot' }).catch(() => {})
+  } catch { /* never break the webhook */ }
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PHOENIX TRADING ECOSYSTEM — Vercel Webhook v5.4
-// Changes from v5.3:
-//   - CLOSED now records tpReached + isRunner (Zone Scalper session-runner study)
-//   - v5.3: BOT_OFFLINE handler (zeroes lastSeenAt so live indicator goes grey)
+// PHOENIX TRADING ECOSYSTEM — Vercel Webhook v5.5
+// Changes from v5.4:
+//   - OPENED / CLOSED now fire a web-push notification (fire-and-forget)
+//   - v5.4: CLOSED records tpReached + isRunner (session-runner study)
+//   - v5.3: BOT_OFFLINE handler
 // ─────────────────────────────────────────────────────────────────────────────
 
 const PROJECT_ID = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
@@ -173,6 +183,7 @@ export async function POST(request: NextRequest) {
         status: 'OPEN', outcome: 'PENDING', openedAt: new Date(), source: 'MT5 Bot Signal',
       })
       console.log(`[WEBHOOK v5.3] 📡 OPENED: ${botName} | ${symbol} | ${direction} @ ${entryPrice}`)
+      notify(`${botName} — Trade Opened`, `${direction} ${symbol} @ ${entryPrice} · SL ${sl} · TP ${tp1}`)
       return NextResponse.json({ success: true, action: 'signal_opened' })
     }
 
@@ -195,6 +206,8 @@ export async function POST(request: NextRequest) {
 
       await firestorePatch('botTrades', ticket, fields, mask)
       console.log(`[WEBHOOK v5.3] ✅ CLOSED: ${botName} | ${symbol} | $${profit} | ${tpReached || 'n/a'} | runner=${isRunner}`)
+      const pl = profit >= 0 ? `+$${profit.toFixed(2)}` : `-$${Math.abs(profit).toFixed(2)}`
+      notify(`${botName} — Trade Closed ${pl}`, `${symbol} ${tpReached ? `hit ${tpReached}` : ''} · ${profit >= 0 ? 'WIN' : 'LOSS'}`)
       return NextResponse.json({ success: true, action: 'signal_closed', profit })
     }
 

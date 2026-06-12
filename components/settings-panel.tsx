@@ -74,14 +74,36 @@ function ThemeCard({ t, active, onClick }: { t:typeof THEMES[0]; active:boolean;
 // ── Notifications section component ──────────────────────────────────────────
 function NotificationsSection({
   soundEnabled, browserEnabled, permission,
-  toggleSounds, toggleBrowser, requestBrowserPermission, testSound
+  toggleSounds, toggleBrowser, requestBrowserPermission, testSound, userId
 }: {
   soundEnabled: boolean; browserEnabled: boolean
   permission: NotificationPermission
   toggleSounds: (v: boolean) => void; toggleBrowser: (v: boolean) => void
   requestBrowserPermission: () => Promise<NotificationPermission>
   testSound: () => void
+  userId?: string
 }) {
+  const [pushState, setPushState] = useState<string>("")
+
+  // Enable both: local browser permission AND server web-push subscription.
+  // The web-push subscription is what lets the bot notify this device even
+  // when the dashboard is fully closed (via the service worker).
+  const enableAll = async () => {
+    setPushState("working")
+    try {
+      await requestBrowserPermission()
+      if (userId) {
+        const { enablePush } = await import("@/lib/push-client")
+        const res = await enablePush(userId)
+        setPushState(res)
+      } else {
+        setPushState("granted")
+      }
+    } catch {
+      setPushState("error")
+    }
+  }
+
   const SOUND_GROUPS = [
     {
       label: "Trade Outcomes",
@@ -189,11 +211,23 @@ function NotificationsSection({
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-[11px] text-muted-foreground">Get a desktop notification for every trade, even when the dashboard is in the background.</p>
-            <button onClick={requestBrowserPermission}
-              className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[11px] font-black bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors">
-              <Bell size={13}/> Enable Browser Notifications
+            <p className="text-[11px] text-muted-foreground">Get a notification for every bot trade — even when the dashboard is closed. Works on this device via the service worker.</p>
+            <button onClick={enableAll} disabled={pushState === "working"}
+              className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[11px] font-black bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50">
+              <Bell size={13}/> {pushState === "working" ? "Enabling…" : "Enable Notifications"}
             </button>
+            {pushState === "granted" && (
+              <p className="text-[10px] text-emerald-400">✓ Enabled — you'll get push alerts on bot trades.</p>
+            )}
+            {pushState === "unsupported" && (
+              <p className="text-[10px] text-amber-400">This browser doesn't support push. On iPhone, add the app to your home screen first.</p>
+            )}
+            {pushState === "error" && (
+              <p className="text-[10px] text-rose-400">Couldn't enable push. Check the VAPID key is set, then retry.</p>
+            )}
+            {pushState === "denied" && (
+              <p className="text-[10px] text-rose-400">Permission denied — re-enable in browser site settings.</p>
+            )}
           </div>
         )}
       </div>
@@ -467,7 +501,7 @@ export function SettingsPanel({ open, onClose, isOwner = false }: SettingsPanelP
           soundEnabled={soundEnabled} browserEnabled={browserEnabled}
           permission={permission} toggleSounds={toggleSounds}
           toggleBrowser={toggleBrowser} requestBrowserPermission={requestBrowserPermission}
-          testSound={testSound}
+          testSound={testSound} userId={user?.uid}
         />
 
       // ── Account / MT5 ─────────────────────────────────────────────────────
