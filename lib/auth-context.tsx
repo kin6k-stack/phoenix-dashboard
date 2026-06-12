@@ -58,6 +58,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Native Google sign-in: the plugin shows the real Android account
       // picker, returns an idToken, which we exchange for a Firebase credential.
       const { GoogleAuth } = await import("@codetrix-studio/capacitor-google-auth")
+      // MUST initialize before signIn() or GoogleSignInClient is null and the
+      // native plugin crashes with a NullPointerException.
+      try {
+        GoogleAuth.initialize({
+          clientId: "269412096320-rhjshguiana44llnvh77akuv9ud4pmpb.apps.googleusercontent.com",
+          scopes: ["profile", "email"],
+          grantOfflineAccess: false,
+        })
+      } catch { /* already initialized — fine */ }
       const result = await GoogleAuth.signIn()
       const idToken = (result as any)?.authentication?.idToken
       if (!idToken) throw new Error("Google sign-in returned no idToken")

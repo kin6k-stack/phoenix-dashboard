@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash + window background — matches the app's dark #08090c so there's
+         no color flash before the fingerprint prompt / web content loads. -->
+    <color name="splash_background">#08090c</color>
+    <color name="colorPrimary">#08090c</color>
+    <color name="colorPrimaryDark">#08090c</color>
+    <color name="colorAccent">#16a34a</color>
+</resources>
