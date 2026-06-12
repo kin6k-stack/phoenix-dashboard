@@ -7,3 +7,6 @@ project(':aparajita-capacitor-biometric-auth').projectDir = new File('../node_mo
 
 include ':capacitor-app'
 project(':capacitor-app').projectDir = new File('../node_modules/.pnpm/@capacitor+app@8.1.0_@capacitor+core@8.4.0/node_modules/@capacitor/app/android')
+
+include ':codetrix-studio-capacitor-google-auth'
+project(':codetrix-studio-capacitor-google-auth').projectDir = new File('../node_modules/.pnpm/@codetrix-studio+capacitor-_aca6f0e5bb6bff07f6b2e9f7c474bb8e/node_modules/@codetrix-studio/capacitor-google-auth/android')

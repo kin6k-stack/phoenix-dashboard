@@ -28,7 +28,7 @@ const config: CapacitorConfig = {
       // Web client ID from Firebase → Authentication → Google → Web SDK config.
       // (Safe to commit — it's a public client ID.)
       scopes: ['profile', 'email'],
-      serverClientId: 'PASTE_WEB_CLIENT_ID_HERE.apps.googleusercontent.com',
+      serverClientId: '269412096320-rhjshguiana44llnvh77akuv9ud4pmpb.apps.googleusercontent.com',
       forceCodeForRefreshToken: true,
     },
   },
