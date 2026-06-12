@@ -13,3 +13,7 @@ __v0_jsx-dev-runtime.ts
 node_modules
 .next/
 .DS_Store
+# Android signing secrets - NEVER commit
+android/keystore.properties
+android/app/*.keystore
+android/app/phoenix-release.keystore
