@@ -96,6 +96,17 @@ function NotificationsSection({
         const { enablePush } = await import("@/lib/push-client")
         const res = await enablePush(userId)
         setPushState(res)
+        // On success, fire the confirmation push so they get instant proof.
+        // Small delay so the subscription write is readable by the send route.
+        if (res === "granted") {
+          setTimeout(() => {
+            fetch("/api/push-test", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId }),
+            }).catch(() => {})
+          }, 1500)
+        }
       } else {
         setPushState("granted")
       }
