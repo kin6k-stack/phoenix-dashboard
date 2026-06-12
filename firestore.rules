@@ -77,6 +77,23 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── pushSubscriptions — web-push device registrations ────
+    // A signed-in user may create/update/delete their OWN subscription doc
+    // (doc id is a hash of the push endpoint). The server (Admin SDK) reads
+    // all of them to send notifications and bypasses these rules.
+    match /pushSubscriptions/{subId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // ── tickerCache — public last-good market ticker values ──
+    // Read by anyone signed in; written only by the server (Admin SDK).
+    match /tickerCache/{id} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
     // ── Deny everything else by default ─────────────────────
     match /{document=**} {
       allow read, write: if false;

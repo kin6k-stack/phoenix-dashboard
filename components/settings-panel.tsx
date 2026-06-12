@@ -205,20 +205,38 @@ function NotificationsSection({
             Blocked in browser settings. Go to browser Settings → Site Permissions → Notifications to re-enable.
           </div>
         ) : permission === "granted" ? (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Bell size={14} className="text-primary flex-shrink-0"/>
-              <div>
-                <p className="text-xs font-bold text-foreground">Push Alerts</p>
-                <p className="text-[9px] text-muted-foreground mt-0.5">Win / Loss / signal on every trade</p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Bell size={14} className="text-primary flex-shrink-0"/>
+                <div>
+                  <p className="text-xs font-bold text-foreground">Push Alerts</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">Win / Loss / signal on every trade</p>
+                </div>
               </div>
+              <button onClick={() => toggleBrowser(!browserEnabled)}
+                className="relative w-11 h-6 rounded-full transition-all duration-200 flex-shrink-0"
+                style={{ background: browserEnabled ? "hsl(var(--primary))" : "hsl(var(--muted))" }}>
+                <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
+                  style={{ left: browserEnabled ? "calc(100% - 22px)" : "2px" }}/>
+              </button>
             </div>
-            <button onClick={() => toggleBrowser(!browserEnabled)}
-              className="relative w-11 h-6 rounded-full transition-all duration-200 flex-shrink-0"
-              style={{ background: browserEnabled ? "hsl(var(--primary))" : "hsl(var(--muted))" }}>
-              <span className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-200"
-                style={{ left: browserEnabled ? "calc(100% - 22px)" : "2px" }}/>
+            {/* Permission is granted, but the device still needs a web-push
+                SUBSCRIPTION saved server-side to actually receive pushes.
+                This button registers/refreshes it and sends a test. */}
+            <button onClick={enableAll} disabled={pushState === "working"}
+              className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-black bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50">
+              <Bell size={12}/> {pushState === "working" ? "Registering…" : "Register This Device & Send Test"}
             </button>
+            {pushState === "granted" && (
+              <p className="text-[10px] text-emerald-400">✓ Device registered — test notification sent.</p>
+            )}
+            {pushState === "error" && (
+              <p className="text-[10px] text-rose-400">Registration failed — see console. Check VAPID key on Vercel.</p>
+            )}
+            {pushState === "unsupported" && (
+              <p className="text-[10px] text-amber-400">This browser doesn't support push.</p>
+            )}
           </div>
         ) : (
           <div className="space-y-3">
