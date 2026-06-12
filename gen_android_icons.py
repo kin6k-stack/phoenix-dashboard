@@ -1,12 +1,10 @@
-"""Generate Android launcher icons from the MASKABLE source PNG.
-The maskable icon already includes safe-zone padding, so the adaptive
-foreground fills the full canvas (no extra shrink needed).
+"""Restore the ORIGINAL launcher icons: source = icon-512x512.png, with the
+adaptive foreground padded to ~60% center (the version peers preferred).
 """
 from PIL import Image, ImageDraw
 import os
 
-# Launcher/app icon source — maskable (has built-in safe-zone padding).
-SRC = r"C:\Users\MVNI\Documents\phoenix-journal-dashboard\public\icon-maskable-512x512.png"
+SRC = r"C:\Users\MVNI\Documents\phoenix-journal-dashboard\public\icon-512x512.png"
 RES = r"C:\Users\MVNI\Documents\phoenix-journal-dashboard\android\app\src\main\res"
 
 SIZES = {
@@ -34,14 +32,22 @@ def make_round(img, size):
     out.paste(img, (0, 0), mask)
     return out
 
+def make_foreground(img, size):
+    # Original look: logo at ~60% center of a transparent canvas.
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    inner = int(size * 0.60)
+    logo = img.resize((inner, inner), Image.LANCZOS)
+    off = (size - inner) // 2
+    canvas.paste(logo, (off, off), logo)
+    return canvas
+
 for folder, sz in SIZES.items():
     d = os.path.join(RES, folder)
     os.makedirs(d, exist_ok=True)
     base.resize((sz, sz), Image.LANCZOS).save(os.path.join(d, "ic_launcher.png"))
     make_round(base, sz).save(os.path.join(d, "ic_launcher_round.png"))
-    # Maskable foreground FILLS the canvas (already padded) at 108dp = 2.25x.
     fsz = int(sz * 2.25)
-    base.resize((fsz, fsz), Image.LANCZOS).save(os.path.join(d, "ic_launcher_foreground.png"))
-    print(f"  {folder}: {sz}px launcher + round + {fsz}px foreground")
+    make_foreground(base, fsz).save(os.path.join(d, "ic_launcher_foreground.png"))
+    print(f"  {folder}: {sz}px launcher + round + {fsz}px padded foreground")
 
-print("\nDONE. Launcher icons regenerated from MASKABLE source.")
+print("\nDONE. Original launcher icons restored from icon-512x512.png.")

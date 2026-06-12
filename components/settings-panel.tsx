@@ -21,7 +21,7 @@ const THEMES: { id:Theme; label:string; description:string; bg:string; accent:st
   { id:"black-white", label:"Monochrome",  description:"True black/white — invertible", bg:"#000", accent:"#e5e5e5", border:"#1c1c1c", glow:"rgba(229,229,229,0.4)" },
   { id:"dark",        label:"Green Lab",   description:"Slate + emerald — OG Phoenix",  bg:"#1a1d23", accent:"#16a34a", border:"#2a2e36", glow:"rgba(22,163,74,0.45)" },
   { id:"midnight",    label:"Midnight",    description:"Deep navy + electric blue",      bg:"#0c1018", accent:"#3b82f6", border:"#1a2030", glow:"rgba(59,130,246,0.45)" },
-  { id:"violet",      label:"Violet",      description:"Purple gradient",               bg:"#0f0a18", accent:"#c084fc", border:"#241a36", glow:"rgba(192,132,252,0.45)" },
+  { id:"violet",      label:"LVNAR",       description:"Purple gradient",               bg:"#0f0a18", accent:"#c084fc", border:"#241a36", glow:"rgba(192,132,252,0.45)" },
   { id:"gold",        label:"Gold",        description:"Warm canvas + amber accents",   bg:"#f5f3ee", accent:"#f59e0b", border:"#e8e2d4", glow:"rgba(245,158,11,0.45)" },
   { id:"bloomberg",   label:"Bloomberg",   description:"Terminal orange · sharp corners",bg:"#0a0a0d", accent:"#ff6b00", border:"#1a1510", glow:"rgba(255,107,0,0.5)" },
   { id:"nord",        label:"Nord",        description:"Arctic slate + frost blue",      bg:"#2e3440", accent:"#88c0d0", border:"#3b4252", glow:"rgba(136,192,208,0.45)" },
