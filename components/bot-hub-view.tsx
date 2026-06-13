@@ -111,7 +111,7 @@ const BOTS = [
 
 // ─── BotMeta: live data from botConfig/{magic} via onSnapshot ────────────────
 // botName, botVersion, botMode come from the EA's BOT_INIT webhook call.
-// lastSeenAt is refreshed every 5 min by the heartbeat; zeroed by BOT_OFFLINE.
+// lastSeenAt is refreshed by each bot's heartbeat (10-15 min); zeroed by BOT_OFFLINE.
 interface BotMeta {
   botName?:    string
   botVersion?: string
@@ -119,12 +119,13 @@ interface BotMeta {
   lastSeenAt?: any
 }
 
-// ─── Returns true if lastSeenAt is within the last 10 minutes ────────────────
+// ─── Returns true if lastSeenAt is within the last 20 minutes ────────────────
+// (Apex heartbeats every 15 min, Scalper/NAS every 10-15 min; 20 min leaves margin)
 function getIsLive(meta: BotMeta): boolean {
   if (!meta.lastSeenAt) return false
   try {
     const t = meta.lastSeenAt?.toDate?.() ?? new Date(meta.lastSeenAt)
-    return (Date.now() - t.getTime()) < 10 * 60 * 1000
+    return (Date.now() - t.getTime()) < 20 * 60 * 1000
   } catch { return false }
 }
 
@@ -197,7 +198,7 @@ function BotCard({ bot, stats, botMeta, selected, onClick }: {
               <span
                 className={isLive ? "w-1.5 h-1.5 rounded-full animate-pulse flex-shrink-0" : "w-1.5 h-1.5 rounded-full flex-shrink-0"}
                 style={{ background: isLive ? "#22c55e" : "hsl(var(--muted-foreground))" }}
-                title={isLive ? "Live — heartbeat <10 min ago" : "Offline"}
+                title={isLive ? "Live — heartbeat <20 min ago" : "Offline"}
               />
             </div>
             <p className="text-[10px] font-mono mt-0.5" style={{ color: `${bot.color}99` }}>

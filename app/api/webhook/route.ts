@@ -10,8 +10,10 @@ function notify(title: string, body: string) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PHOENIX TRADING ECOSYSTEM — Vercel Webhook v5.5
+// PHOENIX TRADING ECOSYSTEM — Vercel Webhook v5.6
 // Changes from v5.4:
+//   - v5.6: OPENED accepts tp/lots field-name fallbacks so every bot's
+//           full ladder (TP1/TP2/lot) reaches the dashboard, not zeros
 //   - OPENED / CLOSED now fire a web-push notification (fire-and-forget)
 //   - v5.4: CLOSED records tpReached + isRunner (session-runner study)
 //   - v5.3: BOT_OFFLINE handler
@@ -173,13 +175,19 @@ export async function POST(request: NextRequest) {
     if (status === 'OPENED') {
       const entryPrice = parseFloat(String(data.entryPrice ?? 0)) || 0
       const sl  = parseFloat(String(data.sl  ?? 0)) || 0
+      // v5.6: accept legacy field names so no bot silently loses data.
+      // tp1 must be sent explicitly by the bot; tp2 falls back to single 'tp';
+      // lot falls back to 'lots'.
       const tp1 = parseFloat(String(data.tp1 ?? 0)) || 0
-      const tp2 = parseFloat(String(data.tp2 ?? 0)) || 0
-      const lot = parseFloat(String(data.lot ?? 0)) || 0
+      const tp2 = parseFloat(String(data.tp2 ?? data.tp ?? 0)) || 0
+      const lot = parseFloat(String(data.lot ?? data.lots ?? 0)) || 0
+      const zone = parseFloat(String(data.zone ?? 0)) || 0
+      const atr  = parseFloat(String(data.atr  ?? 0)) || 0
       if (entryPrice === 0 && sl === 0)
         return NextResponse.json({ received: true, note: 'OPENED skipped — no entry details' })
       await firestorePatch('botTrades', ticket, {
         symbol, bot: botName, direction, entryPrice, sl, tp1, tp2, lot,
+        ...(zone ? { zone } : {}), ...(atr ? { atr } : {}),
         status: 'OPEN', outcome: 'PENDING', openedAt: new Date(), source: 'MT5 Bot Signal',
       })
       console.log(`[WEBHOOK v5.3] 📡 OPENED: ${botName} | ${symbol} | ${direction} @ ${entryPrice}`)
