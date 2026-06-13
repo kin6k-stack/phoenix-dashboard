@@ -22,7 +22,7 @@ const BOTS = [
   {
     id:        "apex",
     name:      "Gold Sentinel Apex",
-    version:   "v5.1",
+    version:   "v5.13",
     magic:     88802,
     symbol:    "XAUUSDm",
     timeframe: "M15",
@@ -41,6 +41,9 @@ const BOTS = [
       "Filters":    "H4 bias + ADX ≥22 (optional)",
     },
     changelog: [
+      { version:"v5.13",date:"Jun 2026",  note:"RemoteConfig wired — live dashboard toggles (HTF bias, OB, prem/dis, spread, daily caps, Shield RR, kill-switch). 15-min heartbeat. Falls back to inputs if Firestore unreachable." },
+      { version:"v5.12",date:"Jun 2026",  note:"Heartbeat fix (was going offline after 10 min). Full OPENED payload (tp1+tp2). CLOSED sends tpReached+isRunner. PHX_Memory — day-lock + Ghost Shield runner survive re-add/restart." },
+      { version:"v5.11",date:"Jun 2026",  note:"M15 sniper + Precision Drawdown Kill. Shared PHX_SMC_Core + PHX_Telegram includes. Live balance compounding." },
       { version:"v5.1", date:"Jun 2026",  note:"CRT rebuild — 4-state machine (IDLE→RANGE→SWEEP→TRADE). M15 sniper. 35% BE. 2-bar stagnation fuse. ADX + H4 bias preserved." },
       { version:"v5.0", date:"Jun 2026",  note:"SMC rebuild — OB+FVG+Sweep+H4 bias. Trailing Runner restored." },
       { version:"v4.44",date:"May 2026",  note:"Session filter 03-20 NY. Fixed Runner 3R. BE at 1R. Server guard." },
@@ -81,7 +84,7 @@ const BOTS = [
   {
     id:        "nq",
     name:      "Phoenix NQ Engine",
-    version:   "v2.1",
+    version:   "v2.2",
     magic:     88801,
     symbol:    "USTECm",
     timeframe: "M5",
@@ -100,6 +103,7 @@ const BOTS = [
       "Filters":    "H1 bias optional",
     },
     changelog: [
+      { version:"v2.2", date:"Jun 2026",  note:"Heartbeat fix (15-min BOT_INIT). OPENED sends tp1. CLOSED sends tpReached+isRunner. PHX_Memory — Drawdown Kill survives re-add; no double-entry on re-attach." },
       { version:"v2.1", date:"Jun 2026",  note:"CRT rebuild — 4-state machine (IDLE→RANGE→SWEEP→TRADE). Pre-NY H1 anchor. 50% BE. 3-bar stagnation fuse. Invalidation candle rule." },
       { version:"v2.0", date:"Jun 2026",  note:"SMC rebuild — 1-bar open delay. BOS confirmation. OB + H1 bias." },
       { version:"v1.9", date:"May 2026",  note:"Lot reduced 0.10→0.03. consecutiveLoss lookback 7d→2d." },
