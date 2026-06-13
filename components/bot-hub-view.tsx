@@ -90,7 +90,7 @@ const BOTS = [
     color:     "#06b6d4",
     glow:      "rgba(6,182,212,0.4)",
     icon:      "⚡",
-    firestore: "Phoenix NQ v2.1",
+    firestore: "Phoenix NQ Engine",
     config: {
       "Mode":       "CRT M5 NQ",
       "Anchor":     "08:00 AM NY (pre-open H1)",
