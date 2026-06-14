@@ -1,5 +1,5 @@
 "use client"
-
+import React from "react"
 import { useEffect, useState } from "react"
 import { signOut, deleteUser } from "firebase/auth"
 import { auth, db } from "@/lib/firebase"
@@ -8,7 +8,9 @@ import { useRouter } from "next/navigation"
 import {
   X, ChevronRight, ArrowLeft, Palette, Maximize2,
   Zap, LogOut, AlertTriangle, Cpu, Globe, ShieldCheck, Trash2, Bell, Volume2,
+  Smartphone, Download, CheckCircle2,
 } from "lucide-react"
+import { APP_VERSION } from "@/lib/app-version"
 import { useTheme, type Theme, type Density } from "@/lib/use-theme"
 import { MT5ConnectSection } from "@/components/mt5-connect-section"
 import { useAuth } from "@/lib/auth-context"
@@ -16,7 +18,6 @@ import { useNotifications } from "@/lib/use-notifications"
 
 interface SettingsPanelProps { open: boolean; onClose: () => void; isOwner?: boolean; onReplayOnboarding?: () => void }
 
-// ── Theme catalogue ───────────────────────────────────────────────────────────
 const THEMES: { id:Theme; label:string; description:string; bg:string; accent:string; border:string; glow:string }[] = [
   { id:"black-white", label:"Monochrome",  description:"True black/white — invertible", bg:"#000", accent:"#e5e5e5", border:"#1c1c1c", glow:"rgba(229,229,229,0.4)" },
   { id:"dark",        label:"Green Lab",   description:"Slate + emerald — OG Phoenix",  bg:"#1a1d23", accent:"#16a34a", border:"#2a2e36", glow:"rgba(22,163,74,0.45)" },
@@ -38,11 +39,11 @@ const SECTIONS = [
   { id:"appearance",   label:"Appearance",   icon:Palette,    description:"Theme, layout density, animations" },
   { id:"notifications",label:"Notifications",icon:Bell,       description:"Sounds and browser alerts"          },
   { id:"account",      label:"Account",      icon:Cpu,        description:"MT5 connection & sync settings"    },
-  { id:"region",     label:"Region",     icon:Globe,      description:"Timezone & session calibration"    },
-  { id:"security",   label:"Security",   icon:ShieldCheck,description:"Sign out & account management"     },
+  { id:"region",       label:"Region",       icon:Globe,      description:"Timezone & session calibration"    },
+  { id:"security",     label:"Security",     icon:ShieldCheck,description:"Sign out & account management"     },
+  { id:"android",      label:"Android App",  icon:Smartphone, description:"Download & install the native app" },
 ]
 
-// ── Theme card ────────────────────────────────────────────────────────────────
 function ThemeCard({ t, active, onClick }: { t:typeof THEMES[0]; active:boolean; onClick:()=>void }) {
   const isLight = t.id === "gold"
   return (
@@ -71,7 +72,6 @@ function ThemeCard({ t, active, onClick }: { t:typeof THEMES[0]; active:boolean;
   )
 }
 
-// ── Notifications section component ──────────────────────────────────────────
 function NotificationsSection({
   soundEnabled, browserEnabled, permission,
   toggleSounds, toggleBrowser, requestBrowserPermission, testSound, userId
@@ -85,9 +85,6 @@ function NotificationsSection({
 }) {
   const [pushState, setPushState] = useState<string>("")
 
-  // Enable both: local browser permission AND server web-push subscription.
-  // The web-push subscription is what lets the bot notify this device even
-  // when the dashboard is fully closed (via the service worker).
   const enableAll = async () => {
     setPushState("working")
     try {
@@ -96,8 +93,6 @@ function NotificationsSection({
         const { enablePush } = await import("@/lib/push-client")
         const res = await enablePush(userId)
         setPushState(res)
-        // On success, fire the confirmation push so they get instant proof.
-        // Small delay so the subscription write is readable by the send route.
         if (res === "granted") {
           setTimeout(() => {
             fetch("/api/push-test", {
@@ -155,7 +150,6 @@ function NotificationsSection({
 
   return (
     <div className="p-4 space-y-4">
-      {/* Master sound toggle */}
       <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -172,8 +166,6 @@ function NotificationsSection({
               style={{ left: soundEnabled ? "calc(100% - 22px)" : "2px" }}/>
           </button>
         </div>
-
-        {/* Sound library — grouped */}
         {soundEnabled && (
           <div className="space-y-3">
             {SOUND_GROUPS.map(group => (
@@ -197,7 +189,6 @@ function NotificationsSection({
         )}
       </div>
 
-      {/* Browser notifications */}
       <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-4">
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Browser Notifications</p>
         {permission === "denied" ? (
@@ -221,42 +212,25 @@ function NotificationsSection({
                   style={{ left: browserEnabled ? "calc(100% - 22px)" : "2px" }}/>
               </button>
             </div>
-            {/* Permission is granted, but the device still needs a web-push
-                SUBSCRIPTION saved server-side to actually receive pushes.
-                This button registers/refreshes it and sends a test. */}
             <button onClick={enableAll} disabled={pushState === "working"}
               className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-[10px] font-black bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50">
               <Bell size={12}/> {pushState === "working" ? "Registering…" : "Register This Device & Send Test"}
             </button>
-            {pushState === "granted" && (
-              <p className="text-[10px] text-emerald-400">✓ Device registered — test notification sent.</p>
-            )}
-            {pushState === "error" && (
-              <p className="text-[10px] text-rose-400">Registration failed — see console. Check VAPID key on Vercel.</p>
-            )}
-            {pushState === "unsupported" && (
-              <p className="text-[10px] text-amber-400">This browser doesn't support push.</p>
-            )}
+            {pushState === "granted" && <p className="text-[10px] text-emerald-400">✓ Device registered — test notification sent.</p>}
+            {pushState === "error"   && <p className="text-[10px] text-rose-400">Registration failed — see console. Check VAPID key on Vercel.</p>}
+            {pushState === "unsupported" && <p className="text-[10px] text-amber-400">This browser doesn't support push.</p>}
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-[11px] text-muted-foreground">Get a notification for every bot trade — even when the dashboard is closed. Works on this device via the service worker.</p>
+            <p className="text-[11px] text-muted-foreground">Get a notification for every bot trade — even when the dashboard is closed.</p>
             <button onClick={enableAll} disabled={pushState === "working"}
               className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-[11px] font-black bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors disabled:opacity-50">
               <Bell size={13}/> {pushState === "working" ? "Enabling…" : "Enable Notifications"}
             </button>
-            {pushState === "granted" && (
-              <p className="text-[10px] text-emerald-400">✓ Enabled — you'll get push alerts on bot trades.</p>
-            )}
-            {pushState === "unsupported" && (
-              <p className="text-[10px] text-amber-400">This browser doesn't support push. On iPhone, add the app to your home screen first.</p>
-            )}
-            {pushState === "error" && (
-              <p className="text-[10px] text-rose-400">Couldn't enable push. Check the VAPID key is set, then retry.</p>
-            )}
-            {pushState === "denied" && (
-              <p className="text-[10px] text-rose-400">Permission denied — re-enable in browser site settings.</p>
-            )}
+            {pushState === "granted"     && <p className="text-[10px] text-emerald-400">✓ Enabled — you'll get push alerts on bot trades.</p>}
+            {pushState === "unsupported" && <p className="text-[10px] text-amber-400">This browser doesn't support push. On iPhone, add to home screen first.</p>}
+            {pushState === "error"       && <p className="text-[10px] text-rose-400">Couldn't enable push. Check the VAPID key, then retry.</p>}
+            {pushState === "denied"      && <p className="text-[10px] text-rose-400">Permission denied — re-enable in browser site settings.</p>}
           </div>
         )}
       </div>
@@ -264,7 +238,6 @@ function NotificationsSection({
   )
 }
 
-// ── Timezone options ─────────────────────────────────────────────────────────
 const TIMEZONES = [
   { label: "Antigua / Eastern (UTC-4)",    value: "America/Antigua"     },
   { label: "New York / EST (UTC-5/-4)",    value: "America/New_York"    },
@@ -284,19 +257,15 @@ function RegionSection() {
     if (typeof window === "undefined") return Intl.DateTimeFormat().resolvedOptions().timeZone
     return localStorage.getItem(TZ_KEY) || Intl.DateTimeFormat().resolvedOptions().timeZone
   })
-
   const saveTz = (val: string) => {
     setTz(val)
     localStorage.setItem(TZ_KEY, val)
     window.dispatchEvent(new CustomEvent("phoenix-timezone-changed", { detail: val }))
   }
-
   const now = new Date()
   const localTime = now.toLocaleTimeString("en-US", { hour:"2-digit", minute:"2-digit", timeZone: tz, hour12: true })
-
   return (
     <div className="p-4 space-y-4">
-      {/* Timezone picker */}
       <div className="space-y-2">
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Your Timezone</p>
         <div className="rounded-xl border border-border/40 bg-card/40 p-3 space-y-2">
@@ -308,21 +277,15 @@ function RegionSection() {
             className="w-full bg-background/60 border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/40 transition-colors appearance-none"
             style={{ colorScheme: "dark" }}>
             {TIMEZONES.map(t => (
-              <option key={t.value} value={t.value} style={{ background: "hsl(var(--card))" }}>
-                {t.label}
-              </option>
+              <option key={t.value} value={t.value} style={{ background: "hsl(var(--card))" }}>{t.label}</option>
             ))}
             {!TIMEZONES.find(t => t.value === tz) && (
               <option value={tz}>{tz} (detected)</option>
             )}
           </select>
-          <p className="text-[9px] text-muted-foreground/60">
-            Used for session clocks in the sidebar and any time-based displays.
-          </p>
+          <p className="text-[9px] text-muted-foreground/60">Used for session clocks in the sidebar and time-based displays.</p>
         </div>
       </div>
-
-      {/* Session reference */}
       <div className="rounded-xl border border-border/40 bg-card/40 p-4 space-y-3">
         <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Session Windows (UTC)</p>
         {[
@@ -343,30 +306,20 @@ function RegionSection() {
   )
 }
 
-// ── Account section component ────────────────────────────────────────────────
-// MT5ConnectSection is the single method for syncing trades.
-// It uses a secure one-time token (48hr expiry) via /api/generate-token —
-// far more secure than a hardcoded shared API key.
 function AccountSection({ isOwner, userId }: { isOwner: boolean; userId?: string }) {
   const [copied, setCopied] = useState(false)
-
   const copyUid = () => {
     if (!userId) return
     navigator.clipboard.writeText(userId)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
-
   return (
     <div className="p-4 space-y-4">
-
-      {/* User ID — useful for support or identifying their account */}
       <div className="rounded-xl border border-border/40 bg-card/40 p-3 space-y-1.5">
         <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Your User ID</p>
         <div className="flex items-center gap-2">
-          <code className="flex-1 text-[10px] font-mono text-primary bg-background/60 px-2 py-1 rounded truncate">
-            {userId ?? "—"}
-          </code>
+          <code className="flex-1 text-[10px] font-mono text-primary bg-background/60 px-2 py-1 rounded truncate">{userId ?? "—"}</code>
           <button onClick={copyUid}
             className="text-[10px] font-black px-2 py-1 rounded bg-primary/10 border border-primary/25 text-primary hover:bg-primary/20 transition-colors flex-shrink-0">
             {copied ? "Copied!" : "Copy"}
@@ -374,11 +327,7 @@ function AccountSection({ isOwner, userId }: { isOwner: boolean; userId?: string
         </div>
         <p className="text-[9px] text-muted-foreground/50">Reference ID for your Phoenix account.</p>
       </div>
-
-      {/* The single, secure MT5 sync flow */}
       <MT5ConnectSection />
-
-      {/* Owner-only: bot magic numbers */}
       {isOwner && (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-1">
           <p className="text-[9px] font-black uppercase tracking-widest text-primary">Bot Magic Numbers</p>
@@ -389,7 +338,6 @@ function AccountSection({ isOwner, userId }: { isOwner: boolean; userId?: string
   )
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboarding }: SettingsPanelProps) {
   const { theme, density, animations, invert, setTheme, setDensity, setAnimations, setInvert } = useTheme()
   const { user } = useAuth()
@@ -397,11 +345,7 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
   const [activeSection, setActiveSection] = useState<string|null>(null)
   const [deleting, setDeleting] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState("")
-  const {
-    soundEnabled, browserEnabled, permission,
-    toggleSounds, toggleBrowser, requestBrowserPermission,
-  } = useNotifications()
-  // lazily import playNotifSound to avoid SSR issues
+  const { soundEnabled, browserEnabled, permission, toggleSounds, toggleBrowser, requestBrowserPermission } = useNotifications()
   const testSound = () => import("@/lib/use-notifications").then(m => m.playNotifSound("win"))
 
   useEffect(() => {
@@ -427,7 +371,6 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
     if (!user || deleteConfirm !== "DELETE") return
     setDeleting(true)
     try {
-      // Delete all user data from Firestore
       const accountsSnap = await getDocs(query(collection(db, "accounts"), where("userId","==",user.uid)))
       for (const accDoc of accountsSnap.docs) {
         const tradesSnap = await getDocs(collection(db, "accounts", accDoc.id, "trades"))
@@ -436,7 +379,6 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
         batch.delete(accDoc.ref)
         await batch.commit()
       }
-      // Delete Firebase Auth user
       await deleteUser(user)
       router.push("/login")
     } catch(e: any) {
@@ -455,11 +397,9 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
   const renderContent = () => {
     switch(activeSection) {
 
-      // ── Appearance — theme + layout grouped ──────────────────────────────
       case "appearance":
         return (
           <div className="p-4 space-y-6">
-            {/* Theme picker */}
             <div className="space-y-2">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Color Theme</p>
               <div className="grid grid-cols-2 gap-2">
@@ -468,8 +408,6 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
                 ))}
               </div>
             </div>
-
-            {/* Canvas toggle — only for black-white */}
             {theme === "black-white" && (
               <div className="space-y-2">
                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Canvas</p>
@@ -485,11 +423,8 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
                 </div>
               </div>
             )}
-
-            {/* Density + Animations grouped under "Layout" */}
             <div className="space-y-4 rounded-xl border border-border/40 bg-card/40 p-3">
               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Layout</p>
-
               <div className="space-y-2">
                 <p className="text-[9px] text-muted-foreground/60 uppercase tracking-wider flex items-center gap-1.5">
                   <Maximize2 size={10} /> Density
@@ -504,7 +439,6 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
                   ))}
                 </div>
               </div>
-
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Zap size={13} className="text-primary" />
@@ -524,7 +458,6 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
           </div>
         )
 
-      // ── Notifications ─────────────────────────────────────────────────────
       case "notifications":
         return <NotificationsSection
           soundEnabled={soundEnabled} browserEnabled={browserEnabled}
@@ -533,15 +466,12 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
           testSound={testSound} userId={user?.uid}
         />
 
-      // ── Account / MT5 ─────────────────────────────────────────────────────
       case "account":
         return <AccountSection isOwner={isOwner} userId={user?.uid} />
 
-      // ── Region / Sessions ─────────────────────────────────────────────────
       case "region":
         return <RegionSection />
 
-      // ── Security ──────────────────────────────────────────────────────────
       case "security":
         return (
           <div className="p-4 space-y-4">
@@ -550,8 +480,6 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
               <LogOut size={15} className="text-muted-foreground group-hover:text-primary transition-colors" />
               Sign Out
             </button>
-
-            {/* Delete account */}
             <div className="rounded-xl border border-destructive/25 bg-destructive/[0.04] p-4 space-y-3">
               <div className="flex items-center gap-2">
                 <AlertTriangle size={13} className="text-destructive" />
@@ -566,9 +494,7 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
                   placeholder="DELETE"
                   className="w-full bg-background/40 border border-destructive/30 rounded-lg px-3 py-2 text-sm font-mono text-foreground placeholder-muted-foreground/30 focus:outline-none focus:border-destructive/60"
                 />
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleteConfirm !== "DELETE" || deleting}
+                <button onClick={handleDeleteAccount} disabled={deleteConfirm !== "DELETE" || deleting}
                   className="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-black text-white bg-destructive disabled:opacity-40 disabled:cursor-not-allowed hover:bg-destructive/90 transition-colors">
                   <Trash2 size={13} />
                   {deleting ? "Deleting…" : "Delete My Account Permanently"}
@@ -577,6 +503,99 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
             </div>
           </div>
         )
+
+      // ── Android App download ───────────────────────────────────────────────
+      case "android": {
+        const AndroidSection = () => {
+          const [linkCopied, setLinkCopied] = useState(false)
+          const copyLink = () => {
+            const url = `${window.location.origin}${APP_VERSION.downloadUrl}`
+            navigator.clipboard.writeText(url).then(() => {
+              setLinkCopied(true)
+              setTimeout(() => setLinkCopied(false), 2500)
+            })
+          }
+          return (
+            <div className="p-4 space-y-4">
+              {/* Hero card */}
+              <div className="rounded-xl border p-4 relative overflow-hidden"
+                style={{ borderColor:"hsl(var(--primary)/0.2)", background:"hsl(var(--primary)/0.04)" }}>
+                <div className="absolute top-0 left-8 right-8 h-px"
+                  style={{ background:"linear-gradient(90deg,transparent,hsl(var(--primary)),transparent)" }} />
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">🔥</span>
+                      <p className="text-sm font-black text-foreground">Phoenix Dashboard</p>
+                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded"
+                        style={{ background:"hsl(var(--primary)/0.12)", color:"hsl(var(--primary))" }}>
+                        {APP_VERSION.version}
+                      </span>
+                    </div>
+                    <p className="text-[9px] text-muted-foreground">{APP_VERSION.appId}</p>
+                    <p className="text-[9px] text-muted-foreground">Android {APP_VERSION.minAndroid}+ · Built {APP_VERSION.buildDate}</p>
+                  </div>
+                  <a href={APP_VERSION.downloadUrl} download="phoenix-dashboard.apk"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider text-black flex-shrink-0 transition-all hover:opacity-90 active:scale-95"
+                    style={{ background:"hsl(var(--primary))", boxShadow:"0 0 14px hsl(var(--primary)/0.35)" }}>
+                    <Download size={11} /> APK
+                  </a>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {["📡 Live bot trades","🔔 FCM push","🔐 Biometric","♻️ Auto-sync"].map(f => (
+                    <span key={f} className="text-[8px] px-1.5 py-0.5 rounded-full border"
+                      style={{ borderColor:"hsl(var(--primary)/0.2)", color:"hsl(var(--primary)/0.7)" }}>{f}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Install steps */}
+              <div className="rounded-xl border border-border/40 bg-card/40 p-3 space-y-3">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Install Steps</p>
+                {[
+                  "Download the APK using the button above",
+                  "Settings → Apps → Install Unknown Apps → allow your browser",
+                  "Open the downloaded APK and tap Install",
+                  "Sign in with Google — same account as the web dashboard",
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-5 h-5 rounded-full text-[9px] font-black flex items-center justify-center"
+                      style={{ background:"hsl(var(--primary)/0.12)", color:"hsl(var(--primary))" }}>{i+1}</span>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed pt-0.5">{step}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Share link */}
+              <button onClick={copyLink}
+                className="w-full flex items-center justify-between rounded-xl border border-border/40 bg-card/40 px-4 py-3 hover:border-primary/30 hover:bg-primary/[0.04] transition-all">
+                <div className="text-left">
+                  <p className="text-xs font-bold text-foreground">Share Download Link</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">Copy APK URL to send to someone</p>
+                </div>
+                <span className="text-[9px] font-black flex items-center gap-1.5"
+                  style={{ color: linkCopied ? "hsl(142,71%,45%)" : "hsl(var(--primary))" }}>
+                  {linkCopied ? <><CheckCircle2 size={10}/> Copied!</> : <>Copy <ChevronRight size={10}/></>}
+                </span>
+              </button>
+
+              {/* App changelog */}
+              <div className="rounded-xl border border-border/40 bg-card/40 p-3 space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">App Changelog</p>
+                {APP_VERSION.changelog.map((c, i) => (
+                  <div key={c.version} className="flex gap-2">
+                    <span className="text-[9px] font-black flex-shrink-0 w-12"
+                      style={{ color: i===0 ? "hsl(var(--primary))" : "hsl(var(--foreground))" }}>{c.version}</span>
+                    <span className="text-[9px] text-muted-foreground flex-shrink-0 w-16">{c.date}</span>
+                    <p className="text-[9px] text-muted-foreground leading-relaxed">{c.note}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )
+        }
+        return <AndroidSection />
+      }
 
       default: return null
     }
@@ -587,8 +606,6 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
   return (
     <>
       <div onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40" aria-hidden="true" />
-
-      {/* Panel on the LEFT */}
       <aside role="dialog" aria-modal="true" aria-label="Settings"
         style={{ height:"100dvh" }}
         className="fixed top-0 left-0 w-full sm:w-[420px] bg-card border-r border-border z-50 flex flex-col shadow-2xl overflow-hidden">
@@ -620,14 +637,12 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
           </button>
         </div>
 
-        {/* Cascade body */}
+        {/* Body */}
         <div className="flex-1 overflow-hidden relative">
-
-          {/* Page 1 — section list (slides LEFT when section is active) */}
+          {/* Page 1 — section list */}
           <div className={`absolute inset-0 overflow-y-auto custom-scrollbar transition-transform duration-300 ease-in-out
             ${activeSection ? "-translate-x-full" : "translate-x-0"}`}>
 
-            {/* Current theme badge */}
             <div className="px-4 pt-4 pb-2">
               <div className="rounded-xl border border-border bg-background/40 px-3 py-2.5 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg flex-shrink-0 relative overflow-hidden"
@@ -647,7 +662,6 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
               </div>
             </div>
 
-            {/* Section rows */}
             <div className="px-4 pb-4 space-y-1.5 mt-2">
               {SECTIONS.map(s => {
                 const Icon = s.icon
@@ -668,7 +682,6 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
             </div>
 
             <div className="px-4 pb-4 border-t border-border pt-3 space-y-1.5">
-              {/* Replay onboarding — always accessible */}
               {onReplayOnboarding && (
                 <button onClick={() => { onClose(); setTimeout(onReplayOnboarding, 200) }}
                   className="w-full flex items-center gap-3 rounded-xl px-3.5 py-3 hover:bg-primary/[0.06] border border-transparent hover:border-primary/20 transition-all group text-left">
@@ -694,7 +707,7 @@ export function SettingsPanel({ open, onClose, isOwner = false, onReplayOnboardi
             </div>
           </div>
 
-          {/* Page 2 — content (slides in from RIGHT when section is active) */}
+          {/* Page 2 — section content */}
           <div className={`absolute inset-0 overflow-y-auto custom-scrollbar transition-transform duration-300 ease-in-out
             ${activeSection ? "translate-x-0" : "translate-x-full"}`}>
             {renderContent()}
