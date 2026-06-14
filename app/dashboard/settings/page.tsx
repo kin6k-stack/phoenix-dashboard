@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Monitor, Bell, Wifi, Shield, Save, RefreshCw } from "lucide-react";
+import {
+  Settings, Monitor, Bell, Wifi, Shield, Save,
+  Smartphone, Download, ChevronRight, CheckCircle2
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { APP_VERSION } from "@/lib/app-version";
 
 interface ToggleProps {
   enabled: boolean;
@@ -22,8 +26,7 @@ function Toggle({ enabled, onChange }: ToggleProps) {
     >
       <span
         className={cn(
-          "inline-block h-3.5 w-3.5 rounded-full bg-white shadow transform transition-transform",
-          enabled ? "translate-x-4.5" : "translate-x-0.5"
+          "inline-block h-3.5 w-3.5 rounded-full bg-white shadow transform transition-transform"
         )}
         style={{ transform: enabled ? "translateX(18px)" : "translateX(2px)" }}
       />
@@ -31,12 +34,19 @@ function Toggle({ enabled, onChange }: ToggleProps) {
   );
 }
 
-function Section({ title, icon: Icon, children }: { title: string; icon: React.ElementType; children: React.ReactNode }) {
+function Section({
+  title, icon: Icon, children, accent
+}: {
+  title: string; icon: React.ElementType; children: React.ReactNode; accent?: string
+}) {
   return (
-    <Card>
+    <Card style={accent ? { borderColor: `${accent}30` } : undefined}>
       <CardContent className="p-4">
         <div className="flex items-center gap-2 mb-4">
-          <Icon className="h-4 w-4 text-blue-400" />
+          <Icon
+            className="h-4 w-4"
+            style={{ color: accent ?? "rgb(96,165,250)" }}
+          />
           <h2 className="text-sm font-semibold">{title}</h2>
         </div>
         {children}
@@ -59,32 +69,41 @@ function Row({ label, sub, children }: { label: string; sub?: string; children: 
 
 export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
+  const [apkCopied, setApkCopied] = useState(false);
 
   // Display
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [refreshInterval, setRefreshInterval] = useState("5");
-  const [compactMode, setCompactMode] = useState(false);
-  const [showMockBadge, setShowMockBadge] = useState(true);
+  const [autoRefresh,      setAutoRefresh]      = useState(true);
+  const [refreshInterval,  setRefreshInterval]  = useState("5");
+  const [compactMode,      setCompactMode]      = useState(false);
+  const [showMockBadge,    setShowMockBadge]    = useState(true);
 
   // Notifications
-  const [signalAlerts, setSignalAlerts] = useState(true);
-  const [highImpactNews, setHighImpactNews] = useState(true);
-  const [trumpAlerts, setTrumpAlerts] = useState(true);
-  const [riskGateAlerts, setRiskGateAlerts] = useState(true);
+  const [signalAlerts,    setSignalAlerts]    = useState(true);
+  const [highImpactNews,  setHighImpactNews]  = useState(true);
+  const [trumpAlerts,     setTrumpAlerts]     = useState(true);
+  const [riskGateAlerts,  setRiskGateAlerts]  = useState(true);
 
   // Bot Connection
-  const [botSecret, setBotSecret] = useState("");
-  const [botEndpoint, setBotEndpoint] = useState("https://your-dashboard.vercel.app");
-  const [verboseLogs, setVerboseLogs] = useState(false);
+  const [botSecret,     setBotSecret]     = useState("");
+  const [botEndpoint,   setBotEndpoint]   = useState("https://your-dashboard.vercel.app");
+  const [verboseLogs,   setVerboseLogs]   = useState(false);
 
   // Agent
-  const [defaultSymbol, setDefaultSymbol] = useState("XAUUSD");
+  const [defaultSymbol,    setDefaultSymbol]    = useState("XAUUSD");
   const [defaultTimeframe, setDefaultTimeframe] = useState("H1");
-  const [agentCacheTTL, setAgentCacheTTL] = useState("5");
+  const [agentCacheTTL,    setAgentCacheTTL]    = useState("5");
 
   function handleSave() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  function copyDownloadLink() {
+    const url = `${window.location.origin}${APP_VERSION.downloadUrl}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setApkCopied(true);
+      setTimeout(() => setApkCopied(false), 2500);
+    });
   }
 
   return (
@@ -103,7 +122,123 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      {/* Display */}
+      {/* ── Android App Download ─────────────────────────────────────── */}
+      <Section title="Android App" icon={Smartphone} accent="#f97316">
+        {/* Hero download card */}
+        <div
+          className="rounded-xl border p-4 mb-4 relative overflow-hidden"
+          style={{ borderColor: "#f9731630", background: "#f9731608" }}
+        >
+          {/* Glow strip */}
+          <div
+            className="absolute top-0 left-8 right-8 h-px"
+            style={{ background: "linear-gradient(90deg,transparent,#f97316,transparent)" }}
+          />
+
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">🔥</span>
+                <p className="text-sm font-black text-foreground">Phoenix Dashboard</p>
+                <span
+                  className="text-[9px] font-black px-1.5 py-0.5 rounded"
+                  style={{ background: "#f9731620", color: "#f97316" }}
+                >
+                  {APP_VERSION.version}
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mb-0.5">
+                {APP_VERSION.appId} · Android {APP_VERSION.minAndroid}+
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                Built {APP_VERSION.buildDate}
+              </p>
+            </div>
+
+            {/* Download button */}
+            <a
+              href={APP_VERSION.downloadUrl}
+              download="phoenix-dashboard.apk"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest text-black flex-shrink-0 transition-all hover:opacity-90 active:scale-95"
+              style={{ background: "#f97316", boxShadow: "0 0 16px rgba(249,115,22,0.4)" }}
+            >
+              <Download size={12} />
+              Download APK
+            </a>
+          </div>
+
+          {/* Feature pills */}
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {[
+              "📡 Live bot trades",
+              "🔔 FCM push alerts",
+              "🔐 Biometric lock",
+              "🔑 Google Sign-In",
+              "♻️ Auto-syncs via Vercel",
+            ].map(f => (
+              <span
+                key={f}
+                className="text-[9px] px-2 py-0.5 rounded-full border"
+                style={{ borderColor: "#f9731625", color: "#f9731699" }}
+              >
+                {f}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Install steps */}
+        <div className="space-y-2 mb-4">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            Install Steps
+          </p>
+          {[
+            { n: "1", label: "Download the APK using the button above" },
+            { n: "2", label: 'Open Settings → Apps → Install Unknown Apps → allow your browser' },
+            { n: "3", label: "Open the downloaded APK file and tap Install" },
+            { n: "4", label: "Sign in with Google — same account as the web dashboard" },
+          ].map(step => (
+            <div key={step.n} className="flex items-start gap-3">
+              <span
+                className="flex-shrink-0 w-5 h-5 rounded-full text-[9px] font-black flex items-center justify-center"
+                style={{ background: "#f9731620", color: "#f97316" }}
+              >
+                {step.n}
+              </span>
+              <p className="text-[10px] text-muted-foreground leading-relaxed pt-0.5">{step.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Copy link */}
+        <Row label="Share Download Link" sub="Copy direct APK URL to send to someone">
+          <button
+            onClick={copyDownloadLink}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[10px] font-black transition-all"
+            style={{ borderColor: "#f9731640", color: apkCopied ? "#22c55e" : "#f97316" }}
+          >
+            {apkCopied ? <><CheckCircle2 size={10} /> Copied!</> : <><ChevronRight size={10} /> Copy Link</>}
+          </button>
+        </Row>
+
+        {/* Changelog */}
+        <div className="mt-3 pt-3 border-t border-border">
+          <p className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground mb-2">
+            App Changelog
+          </p>
+          {APP_VERSION.changelog.map((c, i) => (
+            <div key={c.version} className="flex gap-3 mb-2 last:mb-0">
+              <span className="text-[9px] font-black flex-shrink-0" style={{ color: i === 0 ? "#f97316" : "hsl(var(--foreground))" }}>
+                {c.version}
+              </span>
+              <span className="text-[9px] text-muted-foreground flex-shrink-0">{c.date}</span>
+              <p className="text-[9px] text-muted-foreground leading-relaxed">{c.note}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ── Display ──────────────────────────────────────────────────── */}
       <Section title="Display" icon={Monitor}>
         <Row label="Auto-Refresh Data" sub="Automatically fetch fresh market data on a timer">
           <Toggle enabled={autoRefresh} onChange={setAutoRefresh} />
@@ -122,15 +257,15 @@ export default function SettingsPage() {
         <Row label="Compact Mode" sub="Reduce card padding for denser information display">
           <Toggle enabled={compactMode} onChange={setCompactMode} />
         </Row>
-        <Row label="Show Mock Data Badge" sub="Display indicator when using seeded mock data (no MT5 connection)">
+        <Row label="Show Mock Data Badge" sub="Display indicator when using seeded mock data">
           <Toggle enabled={showMockBadge} onChange={setShowMockBadge} />
         </Row>
       </Section>
 
-      {/* MT5 Bot Connection */}
+      {/* ── MT5 Bot Connection ────────────────────────────────────────── */}
       <Section title="MT5 Bot Connection" icon={Wifi}>
         <div className="space-y-3">
-          <Row label="Phoenix Base URL" sub="Your Vercel deployment URL — set this in PhoenixBridge EA">
+          <Row label="Phoenix Base URL" sub="Your Vercel deployment URL">
             <div className="flex items-center gap-2">
               <span className={cn(
                 "text-[10px] px-2 py-0.5 rounded font-semibold",
@@ -162,7 +297,8 @@ export default function SettingsPage() {
               className="w-full bg-zinc-900 border border-[var(--t-border)] rounded px-3 py-1.5 text-xs text-zinc-300 font-mono focus:outline-none focus:border-emerald-500/50"
             />
             <p className="text-[10px] text-zinc-600">
-              Must match <code className="text-zinc-500">MT5_PUSH_SECRET</code> in your Vercel env variables and <code className="text-zinc-500">PhoenixSecret</code> in the EA inputs
+              Must match <code className="text-zinc-500">MT5_PUSH_SECRET</code> in Vercel env and{" "}
+              <code className="text-zinc-500">PhoenixSecret</code> in EA inputs
             </p>
           </div>
           <Row label="Verbose Bot Logs" sub="Log all MT5 push payloads to server console">
@@ -171,7 +307,7 @@ export default function SettingsPage() {
         </div>
       </Section>
 
-      {/* Agent Settings */}
+      {/* ── Agent Settings ────────────────────────────────────────────── */}
       <Section title="Agent Pipeline" icon={Settings}>
         <Row label="Default Symbol" sub="Pre-selected instrument on Market Bias page">
           <select
@@ -195,7 +331,7 @@ export default function SettingsPage() {
             ))}
           </select>
         </Row>
-        <Row label="Agent Cache TTL" sub="How long to cache agent results before auto-refresh (minutes)">
+        <Row label="Agent Cache TTL" sub="How long to cache agent results (minutes)">
           <select
             value={agentCacheTTL}
             onChange={(e) => setAgentCacheTTL(e.target.value)}
@@ -208,7 +344,7 @@ export default function SettingsPage() {
         </Row>
       </Section>
 
-      {/* Notifications */}
+      {/* ── Notifications ─────────────────────────────────────────────── */}
       <Section title="Notifications" icon={Bell}>
         <Row label="Signal Alerts" sub="Notify when a new armed signal is logged">
           <Toggle enabled={signalAlerts} onChange={setSignalAlerts} />
@@ -219,28 +355,33 @@ export default function SettingsPage() {
         <Row label="Trump Monitor Alerts" sub="Notify on new high-impact Trump posts">
           <Toggle enabled={trumpAlerts} onChange={setTrumpAlerts} />
         </Row>
-        <Row label="Risk Gate Changes" sub="Alert when risk gate status changes (CLEAR ↔ BLOCKED)">
+        <Row label="Risk Gate Changes" sub="Alert when risk gate status changes">
           <Toggle enabled={riskGateAlerts} onChange={setRiskGateAlerts} />
         </Row>
       </Section>
 
-      {/* Security / Info */}
+      {/* ── Security ──────────────────────────────────────────────────── */}
       <Section title="Security" icon={Shield}>
         <div className="space-y-2 text-xs text-zinc-500 leading-relaxed">
           <p>
-            The Phoenix Dashboard authenticates MT5 bot pushes using the <code className="text-zinc-400">x-phoenix-secret</code> header.
-            Set <code className="text-zinc-400">MT5_PUSH_SECRET</code> in your Vercel environment variables and match it in the EA <code className="text-zinc-400">PhoenixSecret</code> input.
+            MT5 bot pushes authenticate via the{" "}
+            <code className="text-zinc-400">x-phoenix-secret</code> header.
+            Set <code className="text-zinc-400">MT5_PUSH_SECRET</code> in Vercel env and match it in the EA.
           </p>
           <p className="text-zinc-600">
-            The <code className="text-zinc-500">ANTHROPIC_API_KEY</code> is kept server-side only and never exposed to the client. Agent results are cached for the configured TTL before triggering a new API call.
+            <code className="text-zinc-500">ANTHROPIC_API_KEY</code> is server-side only — never exposed to the client.
           </p>
         </div>
       </Section>
 
-      {/* Version */}
+      {/* ── Version footer ────────────────────────────────────────────── */}
       <div className="text-center py-2">
-        <p className="text-[10px] text-zinc-700">Phoenix Trading Dashboard v2.0 · Cyber-Industrial</p>
-        <p className="text-[10px] text-zinc-800 mt-0.5">Next.js 14 · Vercel · Firebase-ready · MT5 bridge active</p>
+        <p className="text-[10px] text-zinc-700">
+          Phoenix Trading Dashboard · Web · Next.js · Vercel · Firebase
+        </p>
+        <p className="text-[10px] text-zinc-800 mt-0.5">
+          Android App {APP_VERSION.version} · {APP_VERSION.appId}
+        </p>
       </div>
     </div>
   );
