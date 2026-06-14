@@ -1,5 +1,7 @@
 "use client"
 
+import { BOT_REGISTRY } from "@/lib/bot-registry"
+import type { BotRegistryEntry } from "@/lib/bot-registry"
 import { useState, useEffect, useMemo } from "react"
 import {
   collection, onSnapshot, query, where,
@@ -17,100 +19,7 @@ import {
   CartesianGrid, Tooltip
 } from "recharts"
 
-// ─── Bot registry ──────────────────────────────────────────────────────────
-const BOTS = [
-  {
-    id:        "apex",
-    name:      "Gold Sentinel Apex",
-    version:   "v5.13",
-    magic:     88802,
-    symbol:    "XAUUSDm",
-    timeframe: "M15",
-    color:     "#f59e0b",
-    glow:      "rgba(245,158,11,0.4)",
-    icon:      "🦅",
-    firestore: "Gold Sentinel Apex",
-    config: {
-      "Mode":       "CRT M15 Sniper",
-      "Anchor":     "03:00 broker (pre-London H1)",
-      "Entry":      "M15 close inside range + EMA8",
-      "SL":         "Sweep wick + 10 pts padding",
-      "TP":         "Opposite range extreme (static)",
-      "BE":         "35% of TP distance",
-      "Stagnation": "2 M15 bars (30 min)",
-      "Filters":    "H4 bias + ADX ≥22 (optional)",
-    },
-    changelog: [
-      { version:"v5.13",date:"Jun 2026",  note:"RemoteConfig wired — live dashboard toggles (HTF bias, OB, prem/dis, spread, daily caps, Shield RR, kill-switch). 15-min heartbeat. Falls back to inputs if Firestore unreachable." },
-      { version:"v5.12",date:"Jun 2026",  note:"Heartbeat fix (was going offline after 10 min). Full OPENED payload (tp1+tp2). CLOSED sends tpReached+isRunner. PHX_Memory — day-lock + Ghost Shield runner survive re-add/restart." },
-      { version:"v5.11",date:"Jun 2026",  note:"M15 sniper + Precision Drawdown Kill. Shared PHX_SMC_Core + PHX_Telegram includes. Live balance compounding." },
-      { version:"v5.1", date:"Jun 2026",  note:"CRT rebuild — 4-state machine (IDLE→RANGE→SWEEP→TRADE). M15 sniper. 35% BE. 2-bar stagnation fuse. ADX + H4 bias preserved." },
-      { version:"v5.0", date:"Jun 2026",  note:"SMC rebuild — OB+FVG+Sweep+H4 bias. Trailing Runner restored." },
-      { version:"v4.44",date:"May 2026",  note:"Session filter 03-20 NY. Fixed Runner 3R. BE at 1R. Server guard." },
-      { version:"v4.40",date:"Apr 2026",  note:"ADX threshold 25. DoubleShot enabled. London block partial." },
-      { version:"v4.0", date:"Mar 2026",  note:"Initial institutional version. Trailing stop active." },
-    ],
-  },
-  {
-    id:        "hybrid",
-    name:      "Phoenix Gold Scalper Engine",
-    version:   "v2.1",
-    magic:     88803,
-    symbol:    "XAUUSDm",
-    timeframe: "M5",
-    color:     "#f97316",
-    glow:      "rgba(249,115,22,0.4)",
-    icon:      "🔥",
-    firestore: "Phoenix Gold Scalper Engine",
-    config: {
-      "Mode":        "5m Zone Scalper — data-validated",
-      "Zones":       "Demand/Supply + M15/H1 swing levels (64 max)",
-      "Entry":       "Pin bar / engulfing at zone",
-      "Trend":       "EMA 150/250 gate · PDH/PDL counter OK",
-      "SL":          "ATR x1.2 · 1.5-8.0 pt band",
-      "TP":          "TP1 1:1 (validated) · TP2 2:1",
-      "Ghost Shield":"BE after TP1 (+1.0 pt) — runner risk-free",
-      "Runner":      "07-16 UTC · bank 50% at TP1, run rest",
-      "Sessions":    "Asia · London · NY · Friday kill",
-      "Memory":      "PHX_Memory — survives re-add/restart",
-    },
-    changelog: [
-      { version:"v2.1", date:"Jun 2026",  note:"PHX_Memory integration — runner/state survive re-add & terminal restart. 10-min online heartbeat (BOT_INIT logged once). OnTradeTransaction flag-clear. Webhook now sends tp1+tp2+lot." },
-      { version:"v2.0", date:"Jun 2026",  note:"Data-validated rebuild — M15 (56%) + H1 (33%) swing zones added, MAX_ZONES→64. Session runner 07-16 UTC: bank 50% at TP1, run rest to TP2 at BE. Exit model from 631-signal study (+263 pts/trade banking at TP1)." },
-      { version:"v1.0", date:"May 2026",  note:"Initial 5m demand/supply zone scalper. Ghost Shield BE. EMA 150/250 trend gate. Pin bar / engulfing entries. ATR-based SL 1.5-8.0 pt." },
-    ],
-  },
-  {
-    id:        "nq",
-    name:      "Phoenix NQ Engine",
-    version:   "v2.2",
-    magic:     88801,
-    symbol:    "USTECm",
-    timeframe: "M5",
-    color:     "#06b6d4",
-    glow:      "rgba(6,182,212,0.4)",
-    icon:      "⚡",
-    firestore: "Phoenix NQ Engine",
-    config: {
-      "Mode":       "CRT M5 NQ",
-      "Anchor":     "08:00 AM NY (pre-open H1)",
-      "Entry":      "M5 close inside range + EMA8",
-      "SL":         "Sweep wick + 5 pts padding",
-      "TP":         "Opposite range extreme (static)",
-      "BE":         "50% of TP distance",
-      "Stagnation": "3 M5 bars (15 min)",
-      "Filters":    "H1 bias optional",
-    },
-    changelog: [
-      { version:"v2.2", date:"Jun 2026",  note:"Heartbeat fix (15-min BOT_INIT). OPENED sends tp1. CLOSED sends tpReached+isRunner. PHX_Memory — Drawdown Kill survives re-add; no double-entry on re-attach." },
-      { version:"v2.1", date:"Jun 2026",  note:"CRT rebuild — 4-state machine (IDLE→RANGE→SWEEP→TRADE). Pre-NY H1 anchor. 50% BE. 3-bar stagnation fuse. Invalidation candle rule." },
-      { version:"v2.0", date:"Jun 2026",  note:"SMC rebuild — 1-bar open delay. BOS confirmation. OB + H1 bias." },
-      { version:"v1.9", date:"May 2026",  note:"Lot reduced 0.10→0.03. consecutiveLoss lookback 7d→2d." },
-      { version:"v1.6", date:"Apr 2026",  note:"SuperTrend + MACD + EMA150/250. News filter. EOD kill." },
-      { version:"v1.0", date:"Mar 2026",  note:"Initial NQ momentum engine." },
-    ],
-  },
-]
+
 
 // ─── BotMeta: live data from botConfig/{magic} via onSnapshot ────────────────
 // botName, botVersion, botMode come from the EA's BOT_INIT webhook call.
@@ -163,7 +72,7 @@ function ChartTip({ active, payload, label }: any) {
 
 // ─── BotCard ──────────────────────────────────────────────────────────────────
 function BotCard({ bot, stats, botMeta, selected, onClick }: {
-  bot:     typeof BOTS[0]
+  bot:     BotRegistryEntry
   stats:   BotStats
   botMeta: BotMeta
   selected: boolean
@@ -250,7 +159,7 @@ function BotCard({ bot, stats, botMeta, selected, onClick }: {
 
 // ─── BotDetail ────────────────────────────────────────────────────────────────
 function BotDetail({ bot, stats, botMeta, onAddToCalendar }: {
-  bot:     typeof BOTS[0]
+  bot:     BotRegistryEntry
   stats:   BotStats
   botMeta: BotMeta
   onAddToCalendar?: (trade: any) => void
@@ -815,18 +724,18 @@ function BotDetail({ bot, stats, botMeta, onAddToCalendar }: {
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 export default function BotHubView({ onAddToCalendar }: { onAddToCalendar?: (trade: any) => void } = {}) {
-  const [selectedBot, setSelectedBot] = useState(BOTS[0].id)
+  const [selectedBot, setSelectedBot] = useState(BOT_REGISTRY[0].id)
   const [botStats,    setBotStats]    = useState<Record<string, BotStats>>({})
   // Real-time botMeta per bot — subscribed via onSnapshot so heartbeats and
   // BOT_OFFLINE updates reflect instantly without a page refresh.
   const [botMetas,    setBotMetas]    = useState<Record<string, BotMeta>>({})
 
-  const bot = BOTS.find(b => b.id === selectedBot)!
+  const bot = BOT_REGISTRY.find(b => b.id === selectedBot)!
 
   // Subscribe to botTrades per bot
   useEffect(() => {
     const unsubs: (() => void)[] = []
-    for (const b of BOTS) {
+    for (const b of BOT_REGISTRY) {
       setBotStats(prev => ({ ...prev, [b.id]: { trades:[], loaded:false } }))
       const q = query(collection(db, "botTrades"), where("bot", "==", b.firestore))
       const unsub = onSnapshot(q, snap => {
@@ -863,7 +772,7 @@ export default function BotHubView({ onAddToCalendar }: { onAddToCalendar?: (tra
   // - Name/version changes → card and detail update without page reload
   useEffect(() => {
     const unsubs: (() => void)[] = []
-    for (const b of BOTS) {
+    for (const b of BOT_REGISTRY) {
       const unsub = onSnapshot(doc(db, "botConfig", String(b.magic)), snap => {
         if (snap.exists()) {
           const d = snap.data()
@@ -896,7 +805,7 @@ export default function BotHubView({ onAddToCalendar }: { onAddToCalendar?: (tra
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {BOTS.map(b => (
+        {BOT_REGISTRY.map(b => (
           <BotCard
             key={b.id}
             bot={b}
