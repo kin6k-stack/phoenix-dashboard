@@ -270,7 +270,7 @@ function BotDetail({ bot, stats, botMeta, onAddToCalendar }: {
   const TABS = [
     { id:"overview",  label:"Overview"   },
     { id:"signals",   label:"Signals"    },
-    { id:"trades",    label:"All Trades" },
+    { id:"trades",    label:"Trades" },
     ...(isOwner ? [{ id:"config", label:"Config" }] : []),
     { id:"changelog", label:"Changelog"  },
   ]
@@ -307,11 +307,11 @@ function BotDetail({ bot, stats, botMeta, onAddToCalendar }: {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b" style={{ borderColor:`${bot.color}12` }}>
+      {/* Tabs — overflow-x scrollable so all tabs always visible */}
+      <div className="flex border-b overflow-x-auto no-scrollbar" style={{ borderColor:`${bot.color}12` }}>
         {TABS.map(t => (
           <button key={t.id} onClick={() => setTab(t.id as any)}
-            className="px-5 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all"
+            className="px-3 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all flex-shrink-0 whitespace-nowrap"
             style={{
               color:        tab===t.id ? bot.color         : "hsl(var(--muted-foreground))",
               borderBottom: tab===t.id ? `2px solid ${bot.color}` : "2px solid transparent",
